@@ -1,0 +1,221 @@
+Changes log for Perl extension SQL::Statement
+
+
+Version 1.10, released 27 March, 2005
+----------------------------------------
+ * added support for CREATE TABLE AS SELECT ... and CREATE TABLE AS IMPORT()
+
+ * added support for in-memory tables and heterogeneous operations,
+   see the SQL::Parser docs
+
+ * added many new built-in functions see SQL::Statement::Functions.pm
+
+ * added support for user-defined functions, see SQL::Statement::Functions.pm
+
+ * added support for column name aliases
+       thanks for patch, Robert Rothenberg
+
+ * added support for comparison to empty string (e.g. WHERE col1='')
+   currently returns the same as WHERE col1 IS NULL
+       thanks for patch, cpanATgoess.org
+
+ * fixed bug in S::P::clean_sql() newline-handling,
+       thanks for patch Steffen G., steffenATkonzeptloses.de
+
+ * fixed bug in  SQL::Parser::feature()
+       thanks for patch, chromatic
+
+ * the word "INTO" is now optional in "INSERT INTO tblname ..."
+ * the word "FROM" is now optional in "DELETE FROM tblname ..."
+       thanks for suggestion, gipeol@sci.kun.nl
+
+ * optimized portions of eval_where, process_predicate, and is_matched
+   HUGE thanks Dan Wright and Dean Arnold for patches
+
+ * HUGE thanks to Dean Arnold for all the following which should clean up
+   a number of bugs in parentheses parsing and in the predicates IN and
+   BETWEEN as well as speed things up considerably
+
+	SQL::Parser changes:
+	- removed recursion from get_in(), get_btwn()
+	- fixed paren scan and argument separator scan in get_in()
+	- optimized get_in/get_btwn code
+	- made get_in/get_btwn OO methods to support
+		being overridden by subclasses
+	- added transform_syntax() abstract method
+		to permit subclasses to add their own
+		syntax extensions
+	- rewrite of parens_search() to fixed predicate 
+		paren processing, remove recursion, and optimize
+		code
+	- rewrite of non_parens_search() to fixed predicate 
+		paren processing and optimize code
+	- rewrite of PREDICATE to optimize code; moved
+		operator regex construction to dialect
+		initialization
+	- change undo_string_funcs(), undo_math_funcs(),
+		nongroup_numeric(), nongroup_string()
+		to remove scoped recursion
+	- fixed nongroup_numeric() for case insensitive
+		operator match
+	- fixed nongroup_string, undo_string_funcs() to
+		include user defined funcs
+	- fixed ROW_VALUE's scan for user defined function
+		argument separator scan
+
+     * fixed function detection regex in SQL::Parser::ROW_VALUE
+ 	to accomodate arbitrary spacing
+
+     * fixed SQL::Parser::SELECT_LIST()/extract_column_list()
+ 	to support concat operator '||' expressions
+
+     * added following functions to SQL::Statement::Functions:
+ 	- COALESCE
+ 	- NVL (same as COALESCE)
+ 	- DECODE (same as Oracle DECODE)
+ 	- CONCAT
+ 	- REPLACE/SUBSTITUTE
+ 
+     * fixed/adapted SQL::Statement::get_row_value(), 
+	SQL::Statement::SELECT(), for join'ed
+ 	resultsets
+
+
+Version 1.09, released 22 April, 2004
+-------------------------------------
+ * fixed parens parsing bug reported by Dan Wright, thanks!
+
+
+Version 1.08, released 20 April, 2004
+-------------------------------------
+
+ * fixed bug in JOIN handling introduced in 1.06
+
+
+Version 1.07, released 20 April, 2004
+-------------------------------------
+
+ * fixed infinite recursion bug with empty IN() predicate
+   thanks chromatic, for the patch
+
+ * fixed case issues with table aliases in joins
+   thanks chromatic, for bug report
+
+Version 1.06, released 18 April, 2004
+-------------------------------------
+
+ * column and table name hashes now default to case sensitive
+
+ * where() method now supported as per the docs
+   
+
+Version 1.005, released 26 October, 2002
+------------------------------------------
+
+ * added support for MySQL-like "DROP TABLE IF EXISTS"
+
+ * fixed bug in dotted column names e.g. tableA.colB
+
+ * fixed bug in MAX and MIN (thanks Michael Kovacs, 
+   mkovacs@turing.une.edu.au)
+
+ * fixed bug in ORDER BY (when col names not in SELECT list)
+   Thanks Janet Goldstein <jgold@cidr.jhmi.edu>
+
+
+Version 1.004, released 13 March, 2002
+------------------------------------------
+
+ * added support for delimited identifiers (inside double quotes);
+   these are case sensitive and can contain spaces and other
+   special chars
+
+ * added support for two forms of escaping single quotes inside
+   quoted values: 'O\'Brien' or  'O''Brien'
+
+ * added support for  both C-Style and SQL-Style double-hypen
+   comments,  e.g.  /* comment */ or -- comment
+
+ * added GetInfo.pm for use with $dbh->get_info()
+
+ * updated the readme file
+
+ * fixed bug in update that refers to its own columns
+   (e.g. SET num = num + 2)
+
+ * fixed bug in MIN and MAX when used with strings
+   Thanks Dean Kopesky <dean.kopesky@reuters.com>
+
+Version 1.003, released 01 March, 2002
+------------------------------------------
+
+ * identifiers (names of columns, tables, and table name
+   aliases) are now all case insensitive as required by the SQL
+   standard. all older versions including the XS versions used
+   case sensitive column names
+
+ * added numerous examples to test.pl
+   
+ * improved and/or fixed bugs in:
+
+   * placeholder support
+     Thanks Achim Grolms <Achim.Grolms@fujitsu-siemens.com>
+
+   * ORDER BY clause
+     Thanks Jan Stocker <jstocker@tzi.de>
+
+   * LIKE/CLIKE/RLIKE/IN predicates
+     Thanks Udo Beckmann <Udo.Beckmann@trinkaus.de>
+
+   * table name aliases in explicit joins
+
+Version 1.002, released 5 February, 2002
+----------------------------------------
+
+ * added backwards compatiblity: both SQL::Statement and
+   SQL::Parser now work in perl version 5.004 and above.
+
+ * changed defaults for DBD::CSV so it now accepts new SQL
+   without adding extra flags to scripts
+
+ * added support for SQL comments
+
+ * added support for temporary tables and on commit clauses in
+   CREATE statements and drop behaviour flags in DROP statements
+   (SQL::Parser only, not supported by SQL::Statement)
+
+ * fixed bugs in qualified column names (e.g. tableA.*), and in
+   joins using ON or WHERE
+
+Version 1.001, released January 17,2002
+---------------------------------------
+
+Fixed bug in UPDATE that caused the new value to be a hash
+rather than a scalar.
+
+Version 1.0, released January 15, 2002
+--------------------------------------
+
+This is the first CPAN release of the pure perl version of the
+module.  It was previously released in an XS version by Jochen
+Wiedman who has turned over maintenance of it to me.
+
+The new Pure Perl version of SQL::Statement supports everything
+supported by the XS version and, additionally, at least partial
+support for the following features that are not supported at all
+by the XS version:
+
+ * Explicit and implicit joins
+ * Table name aliases
+ * Set functions
+ * String functions
+ * String concatenation
+ * Numeric expressions
+ * IN predicate
+ * BETWEEN predicate
+ * Alphabetic comparison in WHERE clauses
+ * Ordering of text that looks like a number
+ * Verbose error messages for both Parsing and Execution errors
+
+
+
