@@ -31,8 +31,7 @@ BEGIN {
 
 #use locale;
 
-$VERSION = '1.10';  # the real 1.10, not the earlier start at it
-
+$VERSION = '1.11';
 $dlm = '~';
 $arg_num=0;
 $warg_num=0;
@@ -277,7 +276,7 @@ sub CREATE ($$$) {
          my $sth;
          # AS IMPORT
          if ($subquery =~ /^IMPORT/i) {
-             $sth = $data->{Database}->prepare("SELECT $subquery");
+             $sth = $data->{Database}->prepare("SELECT * FROM $subquery");
              $sth->execute(@$params);
          }
          # AS SELECT
@@ -296,8 +295,7 @@ sub CREATE ($$$) {
 	 $data->{Database}->do($create_sql);
          my $colstr    = ('?,')x@tbl_cols;
          my $insert_sql = "INSERT INTO $tbl_name VALUES($colstr)";
-	 my $rv;
-         $rv+= $data->{Database}->do($insert_sql,{},@$_) for @$tbl_data;
+         $data->{Database}->do($insert_sql,{},@$_) for @$tbl_data;
          return (0,0);
     }
     my($eval,$foo) = $self->open_tables($data, 1, 1);
@@ -2977,11 +2975,11 @@ The original version of this module is Copyright (C) 1998 by
     Email: joe@ispsoft.de
     Phone: +49 7123 14887
 
-The current version is Copyright (c) 2001 by
+The current version is Copyright (c) 2001,2005 by
 
     Jeff Zucker
 
-    Email: jeff@vpservices.com
+    Email: jzuckerATcpan.org
 
 All rights reserved.
 
