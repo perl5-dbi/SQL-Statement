@@ -193,17 +193,25 @@ sub execute {
     return $self->do_err( 'No command found!') unless $command;
     ($self->{'NUM_OF_ROWS'}, $self->{'NUM_OF_FIELDS'},
           $self->{'data'}) = $self->$command($data, $params);
+
+    # MUNGE COLUMN NAME CASE
+
+    # $sth->{NAME} IS ALWAYS UPPER-CASED DURING PROCESSING
+    #
     my $names = $self->{NAME};
+
+    # FOR ASTERISKED QUERIES - WE USE STORED CASE OF COLUMNS
+    # 
     @$names = map {
-        my $org = $self->{ORG_NAME}->{$_}; # from the file header
+        my $org = $self->{ORG_NAME}->{$_};
         $org =~ s/^"//;
         $org =~ s/"$//;
         $org =~ s/""/"/g;
         $org;
     } @$names  if $self->{asterisked_columns};
-    $names = $self->{org_col_names} unless $self->{asterisked_columns};
-#    $names = $self->{org_col_names} unless $names;
-#bug($self);
+
+    $names = $self->{org_col_names}  unless $self->{asterisked_columns};
+
     my $newnames;
 #
 #	DAA
@@ -216,6 +224,7 @@ sub execute {
         push @$newnames,$newname;
     }
     $self->{NAME} = $newnames;
+
     my $tables;
     @$tables = map {$_->{"name"}} @{ $self->{"tables"} };
     delete $self->{'tables'};  # Force closing the tables
@@ -281,7 +290,7 @@ sub CREATE ($$$) {
          if ($subquery =~ /^IMPORT/i) {
              $sth = $data->{Database}->prepare("SELECT * FROM $subquery");
              $sth->execute(@$params);
-             $names  = $sth->{org_names};
+             $names  = $sth->{NAME};
          }
          # AS SELECT
          else {
@@ -1497,7 +1506,10 @@ sub open_tables {
 	}
 my @cnames;
 #$DEBUG=1;
-for my $c(@{$t->{"$name"}->{"col_names"}}) {
+#for my $c(@{$t->{"$name"}->{"col_names"}}) {
+my $table_cols= $t->{"$name"}->{"org_col_names"};
+   $table_cols= $t->{"$name"}->{"col_names"} unless $table_cols;
+for my $c(@$table_cols) {
   my $newc;
   if ($c =~ /^"/) {
  #    $c =~ s/^"(.+)"$/$1/;
@@ -2113,8 +2125,11 @@ sub get_user_func_table {
     my($self,$name,$u_func) = @_;
     my($data_aryref) =$self->get_row_value($u_func,$self,{});
     my $col_names = shift @$data_aryref;
-    my $tempTable = SQL::Statement::TempTable->new(
-        $name, $col_names, $col_names, $data_aryref
+    # my $tempTable = SQL::Statement::TempTable->new(
+    #     $name, $col_names, $col_names, $data_aryref
+    # );
+    my $tempTable = SQL::Statement::RAM->new(
+        $name, $col_names, $data_aryref
     );
     $tempTable->{all_cols} ||= $col_names;
     return $tempTable;
