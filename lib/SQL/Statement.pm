@@ -31,7 +31,7 @@ BEGIN {
 
 #use locale;
 
-$VERSION = '1.11';
+$VERSION = '1.12';
 $dlm = '~';
 $arg_num=0;
 $warg_num=0;
@@ -1071,6 +1071,7 @@ sub SELECT ($$) {
         my $limit  = $self->{"limit_clause"}->limit  || 0;
         @$rows = splice @$rows, $offset, $limit;
     }
+    return $self->group_by($rows) if $self->{group_by};
     if ($self->{"set_function"}) {
         my $numrows = scalar( @$rows );
         my $numcols = scalar @{ $self->{"NAME"} };
@@ -1078,7 +1079,7 @@ sub SELECT ($$) {
         my %colnum = map {$_=>$i++} @{ $self->{"NAME"} };
         for my $i(0 .. scalar @{$self->{"set_function"}} -1 ) {
             my $arg = $self->{"set_function"}->[$i]->{"arg"};
-            $self->{"set_function"}->[$i]->{"sel_col_num"} = $colnum{$arg} if defined $colnum{$arg};
+            $self->{"set_function"}->[$i]->{"sel_col_num"} = $colnum{$arg} if defined $arg and defined $colnum{$arg};
         }
         my($name,$arg,$sel_col_num);
         my @set;
@@ -1095,7 +1096,8 @@ sub SELECT ($$) {
                   $final_row[$sf_index]++;
 	      }
               else {
-                my $v = $c->[$sf->{"sel_col_num"}];
+                my $cn = $sf->{"sel_col_num"};
+                my $v = $c->[$cn] if defined $cn;
                 my $name = $sf->{"name"};
                 next unless defined $v;
                 my $final = $final_row[$sf_index];
@@ -1140,7 +1142,66 @@ sub SELECT ($$) {
     }
     (scalar(@$rows), $numFields, $rows);
 }
+sub group_by {
+    my($self,$rows)=@_;
+#    my @columns_requested = map {$_->name} @{$self->{columns}};
+    my $columns_requested = $self->{columns};
+    my $numcols=scalar(@$columns_requested);
+#    my $numcols=scalar(@{$self->{"set_function"}});
+    my $i=0;
+    my %colnum = map {$_=>$i++} @{ $self->{"NAME"} };
+#    my %colnum = map {$_=>$i++} @columns_requested;
+    my $set_cols;
 
+    my @all_cols=();
+    my $set_columns = $self->{set_function};
+    for my $c1(@$columns_requested) {
+        for my $c2(@$set_columns) {
+#            printf "%s %s\n",$c1->{name}, $c2->{arg};
+            next unless uc $c1->{name} eq uc $c2->{arg};
+            $c1->{arg}= $c2->{arg};
+            $c1->{name}= $c2->{name};
+            last;
+        }
+        push @all_cols,$c1;
+    }
+#    $self->{set_function}=\@all_cols;
+
+    for (@{ $self->{"set_function"} }) {
+       push @$set_cols, $_->{name};
+    }
+    my($keycol,$keynum);
+    for my $i(0 .. $numcols-1 ) {
+        my $arg = $self->{"set_function"}->[$i]->{"arg"};
+#         print $self->{NAME}->[$i],$arg,"\n";
+        if (!$arg ) {
+            $arg =$set_cols->[$i];
+#            $arg =$columns_requested[$i];
+            $keycol = $self->{"set_function"}->[$i]->{"name"};
+            $keynum =  $colnum{uc $arg};
+        }
+        $self->{"set_function"}->[$i]->{"sel_col_num"} = $colnum{uc $arg};
+    }
+
+    my $display_cols = $self->{"set_function"};
+    my $numFields    = scalar(@$display_cols);
+#    my $keyfield = $self->{group_by}->[0];
+#    my $keynum=0;
+#    for my$i(0..$#{$display_cols}) {
+#        $keynum=$i if uc $display_cols->[$i]->{name} eq uc $keyfield;
+#printf "%s.%s,%s\n",$i,$display_cols->[$i]->{name},$keyfield;
+#    }
+    my $g = SQL::Statement::Group->new($keynum,$display_cols,$rows);
+    $rows = $g->calc;
+    my $x = [ map {$_->{name}} @$display_cols ];
+    $self->{NAME} = [ map {$_->{name}} @$display_cols ];
+    %{$self->{ORG_NAME}} = map {
+        my $n = $_->{name};
+        $n .= "_" . $_->{arg} if $_->{arg};
+        $_->{name}=>$n;
+    } @$display_cols ;
+    return (scalar(@$rows), $numFields, $rows);
+}
 sub anycmp($$) {
     my ($a,$b) = @_;
     $a = '' unless defined $a;
@@ -2046,7 +2107,89 @@ sub get_user_func_table {
     return $tempTable;
 }
 
-#use SQL::Statement::Func;
+
+package SQL::Statement::Group;
+
+sub new {
+    my $class = shift;
+    my ($keycol,$display_cols,$ary)=@_;
+    my $self = {
+       keycol       => $keycol,
+       display_cols => $display_cols,
+       records      => $ary,
+    };
+    return bless $self, $class;
+}
+sub calc {
+    my $self=shift;
+    $self->ary2hash( $self->{records} );
+    my @cols = @{ $self->{display_cols} };
+    for my $key(@{$self->{keys}}) {
+        my $newrow;
+        my $colnum=0;
+        my %done;
+        my @func;
+        for my $col(@cols) {
+	    if ($col->{arg}) {
+                my $selkey = $col->{sel_col_num};
+$selkey ||= 0;
+		if (!defined $selkey) {
+#use mylibs; zwarn $col;
+#exit;
+		} 
+                $func[$selkey] = $self->calc_cols($key,$selkey)
+                   unless defined $func[$selkey];
+                push @$newrow, $func[$selkey]->{$col->{name}};
+	    }
+            else {
+                push @$newrow, $self->{records}->{$key}->[-1]->[$col->{sel_col_num}];
+#use mylibs; zwarn $newrow;
+#exit;
+	    }
+            $colnum++;
+	}
+        push @{$self->{final}}, $newrow;
+    }
+    return $self->{final};
+}
+sub calc_cols {
+    my($self,$key,$selcolnum)=@_;
+    # $self->{counter}++;
+    my( $sum,$count,$min,$max,$avg );
+    my $ary = $self->{records}->{$key};
+    for my $row(@$ary) {
+        my $val = $row->[$selcolnum];
+        $max = $val if !(defined $max) or SQL::Statement::anycmp($val,$max) > 0;
+        $min = $val if !(defined $min) or SQL::Statement::anycmp($val,$min) < 0;
+        $count++;
+        $sum += $val if $val =~ $SQL::Statement::numexp;
+    }
+    $avg = $sum/$count if $count and $sum;
+    return {
+        AVG   => $avg,
+        MIN   => $min,
+        MAX   => $max,
+        SUM   => $sum,
+        COUNT => $count,
+    };
+}
+
+sub ary2hash {
+    my $self = shift;
+    my $ary  = shift;
+    my $keycolnum = $self->{keycol} || 0;
+    my $hash;
+    my @keys;
+    my %is_key;
+    for my $row(@$ary) {
+        my $key = $row->[$keycolnum];
+#die "@$row" unless defined $key;
+        push @{$hash->{$key}}, $row;
+        push @keys, $key unless $is_key{$key}++;
+    }
+    $self->{records}=$hash;
+    $self->{keys}   =\@keys;
+}
 
 package SQL::Statement::Op;
 

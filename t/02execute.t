@@ -29,6 +29,7 @@ for (split /\n/,
     $sth = $dbh->prepare($_);
     ok($sth->execute($_),$sth->{f_stmt}->command);
 }
+
 $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
 $sth->execute;
 my $str = '';
