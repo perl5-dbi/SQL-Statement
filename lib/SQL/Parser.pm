@@ -2610,7 +2610,8 @@ B<SQL Statements>
    SELECT <select_clause>
           <from_clause>
           [<where_clause>] 
-          [ ORDER BY ocol1 [ASC|DESC], ... oclN [ASC|DESC]] ]
+          [ ORDER BY ocol1 [ASC|DESC], ... ocolN [ASC|DESC]] ]
+          [ GROUP BY gcol1 [, ... gcolN] ]
           [ LIMIT [start,] length ]
    UPDATE <table> SET <set_clause> [<where_clause>]
 

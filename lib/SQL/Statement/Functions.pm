@@ -541,8 +541,10 @@ sub SQL_FUNCTION_IMPORT {
         return \@tbl;
     }
     my $tmp_sth = $params[0];
-    my @cols = map{$_->name} $tmp_sth->{f_stmt}->columns if $tmp_sth->{f_stmt};
+#   my @cols = map{$_->name} $tmp_sth->{f_stmt}->columns if $tmp_sth->{f_stmt};
+   my @cols;
     @cols = @{ $tmp_sth->{NAME} } unless @cols;
+#    push @{$sth->{org_names}},$_ for @cols;
     my $tbl  = [ \@cols ];
     while (my @row=$tmp_sth->fetchrow_array) {
         push @$tbl, \@row;

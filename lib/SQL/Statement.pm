@@ -202,6 +202,8 @@ sub execute {
         $org;
     } @$names  if $self->{asterisked_columns};
     $names = $self->{org_col_names} unless $self->{asterisked_columns};
+#    $names = $self->{org_col_names} unless $names;
+#bug($self);
     my $newnames;
 #
 #	DAA
@@ -271,6 +273,7 @@ sub CREATE_RAM_TABLE {
 }
 sub CREATE ($$$) {
     my($self, $data, $params) = @_;
+    my $names;
     # CREATE TABLE AS ...
     if (my $subquery = $self->{subquery}) {
          my $sth;
@@ -278,15 +281,22 @@ sub CREATE ($$$) {
          if ($subquery =~ /^IMPORT/i) {
              $sth = $data->{Database}->prepare("SELECT * FROM $subquery");
              $sth->execute(@$params);
+             $names  = $sth->{org_names};
          }
          # AS SELECT
          else {
              $sth = $data->{Database}->prepare($subquery);
              $sth->execute();
+             $names  = $sth->{NAME};
          }
+         $names = $sth->{NAME} unless defined $names;
          my $tbl_data = $sth->{f_stmt}->{data};
 	 my $tbl_name = $self->tables(0)->name;
-	 my @tbl_cols = map {$_->name} $sth->{f_stmt}->columns;
+	 # my @tbl_cols = map {$_->name} $sth->{f_stmt}->columns;
+         #my @tbl_cols=map{$_->name} $sth->{f_stmt}->columns if $sth->{f_stmt};
+         my @tbl_cols;
+#            @tbl_cols=@{ $sth->{NAME} } unless @tbl_cols;
+         @tbl_cols=@{ $names } unless @tbl_cols;
          my $create_sql = "CREATE TABLE $tbl_name ";
             $create_sql = "CREATE TEMP TABLE $tbl_name "
                         if $self->{"is_ram_table"};
@@ -344,7 +354,7 @@ sub INSERT ($$$) {
     my($eval,$all_cols) = $self->open_tables($data, 0, 1);
     return undef unless $eval;
     $eval->params($params);
-    $self->verify_columns($eval, $all_cols) if scalar ($self->columns());
+    $self->verify_columns($data,$eval, $all_cols) if scalar ($self->columns());
     my($table) = $eval->table($self->tables(0)->name());
     $table->seek($data, 0, 2);
     my($array) = [];
@@ -379,7 +389,7 @@ sub DELETE ($$$) {
     my($eval,$all_cols) = $self->open_tables($data, 0, 1);
     return undef unless $eval;
     $eval->params($params);
-    $self->verify_columns($eval, $all_cols);
+    $self->verify_columns($data,$eval, $all_cols);
     my($table) = $eval->table($self->tables(0)->name());
     my($affected) = 0;
     my(@rows, $array);
@@ -421,7 +431,7 @@ sub UPDATE ($$$) {
     my($eval,$all_cols) = $self->open_tables($data, 0, 1);
     return undef unless $eval;
     $eval->params($params);
-    $self->verify_columns($eval, $all_cols);
+    $self->verify_columns($data,$eval, $all_cols);
     my($table) = $eval->table($self->tables(0)->name());
     my $tname = $self->tables(0)->name();
     my($affected) = 0;
@@ -564,7 +574,7 @@ sub JOIN {
     my($eval,$all_cols) = $self->open_tables($data, 0, 0);
     return undef unless $eval;
     $eval->params($params);
-    $self->verify_columns( $eval, $all_cols );
+    $self->verify_columns( $data,$eval, $all_cols );
     if ($self->{"join"}->{"keycols"} 
      and $self->{"join"}->{"table_order"}
      and scalar @{$self->{"join"}->{"table_order"}} == 0
@@ -796,7 +806,7 @@ sub SELECT ($$) {
         ($eval,$all_cols) = $self->open_tables($data, 0, 0);
         return undef unless $eval;
         $eval->params($params);
-        $self->verify_columns( $eval, $all_cols );
+        $self->verify_columns( $data,$eval, $all_cols );
         $tableName = $self->tables(0)->name();
         $table = $eval->table($tableName);
     }
@@ -934,7 +944,8 @@ sub SELECT ($$) {
           $e = $table;
     }
     while (my $array = $table->fetch_row($data)) {
-        if ($self->eval_where($e,$tableName,$array,\%funcs)) {
+        if (eval_where($self,$e,$tableName,$array,\%funcs)) {
+#        if ($self->eval_where($e,$tableName,$array,\%funcs)) {
             $array = $self->{fetched_value} if $self->{fetched_from_key};
             # Note we also include the columns from @extraSortCols that
             # have to be ripped off later!
@@ -1263,10 +1274,10 @@ sub process_predicate {
 	# We can always return if match1 is true.   We short-circuit the OR
 	# with a true value, or short-circuit the AND with a false value on
         # negation.
-	my $match1 = $self->process_predicate($pred->{"arg1"},$eval,$rowhash);
+	my $match1 = process_predicate($self,$pred->{"arg1"},$eval,$rowhash);
 	return $pred->{'neg'} ? 0 : 1 if $match1;
 
-	my $match2 = $self->process_predicate($pred->{"arg2"},$eval,$rowhash);
+	my $match2 = process_predicate($self,$pred->{"arg2"},$eval,$rowhash);
 
 	# Same logic applies for short-circuit on the second argument.
 	return $pred->{'neg'} ? 0 : 1 if $match2;
@@ -1275,14 +1286,14 @@ sub process_predicate {
 	return $pred->{'neg'} ? 1 : 0;
     }
     elsif ($pred->{op} eq 'AND') {
-        my $match1 = $self->process_predicate($pred->{"arg1"},$eval,$rowhash);
+        my $match1 = process_predicate($self,$pred->{"arg1"},$eval,$rowhash);
         if ($pred->{"neg"}) {
 	    return 1 unless $match1;
         }
         else {
 	    return 0 unless $match1;
 	}
-        my $match2 = $self->process_predicate($pred->{"arg2"},$eval,$rowhash);
+        my $match2 = process_predicate($self,$pred->{"arg2"},$eval,$rowhash);
         if ($pred->{"neg"}) {
             return $match2 ? 0 : 1;
         }
@@ -1291,36 +1302,52 @@ sub process_predicate {
 	}
     }
     else {
-        my $val1 = $self->get_row_value( $pred->{"arg1"}, $eval, $rowhash );
-        my $val2 = $self->get_row_value( $pred->{"arg2"}, $eval, $rowhash );
+
+        # The old way, now replaced, called get_row_value everytime
+        #
+        # my $val1 = $self->get_row_value( $pred->{"arg1"}, $eval, $rowhash );
+        # my $val2 = $self->get_row_value( $pred->{"arg2"}, $eval, $rowhash );
+
+        # we only need to call get_row_value on these once
+        #
+        my %is_value = map {$_=>1} qw(placeholder string number null);
+
+        # if we've already called it, the value will be a scalar
+        # so we don't call it again
+        #
+        my $val1 = (ref($pred->{arg1}) eq '')
+                 ? $pred->{arg1}
+	         : $self->get_row_value( $pred->{"arg1"}, $eval, $rowhash );
+        my $val2 = (ref($pred->{arg2}) eq '')
+                 ? $pred->{arg2}
+	         : $self->get_row_value( $pred->{"arg2"}, $eval, $rowhash );
+
+        # the first time we call get_row_value, we replace the predicate
+        # argument object with its scalar value
+        #
+        my $type1 = $pred->{arg1}->{type} if ref($pred->{arg1}) eq 'HASH';
+        my $type2 = $pred->{arg2}->{type} if ref($pred->{arg2}) eq 'HASH';
+
+	$pred->{arg1} = $val1 if $type1 and $is_value{$type1};
+	$pred->{arg2} = $val2 if $type2 and $is_value{$type2};
+
+
         my $op   = $pred->{op};
         #
         # currently we treat NULL and '' as the same
         # eventually fix
         #
-
-        # always true
-        if ("DBD or AnyData") {
-  	    	if ( $op !~ /^IS/i and (
-        	      !defined $val1 or $val1 eq '' or
-        	      !defined $val2 or $val2 eq '' 
-        	    )) {
-                  $op = $s2pops->{"$op"}->{'s'};
-	    	}
-            elsif (defined $val1 and defined $val2 and $op !~ /^IS/i ) {
-                    $op = ( is_number($val1) and is_number($val2) )
-                        ? $s2pops->{"$op"}->{'n'}
-                        : $s2pops->{"$op"}->{'s'};
-	    	}
-		}
-        # someday ...
-        else {
-            if (defined $val1 and defined $val2 and $op !~ /^IS/i ) {
-                    $op = ( is_number($val1) and is_number($val2) )
-                    ? $s2pops->{"$op"}->{'n'}
-                    : $s2pops->{"$op"}->{'s'};
-		    }
-        }
+    	if ( $op !~ /^IS/i and (
+       	      !defined $val1 or $val1 eq '' or
+       	      !defined $val2 or $val2 eq '' 
+  	)) {
+              $op = $s2pops->{"$op"}->{'s'};
+	}
+        elsif (defined $val1 and defined $val2 and $op !~ /^IS/i ) {
+              $op = ( is_number($val1) and is_number($val2) )
+                  ? $s2pops->{"$op"}->{'n'}
+                  : $s2pops->{"$op"}->{'s'};
+	}
         my $neg = $pred->{"neg"};
         if (ref $eval !~ /TempTable/) {
             my($table) = $eval->table($self->tables(0)->name());
@@ -1511,9 +1538,12 @@ $t->{"$name"}->{"col_names"} = \@cnames;
     $self->{all_cols} = $all_cols;
     return SQL::Eval->new({'tables' => $t}), \@c;
 }
-
 sub verify_columns {
-    my( $self, $eval, $all_cols )  = @_;
+    my( $self, $data,$eval, $all_cols )  = @_;
+    #
+    # NOTE FOR LATER:
+    # perhaps cache column names and skip this after first table open
+    #
     $all_cols ||= [];
     my @tmp_cols  = @$all_cols;
     my $usr_cols;
@@ -1667,23 +1697,6 @@ sub verify_columns {
             $self->{columns}->[$i]  = $col_func;
         }
     }
-=pod
-    if ( my $funcs = $self->{select_procedure} ) {
-        for my $i(0..$#{$self->{columns}}) {
- 	      my $fcname = $self->{columns}->[$i]->name;
- 	      if (my $col_func=$funcs->{$fcname}) {
-                  $self->{columns}->[$i]->{function} =
-                      my $alias = $self->{ORG_NAME}->{$fcname};
-                      SQL::Statement::Func->new($col_func,$alias);
-                  #
-                  # USE THE ALIAS FOR THE NAME OF CONSTRUCTED COLUMNS
-                  #
-                  #$self->{columns}->[$i]->{name}=$self->{ORG_NAME}->{$fcname};
-                  $self->{columns}->[$i]->{name}=$alias;
-	      }
-        }
-    }
-=cut
     #
     # CLEAN parser's {strcut} - no longer needed
     #
