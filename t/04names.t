@@ -3,8 +3,12 @@ $|=1;
 use strict;
 use Test::More;
 use lib  qw( ../lib );
+{require DBD::File;}
 if ($@) {
-        plan skip_all => "No DBD::File available";
+    plan skip_all => "No DBD::File available";
+}
+elsif ($DBD::File::VERSION < '0.033' ) {
+    plan skip_all => "Tests require DBD::File => 0.33";
 }
 else {
     plan tests => 2;
@@ -17,7 +21,7 @@ $dbh = DBI->connect('dbi:File(RaiseError=1):');
 $dbh->do($_) for <DATA>;
 
 $sth = $dbh->prepare("SELECT * FROM Prof");
-ok( 'PID PNAME' eq (join' ',cols($sth)),'Column Names: select list = *');
+ok( 'pid pname' eq (join' ',cols($sth)),'Column Names: select list = *');
 
 $sth = $dbh->prepare("SELECT pname,pID FROM Prof");
 ok( 'pname pID' eq (join' ',cols($sth)),'Column Names: select list = named');
