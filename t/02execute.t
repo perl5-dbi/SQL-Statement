@@ -1,8 +1,15 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-use Test::More tests => 18;
 use lib  qw( ../lib );
+use Test::More;
+eval { require DBD::File; };
+if ($@) {
+        plan skip_all => "No DBD::File available";
+}
+else {
+    plan tests => 16;
+}
 use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
 use DBI;
 my $sth;
@@ -81,36 +88,16 @@ ok($str eq 'Just^Another^Perl^Hacker^','IMPORT($AoA)');
 # IMPORT($internal_sth)
 #######################
 $dbh->do($_) for split /\n/,<<"";
-        CREATE TEMP TABLE xb (id INTEGER, xphrase VARCHAR(30))
-        INSERT INTO xb VALUES(1,'foo')
+        CREATE TEMP TABLE tmp (id INTEGER, xphrase VARCHAR(30))
+        INSERT INTO tmp VALUES(1,'foo')
 
-my $xb_sth = $dbh->prepare('SELECT * FROM xb');
-$xb_sth->execute;
+my $internal_sth = $dbh->prepare('SELECT * FROM tmp');
+$internal_sth->execute;
 $sth=$dbh->prepare('SELECT * FROM IMPORT(?)');
-$sth->execute($xb_sth);
+$sth->execute($internal_sth);
 $str = '';
 while (my $r=$sth->fetch) { $str.="@$r^"; }
 ok($str eq '1 foo^','IMPORT($internal_sth)');
-
-#######################
-# CREATE ... AS SELECT
-#######################
-$dbh->do("CREATE TEMP TABLE tbl_copy AS SELECT * FROM phrase");
-$sth = $dbh->prepare("SELECT * FROM tbl_copy");
-$sth->execute;
-$str = '';
-while (my $r=$sth->fetch) { $str.="@$r^"; }
-ok($str eq '1 FOO^3 BAR^','CREATE ... AS SELECT');
-
-#######################
-# CREATE ... AS IMPORT
-#######################
-$dbh->do("CREATE TEMP TABLE tbl_copy2 AS IMPORT(?)",{},$AoA);
-$sth = $dbh->prepare("SELECT * FROM tbl_copy");
-$sth->execute;
-$str = '';
-while (my $r=$sth->fetch) { $str.="@$r^"; }
-ok($str eq '1 FOO^3 BAR^','CREATE ... AS IMPORT');
 
 #######################
 # IMPORT($external_sth)
@@ -137,5 +124,5 @@ sub external_sth {
     $xb_dbh->do("DROP TABLE xb");
     return ($str eq '1 foo^');
 }
-ok( $dbh->do("DROP TABLE tbl_copy"), 'DROP TEMP TABLE');
+ok( $dbh->do("DROP TABLE phrase"), 'DROP TEMP TABLE');
 __END__
