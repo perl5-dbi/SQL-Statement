@@ -1,5 +1,16 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.12, released 29 March, 2005
+----------------------------------------
+ * added support for GROUP BY
+   (several people sent suggestions for this in the past, please email me
+   so I can credit you, sorry I lost the names)
+
+ * added a META.YML and extra tests
+
+Version 1.11, released 28 March, 2005
+----------------------------------------
+ * fixed bug in "CREATE TABLE AS ..."
 
 Version 1.10, released 27 March, 2005
 ----------------------------------------

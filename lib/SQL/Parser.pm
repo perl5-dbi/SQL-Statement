@@ -15,7 +15,7 @@ use warnings;
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join '|', qw( TRIM SUBSTRING );
 
-$VERSION = '1.11';
+$VERSION = '1.12';
 
 BEGIN { if( $ENV{SQL_USER_DEFS} ) { require SQL::UserDefs; } }
 eval { require 'Data/Dumper.pm'; $Data::Dumper::Indent=1};
@@ -138,12 +138,12 @@ $self->{struct}->{column_names} = \@uCols unless $com eq 'CREATE';
 	if ($self->{original_string} =~ /Y\.\*/) {
 #use mylibs; zwarn $self; exit;
 	}
-#	  use Data::Dumper; warn Dumper $self->{struct} if $com eq 'SELECT';
-	if ($com eq 'SELECT') {
-	}
         delete $self->{struct}->{join}
                if $self->{struct}->{join}
               and scalar keys %{$self->{struct}->{join}}==0;
+
+        undef $self->{struct}->{set_function}
+        unless $self->{struct}->{has_set_functions};
         return $rv;
     } 
     else {
@@ -380,10 +380,11 @@ sub DELETE {
 sub SELECT {
     my($self,$str) = @_;
     $self->{"struct"}->{"command"} = 'SELECT';
-    my($from_clause,$where_clause,$order_clause,$limit_clause);
+    my($from_clause,$where_clause,$order_clause,$groupby_clause,$limit_clause);
     $str =~ s/^SELECT (.+)$/$1/i;
     if ( $str =~ s/^(.+) LIMIT (.+)$/$1/i    ) { $limit_clause = $2; }
     if ( $str =~ s/^(.+) ORDER BY (.+)$/$1/i ) { $order_clause = $2; }
+    if ( $str =~ s/^(.+) GROUP BY (.+)$/$1/i ) { $groupby_clause = $2; }
     if ( $str =~ s/^(.+?) WHERE (.+)$/$1/i   ) { $where_clause = $2; }
     if ( $str =~ s/^(.+?) FROM (.+)$/$1/i    ) { $from_clause  = $2; }
 
@@ -397,6 +398,9 @@ sub SELECT {
 
     if ($where_clause) {
         return undef unless $self->SEARCH_CONDITION($where_clause);
+    }
+    if ($groupby_clause) {
+        return undef unless $self->GROUPBY_LIST($groupby_clause);
     }
     if ($order_clause) {
         return undef unless $self->SORT_SPEC_LIST($order_clause);
@@ -414,7 +418,13 @@ sub SELECT {
     }
     return 1;
 }
-
+sub GROUPBY_LIST {
+    my($self,$gclause) = @_;
+    return 1 if !$gclause;
+    my @cols = split /,/,$gclause;
+    $self->{struct}->{group_by} = \@cols;
+    return 1;
+}
 sub IMPLICIT_JOIN {
     my $self = shift;
     delete $self->{"struct"}->{"multiple_tables"};
@@ -1052,21 +1062,23 @@ sub SET_FUNCTION_SPEC {
             return undef 
             	if !$count_star and !$ok;
 
+
 			if ($set_function_arg !~ /^"/) {
                 $set_function_arg = uc $set_function_arg;
 			} 
+
+            $self->{struct}->{has_set_functions}=1;
 
             push @{ $self->{"struct"}->{'set_function'}}, {
                 name     => $set_function_name,
                 arg      => $set_function_arg,
                 distinct => $distinct,
             };
-#            push( @{ $self->{"struct"}->{"column_names"} }, $set_function_arg)
             return $set_function_arg
                  if !$iscol{$set_function_arg}++
-; #                and ($set_function_arg ne '*');
         }
         else {
+            push @{ $self->{"struct"}->{'set_function'}}, {name => $func};
             return undef;
             # return $self->do_err("Bad set function before FROM clause.");
 		}
