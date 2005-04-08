@@ -111,7 +111,6 @@ package SQL::Statement::Util::Function;
 use base 'SQL::Statement::Util';
 sub new {
     my($class,$name,$sub_name,$args) = @_;
-    use Data::Dumper;
     my($pkg,$sub) = $sub_name =~ /^(.*::)([^:]+$)/;
     if (!$sub) {
          $pkg = 'main';

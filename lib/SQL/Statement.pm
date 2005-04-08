@@ -234,52 +234,6 @@ sub execute {
     $self->{'NUM_OF_ROWS'} || '0E0';
 }
 
-sub CONNECT ($$$) {
-    my($self, $data, $params) = @_;
-    if ($self->can('open_connection')) {
-        my $dsn = $self->{connection}->{dsn};
-        my $tbl = $self->{connection}->{tbl};
-        return $self->open_connection($dsn,$tbl,$data,$params)
-    }
-    (0, 0);
-}
-
-# defunct, leave temporarily as comparison
-sub CREATE_RAM_TABLE {
-    my($self, $data, $params) = @_;
-    my $tname = $self->{table_names}->[0];
-    my $tables = $data->{Database}->{sql_ram_tables} || {};
-    if ($tables->{uc $tname}) {
-        die "Cannot create table $tname: Already exists";
-    }
-    my($data_tbl) = shift @{ $self->{params} };
-    my $col_names = [];
-    if (ref $data_tbl eq 'ARRAY') {
-        $col_names = shift @$data_tbl;
-    }
-    elsif (ref($data_tbl) =~ /::db$/) {
-        my $sql = shift @{ $self->{params} } || die "No SQL query supplied!\n";
-        my @params =  @{ $self->{params} };
-        @params = () unless @params;
-        my $sth = $data_tbl->prepare($sql);
-        $sth->execute(@params);
-        my $data_ary = $sth->fetchall_arrayref;
-        $col_names = $sth->{NAME};
-        $data_tbl->disconnect unless $self->{ram_table_keep_connection};
-        $data_tbl = $data_ary;
-    }
-    else {
-        die "RAM tables must supply an AoA or a dbh\n";
-    }
-    my $ramTable = SQL::Statement::RAM->new(
-        $tname, $col_names, $data_tbl
-    );
-    $ramTable->{all_cols} ||= $col_names;
-    $data->{Database}->{sql_ram_tables}->{uc $tname} = $ramTable;
-    my($eval,$foo) = $self->open_tables($data, 1, 1);
-    return undef unless $eval;
-    (0, 0);
-}
 sub CREATE ($$$) {
     my($self, $data, $params) = @_;
     my $names;
@@ -964,7 +918,9 @@ sub SELECT ($$) {
                           : $self->{func_vals}->{$_} ;
                           } (@$cList, @extraSortCols);
             push(@$rows, \@row);
-            return (scalar(@$rows),scalar @{$self->{column_names}},$rows)
+
+            return (scalar(@$rows),$numFields,$rows)
+#            return (scalar(@$rows),scalar @{$self->{column_names}},$rows)
  	        if $self->{fetched_from_key};
         }
     }
@@ -1341,7 +1297,8 @@ sub process_predicate {
 	$pred->{arg2} = $val2 if $type2 and $is_value{$type2};
 
 
-        my $op   = $pred->{op};
+        my $op     = $pred->{op};
+        my $opfunc = $op;
         #
         # currently we treat NULL and '' as the same
         # eventually fix
@@ -1358,7 +1315,9 @@ sub process_predicate {
                   : $s2pops->{"$op"}->{'s'};
 	}
         my $neg = $pred->{"neg"};
-        if (ref $eval !~ /TempTable/) {
+        my $table_type = ref($eval);
+        if ($table_type !~ /TempTable/) {
+#        if (ref $eval !~ /TempTable/) {
             my($table) = $eval->table($self->tables(0)->name());
             if ($pred->{op} eq '=' and !$neg and $table->can('fetch_one_row')){
                 my $key_col = $table->fetch_one_row(1,1);
@@ -1369,7 +1328,21 @@ sub process_predicate {
 	        }
             }
 	}
-        my $match = $self->is_matched($val1,$op,$val2) || 0;
+#       my $match = $self->is_matched($val1,$op,$val2) || 0;
+       my $match;
+        if ($op) {
+            $match = $self->is_matched($val1,$op,$val2) || 0;
+	}
+        else {
+            my $sub = $self->{opts}->{function_defs}->{uc $opfunc}->{sub}->{value};
+            my $func = $self->{loaded_function}->{uc $opfunc}
+              ||= SQL::Statement::Util::Function->new(
+                      uc $opfunc, $sub, [$val1,$val2]
+                  );
+            $func->{args}=[$val1,$val2];
+	    $match = $self->get_row_value( $func, $eval, $rowhash );
+#bug($match);
+	}
         if ($pred->{"neg"}) {
            $match = $match ? 0 : 1;
         }
@@ -1411,49 +1384,12 @@ sub is_matched {
     	0;
 }
 
-sub is_matched_old {
-    my($self,$val1,$op,$val2)=@_;
-    ###    return unless $val1; screws up null comparison, why was this here?
-    # if DBD::CSV or AnyData
-        if ($op eq 'IS') {
-            return 1 if (!defined $val1 or $val1 eq '');
-            return 0;
-        }
-        $val1 = '' unless defined $val1;
-        $val2 = '' unless defined $val2;
-        if ($op eq 'IS') {
-            return defined $val1 ? 0 : 1;
-        }
-    return undef if !defined $val1 or !defined $val2;
-    if ($op =~ /LIKE|CLIKE/i) {
-        $val2 = quotemeta($val2);
-        $val2 =~ s/\\%/.*/g;
-        $val2 =~ s/_/./g;
-    }
-    if ( !$self->{"alpha_compare"} && $op =~ /lt|gt|le|ge/ ) {
-        return 0;
-    }
-    if ($op eq 'LIKE' )  { return $val1 =~ /^$val2$/s;  }
-    if ($op eq 'CLIKE' ) { return $val1 =~ /^$val2$/si; }
-    if ($op eq 'RLIKE' ) { return $val1 =~ /$val2/is;   }
-    if ($op eq '<' ) { return $val1 <  $val2; }
-    if ($op eq '>' ) { return $val1 >  $val2; }
-    if ($op eq '==') { return $val1 == $val2; }
-    if ($op eq '!=') { return $val1 != $val2; }
-    if ($op eq '<=') { return $val1 <= $val2; }
-    if ($op eq '>=') { return $val1 >= $val2; }
-    if ($op eq 'lt') { return $val1 lt $val2; }
-    if ($op eq 'gt') { return $val1 gt $val2; }
-    if ($op eq 'eq') { return $val1 eq $val2; }
-    if ($op eq 'ne') { return $val1 ne $val2; }
-    if ($op eq 'le') { return $val1 le $val2; }
-    if ($op eq 'ge') { return $val1 ge $val2; }
-}
-
-sub data {
+sub fetch {
     my($self) = @_;
     $self->{data} ||= [];
-    return $self->{data};
+    my $row = shift @{ $self->{data} };
+    return undef unless $row and scalar @$row;
+    return $row;
 }
 sub open_tables {
     my($self, $data, $createMode, $lockMode) = @_;
@@ -1712,7 +1648,7 @@ sub verify_columns {
     #
     # CLEAN parser's {strcut} - no longer needed
     #
-    delete $self->{opts};
+    # delete $self->{opts};  # need $opts->{function_defs}
     delete $self->{select_procedure};
     return $fully_qualified_cols;
 }
@@ -1762,13 +1698,6 @@ sub row_values {
 
 }
 
-=pod
-
-    if (ref $structure eq ) {
-    }
-
-=cut
-
 sub get_row_value {
     my($self,$structure,$eval,$rowhash) = @_;
 #    bug($self) unless defined $structure;
@@ -1799,7 +1728,10 @@ sub get_row_value {
     if ( ref($structure) =~ /::Function/ ) {
         my @argslist=();
         for my $arg(@{$structure->args}) {
-            push @argslist, $self->get_row_value($arg,$eval,$rowhash);
+#            my $val = $arg unless ref $arg;
+#            $val = $self->get_row_value($arg,$eval,$rowhash) unless defined $val;
+            my $val = $self->get_row_value($arg,$eval,$rowhash);
+            push @argslist, $val;
 	}
         return $structure->run(
             $self->{procedure}->{data},
@@ -1901,33 +1833,6 @@ sub get_row_value {
                 return substr($value,$start-1,$offset)
                    if length $value >= $start-2+$offset;
         };
-=pod
-        ### USER-FUNCTIONS
-        my $newvalue;
-        if ($val_type and $val_type eq 'multiple_args') {
-            my $args = $structure->{value}->{value};
-            for (@$args) {
-                push @$newvalue, $self->get_row_value($_,$eval,$rowhash);
-	    }
-	}
-        $newvalue = [$newvalue] unless ref $newvalue;
-        my $usub =  $structure->{usr_sub}->{value};
-        return undef unless $usub;
-        my($class,$sub) = $usub =~ /^(.*::)([^:]+$)/;
-        if (!$sub) {
-             $class = 'main';
-             $sub = $usub;
-        }
-        $class = 'main' if $class eq '::';
-        $class =~ s/::$//;
-        eval { require "$class.pm" }
-            unless $class eq 'SQL::Statement::Functions' or $class eq 'main';
-        die $@ if $@;
-        die "Can't find subroutine $class"."::$sub\n" unless $class->can($sub);
-        #  $structure->{data} is $sth and contains $dbh, so passed to subs;
-	$structure->{data} ||= $self->{procedure}->{data};
-        return $class->$sub($structure->{data},$rowhash,@$newvalue);
-=cut
     }
 }
 
@@ -2005,6 +1910,8 @@ sub verify_order_cols {
 #use mylibs; zwarn $self->{"sort_spec_list"}; exit;
 }
 
+sub limit ($) { shift->{limit_clause}->{limit}; }
+sub offset ($) { shift->{limit_clause}->{'offset'}; }
 sub order {
     my $self = shift;
     my $o_num = shift;
@@ -2396,16 +2303,18 @@ sub name  { shift->{"name"} }
 1;
 __END__
 
+=pod
+
 =head1 NAME
 
 SQL::Statement - SQL parsing and processing engine
 
 =head1 SYNOPSIS
 
-    require SQL::Statement;
+    use SQL::Statement;
 
     # Create a parser
-    my($parser) = SQL::Parser->new('Ansi');
+    my($parser) = SQL::Parser->new();
 
     # Parse an SQL statement
     $@ = '';
@@ -2431,173 +2340,102 @@ SQL::Statement - SQL parsing and processing engine
     # SQL::Statement::Op instance
     my $where = $stmt->where();
 
-    # Evaluate the WHERE clause with concrete data, represented
-    # by an SQL::Eval object
-    my $result = $stmt->eval_where($eval);
-
-    # Execute a statement:
-    $stmt->execute($data, $params);
-
 
 =head1 DESCRIPTION
 
-For installing the module, see L<"INSTALLATION"> below.
+The SQL::Statement module implements a pure Perl SQL parsing and execution engine.  While it by no means implements full ANSI standard, it does support many features including column and table aliases, built-in and user-defined functions, implicit and explicit joins, complexly nested search conditions, and other features.
 
-At the moment this POD is lifted straight from Jochen
-Wiedmann's SQL::Statement with the exception of the
-section labeled L<"PURE PERL VERSION"> below which is
-a must read.
+SQL::Statement is an embeddable Database Management System (DBMS),  This means that it provides all of the services of a simple DBMS except that instead of a persistant storage mechanism, it has two things: 1) an in-memory storage mechanism that allows you to prepare, execute, and fetch from SQL statements using temporary tables and 2) a set of software sockets where any author can plug in any storage mechanism.
 
-The SQL::Statement module implements a small, abstract SQL engine. This
-module is not usefull itself, but as a base class for deriving concrete
-SQL engines. The implementation is designed to work fine with the
-DBI driver DBD::CSV, thus probably not so well suited for a larger
-environment, but I'd hope it is extendable without too much problems.
+There are three main uses for SQL::Statement. One or another (hopefully not all) may be irrelevant for your needs: 1) to access and manipulate data in CSV, XML, and other formats 2) to build your own DBD for a new data source 3) to parse and examine the structure of SQL statements.
 
-By parsing an SQL query you create an SQL::Statement instance. This
-instance offers methods for retrieving syntax, for WHERE clause and
-statement evaluation.
+=head1 Using SQL::Statement indirectly
 
-=head1 PURE PERL VERSION
+=head2 Access & manipulate stored data
 
-This version is a pure perl version of Jochen's original SQL::Statement.  Eventually I will re-write the POD but for now I will document in this section the ways it differs from Jochen's version only and you can assume that things not mentioned in this section remain as described in the rest of this POD.
+SQL::Statement provides the SQL engine for a number of existing DBI drivers including L<DBD::CSV>, L<DBD::DBM>, L<DBD::AnyData>, L<DBD::Excel>, L<DBD::Amazon>, and others.  These modules provide access to Comma Separate Values, Fixed Length, XML, HTML and many other kinds of text files, to Excel Spreadsheets, to BerkeleyDB and other DBM formats, and to non-traditional data sources like on-the-fly Amazon searches.  If your interest is in actually accessing and manipulating persistent data, you don't really want to use SQL::Statement directly.  Instead, use L<DBI> along with one of the DBDs mentioned above.  You'll be using SQL::Statement, but under the hood of the DBD, not directly.   See L<http://dbi.perl.org> for help with DBI and see L<Supported SQL Syntax> for a description of the SQL syntax that SQL::Statement provides for these modules.  Other than the supported SQL section, if your main interest is making use of this simple DBMS, you can skip the rest of this document unless you want to play with the guts of your DBMS.
 
-=head2 Dialect Files
+=head2 Embed SQL::Statement in a DBI driver or other Perl module
 
-In the ...SQL/Dialect directory are files that define the valid types, reserved words, and other features of the dialects.  Currently the ANSI dialect is available only for prepare() not execute() while the CSV and AnyData dialect support both prepare() and execute().
+SQL::Statement is designed to work as an abstract base class that can be easily used in conjunction with any kind of data source.  If your interest is in developing a DBD for a new data source without having to reinvent the SQL wheel, see L<DBD::File> for a prototypical subclass of SQL::Statement and see L<DBD::DBM> which has documentation on implementing a SQL::Statement DBD. .  Write in to dbi-users@perl.org if you have questions or just to share what you're working on.  It's easy, it's fun, write a DBD today!
 
-=head2 New flags
+=head1 Using SQL::Statement directly
 
-In addition to the dialect files, features of SQL::Statement can be defined by flags sent by subclasses in the call to new, for example:
+=head2 Parse SQL statements
 
-   my $stmt = SQL::Statement->new($sql_str,$flags);
+SQL::Statement can be used by itself, without DBI and without a subclass.  Used by itself, it will parse a SQL statement and allow you to examine the elements of the statement (table names, column names, where clause predicates, etc.).  It will also execute statements using in-memory tables.  That means that you can create and populate some tables, then query them and fetch the results of the queries as well as examine the differences between statement metadata during different phases of prepare, execute, fetch.  See the remainder of this document for a description of how to create and modify a parser object, how to use it to parse and examine SQL statements, and for a description of the SQL syntax the module supports.
 
-   my $stmt = SQL::Statement->new($sql_str, {text_numbers=>1});
+These are the steps for parsing SQL statements:
+
+ once per script
+   * create a new parser object
+   * modify the parser if you want to enable or diable syntax features
+     (e.g. allow or disallow a given type, predicate or function)
+
+ once per statement
+   * parse the SQL statement
+   * examine or display the statement's structural elements
+   * optionally execute the statement and fetch its data
+
+For example:
+
+ use SQL::Statement;
+ my $sql    = "
+    SELECT a FROM b JOIN c WHERE c=? AND e=7 ORDER BY f DESC LIMIT 5,2
+ ";
+ my $parser = SQL::Parser->new();
+ my $stmt = SQL::Statement->new($sql,$parser);
+
+ printf "Command             %s\n",$stmt->command;
+ printf "Num of Placeholders %s\n",scalar $stmt->params;
+ printf "Columns             %s\n",join',',map{$_->name}$stmt->columns;
+ printf "Tables              %s\n",join',',$stmt->tables;
+ printf "Where operator      %s\n",join',',$stmt->where->op;
+ printf "Limit               %s\n",$stmt->limit;
+ printf "Offset              %s\n",$stmt->offset;
+ printf "Order Columns       %s\n",join',',map{$_->column}$stmt->order;
+ __END__
 
 =over
 
-=item  dialect
+=item Creating a parser object
 
- Dialect is one of 'ANSI', 'CSV', or 'AnyData'; the default is CSV,
- i.e. the behaviour of the original XS SQL::Statement.
+The parser object only needs to be created once per script. It can then be reused to parse any number of SQL statements.  The basic creation of a parser is this:
 
-=item  text_numbers
+    my $parser = SQL::Parser->new();
 
- If true, this allows texts that look like numbers (e.g. 2001-01-09
- or 15.3.2) to be sorted as text.  In the original version these
- were treated as numbers and threw warnings as well as failed to sort
- as text.  The default is false, i.e. the original behaviour.  The
- AnyData dialect sets this to true by default, i.e. it allows sorting
- of these kinds of columns.
+There are a number of optional parameters to new() and there are methods for mdofiying the behaviour of the parser.  For example, if the dialect you are attempting to parse has a special TYPE called BIG_BLOB, you'll need to modify the parser to accept BIG_BLOB as a valid TYPE name.  By default the parser uses ANSI standard type names and a few extras such as 'TEXT'.  You can also modify other syntax features such as functions, predicates, and operators.  For instructions on modifying parser behavior, see L<SQL::Parser>.
 
-=item alpha_compare
+=item Parsing a statement
 
- If true this allows alphabetic comparison.  The original version would
- ignore SELECT statements with clauses like "WHERE col3 < 'c'".  The
- default is false, i.e. the original style.  The AnyData dialect sets
- this to true by default, i.e. it allows such comparisons.
+While you only need to define a new SQL::Parser object once per script, you need to define a new SQL::Statment object once for each statement you want to parse. 
 
-=item LIMIT
+    my $stmt = SQL::Statement->new($sql, $parser);
 
- The LIMIT clause as described by Jochen below never actually made it
- into the execute() portion of his SQL::Statement, it is now supported.
+The call to new() takes two arguments - the SQL string you want to parse, and the SQL::Parser object you previously created.  The call to new is the equivalent of a DBI call to prepare() - it parses the SQL into a structure but doesn't attempt to execute the SQL unless you explicitly call execute().
 
-=item RLIKE
+=item Error-reporting
 
- There is an experimental RLIKE operator similar to LIKE but takes a
- perl regular expression, e.g.
-
-      SELECT * FROM foo WHERE bar RLIKE '^\s*Baz[^:]*:$'
-
- Currently this is only available in the AnyData dialect.
-
-=back
-
-=head2 It's Pure Perl
-
-All items in the pod referring to yacc, C, bison, etc. are now only historical since this version has ported all of those portions into perl.
-
-=head2 Creating a parser object
-
-What's accepted as valid SQL, depends on the parser object. There is
-a set of so-called features that the parsers may have or not. Usually
-you start with a builtin parser:
-
-    my $parser = SQL::Parser->new($name, [ \%attr ]);
-
-Currently two parsers are builtin: The I<Ansi> parser implements a proper
-subset of ANSI SQL. (At least I hope so. :-) The I<SQL::Statement> parser
-is used by the DBD:CSV driver.
-
-You can query or set individual features. Currently available are:
-
-=over 8
-
-=item create.type_blob
-
-=item create.type_real
-
-=item create.type_text
-
-These enable the respective column types in a I<CREATE TABLE> clause.
-They are all disabled in the I<Ansi> parser, but enabled in the
-I<SQL::Statement> parser. Example:
-
-=item select.join
-
-This enables the use of multiple tables in a SELECT statement, for
-example
-
-  SELECT a.id, b.name FROM a, b WHERE a.id = b.id AND a.id = 2
-
-=back
-
-To enable or disable a feature, for example I<select.join>, use the
-following:
-
-  # Enable feature
-  $parser->feature("select", "join", 1);
-  # Disable feature
-  $parser->feature("select", "join", 0);
-
-Of course you can query features:
-
-  # Query feature
-  my $haveSelectJoin = $parser->feature("select", "join");
-
-The C<new> method allows a shorthand for setting features. For example,
-the following is equivalent to the I<SQL::Statement> parser:
-
-  $parser = SQL::Statement->new('Ansi',
-                                { 'create' => { 'type_text' => 1,
-                                                'type_real' => 1,
-                                                'type_blob' => 1 },
-                                  'select' => { 'join' => 0 }});
-
-
-=head2 Parsing a query
-
-A statement can be parsed with
-
-    my $stmt = SQL::Statement->new($query, $parser);
-
-In case of syntax errors or other problems, the method throws a Perl
+In case of syntax errors or other problems, the new() method throws a Perl
 exception. Thus, if you want to catch exceptions, the above becomes
 
     $@ = '';
     my $stmt = eval { SQL::Statement->new($query, $parser) };
     if ($@) { print "An error occurred: $@"; }
 
-The accepted SQL syntax is restricted, though easily extendable. See
-L<SQL syntax> below. See L<Creating a parser object> above.
+For those used to DBI error reporting, you can set the RaiseError and PrintError flags just as in DBI:
 
+    $parser->{RaiseError}=1;   # turn on die-on-error behaviour
+    $parser->{PrinteError}=1;  # turn on warnings-on-error behaviour
 
-=head2 Retrieving query information
+=back
+
+=head2 Examine the structure of SQL statements
 
 The following methods can be used to obtain information about a
 query:
 
-=over 8
+=over
 
 =item command
 
@@ -2708,11 +2546,7 @@ C<$o-E<gt>desc()> to examine the order object.
 
 =item limit
 
-    my $l = $stmt->limit();
-    if ($l) {
-      my $offset = $l->offset();
-      my $limit = $l->limit();
-    }
+    my $limit = $stmt->limit();
 
 In a SELECT statement you can use a C<LIMIT> clause to implement
 cursoring:
@@ -2724,9 +2558,14 @@ cursoring:
 These three statements would retrieve the rows 0..4, 5..9, 10..14
 of the table FOO, respectively. If no C<LIMIT> clause is used, then
 the method C<$stmt-E<gt>limit> returns undef. Otherwise it returns
-an instance of SQL::Statement::Limit. This object has the methods
-C<offset> and C<limit> to retrieve the index of the first row and
-the maximum number of rows, respectively.
+the limit number (the maximum number of rows) from the statement
+(5 or 10 for the statements above).
+
+=item offset
+
+    my $offset = $stmt->offset();
+
+If no C<LIMIT> clause is used, then the method C<$stmt-E<gt>limit> returns undef. Otherwise it returns the offset number (the index of the first row to be inlcuded in the limit clause).
 
 =item where
 
@@ -2763,8 +2602,6 @@ the C<where> method. Then evaluate the left-hand and right-hand side
 of the operation, perhaps recursively. Once that is done, apply the
 operator and finally negate the result, if required.
 
-=back
-
 To illustrate the above, consider the following WHERE clause:
 
     WHERE NOT (id > 2 AND name = 'joe') OR name IS NULL
@@ -2790,8 +2627,7 @@ fields would be Op's representing "id > 2" and "name = 'joe'".
 
 Of course there's a ready-for-use method for WHERE clause evaluation:
 
-
-=head2 Evaluating a WHERE clause
+=item Evaluating a WHERE clause
 
 The WHERE clause evaluation depends on an object being used for
 fetching parameter and column values. Usually this can be an
@@ -2806,112 +2642,379 @@ Once you have such an object, you can call a
 
     $match = $stmt->eval_where($eval);
 
+=back
 
-=head2 Evaluating queries
-
-So far all methods have been concrete. However, the interface for
-executing and evaluating queries is abstract. That means, for using
-them you have to derive a subclass from SQL::Statement that implements
-at least certain missing methods and/or overwrites others. See the
-C<test.pl> script for an example subclass.
-
-Something that all methods have in common is that they simply throw
-a Perl exception in case of errors.
-
+=head2 Execute and fetch data from SQL statements
 
 =over 8
 
 =item execute
 
-After creating a statement, you must execute it by calling the C<execute>
-method. Usually you put an eval statement around this call:
+When called from a DBD or other subclass of SQL::Statement, the execute() method will be executed against whatever datasource (persistant storage) is supplied by the DBD or the subclass (e.g. CSV files for DBD::CSV, or BerkeleyDB for DBD::DBM).  If you are using SQL::Statement directly rather than as a subclass, you can call the execute() method and the statements will be executed() using temporary in-memory tables.  When used directly, like that, you need to create a cache hashref and pass it as the first argument to execute:
 
-    $@ = '';
-    my $rows = eval { $self->execute($data); };
-    if ($@) { die "An error occurred!"; }
+  my $cache  = {};
+  my $parser = SQL::Parser->new();
+  my $stmt   = SQL::Statement->new('CREATE TABLE x (id INT)',$parser);
+  $stmt->execute( $cache );
 
-In case of success the method returns the number of affected rows or -1,
-if unknown. Additionally it sets the attributes
+If you are using a statement with placeholders, those can be passed to execute after the $cache:
 
-    $self->{'NUM_OF_FIELDS'}
-    $self->{'NUM_OF_ROWS'}
-    $self->{'data'}
+  $stmt      = SQL::Statement->new('INSERT INTO y VALUES(?,?)',$parser);
+  $stmt->execute( $cache, 7, 'foo' );
 
-the latter being an array ref of result rows. The argument $data is for
-private use by concrete subclasses and will be passed through to all
-methods. (It is intentionally not implemented as attribute: Otherwise
-we might well become self referencing data structures which could
-prevent garbage collection.)
+Only a single fetch() method is provided - it returns a single row of data as an arrayref.  Use a loop to fetch all rows:
 
+ while (my $row = $stmt->fetch) {
+     # ...
+ }
 
-=item CREATE
+=item B<An Example of executing and fetching>
 
-=item DROP
+ #!/usr/bin/perl -w
+ use strict;
+ use SQL::Statement;
 
-=item INSERT
-
-=item UPDATE
-
-=item DELETE
-
-=item SELECT
-
-Called by C<execute> for doing the real work. Usually they create an
-SQL::Eval object by calling C<$self-E<gt>open_tables()>, call
-C<$self-E<gt>verify_columns()> and then do their job. Finally they return
-the triple
-
-    ($self->{'NUM_OF_ROWS'}, $self->{'NUM_OF_FIELDS'},
-     $self->{'data'})
-
-so that execute can setup these attributes. Example:
-
-    ($self->{'NUM_OF_ROWS'}, $self->{'NUM_OF_FIELDS'},
-     $self->{'data'}) = $self->SELECT($data);
-
-
-=item verify_columns
-
-Called for verifying the row names that are used in the statement.
-Example:
-
-    $self->verify_columns($eval, $data);
-
-
-=item open_tables
-
-Called for creating an SQL::Eval object. In fact what it returns
-doesn't need to be derived from SQL::Eval, it's completely sufficient
-to implement the same interface of methods. See L<SQL::Eval> for
-details. The arguments C<$data>, C<$createMode> and C<$lockMode>
-are corresponding to those of SQL::Eval::Table::open_table and
-usually passed through. Example:
-
-    my $eval = $self->open_tables($data, $createMode, $lockMode);
-
-The eval object can be used for calling C<$self->verify_columns> or
-C<$self->eval_where>.
-
-=item open_table
-
-This method is completely abstract and *must* be implemented by subclasses.
-The default implementation of C<$self->open_tables> calls this method for
-any table used by the statement. See the C<test.pl> script for an example
-of imlplementing a subclass.
+ my $cache={};
+ my $parser = SQL::Parser->new();
+ for my $sql(split /\n/,
+ "  CREATE TABLE a (b INT)
+    INSERT INTO a VALUES(1)
+    INSERT INTO a VALUES(2)
+    SELECT MAX(b) FROM a  "
+ ){
+    $stmt = SQL::Statement->new($sql,$parser);
+    $stmt->execute($cache);
+    next unless $stmt->command eq 'SELECT';
+    while (my $row=$stmt->fetch) {
+        print "@$row\n";
+    }
+ }
+ __END__
 
 =back
 
+=head1 Supported SQL syntax
 
-=head1 SQL syntax
+This module is meant primarly as a base class for DBD drivers
+and as such concentrates on a small but useful subset of SQL.
+It does *not* in any way pretend to be a complete SQL parser for
+all dialects of SQL. The module will continue to add new supported syntax,
+currently, this is what is supported:
 
-The SQL::Statement module is far away from ANSI SQL or something similar,
-it is designed for implementing the DBD::CSV module. See L<DBD::CSV(3)>.
+=head2 Summary of supported SQL syntax
 
-I do not want to give a formal grammar here, more an informal
-description: Read the statement definition in sql_yacc.y, if you need
-something precise.
+B<SQL Statements>
 
-The main lexical elements of the grammar are:
+   CREATE [TEMP] TABLE <table> <column_def_clause>
+   CREATE [TEMP] TABLE <table> AS <select statement>
+   CREATE [TEMP] TABLE <table> AS IMPORT()
+   CREATE FUNCTION <user_defined_function> [ NAME <perl_subroutine> ]
+   DELETE FROM <table> [<where_clause>]
+   DROP TABLE [IF EXISTS] <table>
+   INSERT [INTO] <table> [<column_list>] VALUES <value_list>
+   LOAD <user_defined_functions_module>
+   SELECT <function>
+   SELECT <select_clause>
+          <from_clause>
+          [<where_clause>] 
+          [ ORDER BY ocol1 [ASC|DESC], ... ocolN [ASC|DESC]] ]
+          [ GROUP BY gcol1 [, ... gcolN] ]
+          [ LIMIT [start,] length ]
+   UPDATE <table> SET <set_clause> [<where_clause>]
+
+B<Explict Join Qualifiers>
+
+   NATURAL, INNER, OUTER, LEFT, RIGHT, FULL
+
+B<Built-in Functions>
+
+   * Aggregate : MIN, MAX, AVG, SUM, COUNT
+   * Date/Time : CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP
+   * String    : CHAR_LENGTH, CONCAT, COALESCE, DECODE, LOWER, POSITION,
+                 REGEX, REPLACE, SOUNDEX, SUBSTRING, TRIM, UPPER
+
+B<Special Utility Functions>
+
+  * IMPORT  - imports a table from an external RDBMS or perl structure
+  * RUN     - prepares & executes statements in a file of SQL statements
+
+B<Operators and Predicates>
+
+   = , <> , < , > , <= , >= , IS [NOT] NULL , LIKE , CLIKE , IN , BETWEEN
+
+B<Identifiers> and B<Aliases>
+
+   * regular identifiers are case insensitive (though see note on table names)
+   * delimited identifiers (inside double quotes) are case sensitive
+   * column and table aliases are supported
+
+B<Concatenation>
+
+   * use either ANSI SQL || or the CONCAT() function
+   * e.g. these are the same:  {foo || bar} {CONCAT(foo,bar)}
+
+B<Comments>
+
+   * comments must occur before or after statements, can't be embedded
+   * SQL-style single line -- and C-style multi-line /* */ comments are supported
+
+B<NULLs>
+
+   * currently NULLs and empty strings are identical, but this will change
+   * use {col IS NULL} to find NULLs, not {col=''} (though both currently work)
+
+See below for further details.
+
+=head2 Details
+
+=head3 CREATE TABLE
+
+Creates permanenet and in-memory tables.
+
+ CREATE [TEMP] TABLE <table_name> ( <column_definitions> )
+ CREATE [TEMP] TABLE <table_name> AS <select statement>
+ CREATE [TEMP] TABLE <table_name> AS IMPORT()
+
+Column definitions are standard SQL column names, types, and constraints, see L<Column Definitions>.
+
+  # create a permanent table
+  #
+  $dbh->do("CREATE TABLE qux (id INT PRIMARY KEY,word VARCHAR(30))");
+
+The "AS SELECT" clause creates and populates the new table using the data and column structure specified in the select statement.
+
+  # create and populate a table from a query to two other tables
+  #
+  $dbh->do("CREATE TABLE qux AS SELECT id,word FROM foo NATURAL JOIN bar");
+
+If the optional keyword TEMP (or its synonym TEMPORARY) is used, the table will be an in-memory table, available  for the life of the current database handle or until  a DROP TABLE command is issued. 
+
+  # create a temporary table
+  #
+  $dbh->do("CREATE TEMP TABLE qux (id INT PRIMARY KEY,word VARCHAR(30))");
+
+TEMP tables can be modified with SQL commands but the updates are not automatically reflected back to any permanent tables they may be associated with.  To save a TEMP table - just use an AS SELECT clause:
+
+ $dbh = DBI->connect( 'dbi:CSV:' );
+ $dbh->do("CREATE TEMP TABLE qux_temp AS (id INT, word VARCHAR(30))");
+ #
+ # ... modify qux_temp with INSERT, UPDATE, DELETE statements, then save it
+ #
+ $dbh->do("CREATE TABLE qux_permanent AS SELECT * FROM qux_temp");
+
+Tables, both temporary and permanent may also be created directly from perl arrayrefs and from heterogeneous queries to any DBI accessible data source, see the IMPORT() function.
+
+
+ CREATE [ {LOCAL|GLOBAL} TEMPORARY ] TABLE $table
+        (
+           $col_1 $col_type1 $col_constraints1,
+           ...,
+           $col_N $col_typeN $col_constraintsN,
+        )
+        [ ON COMMIT {DELETE|PRESERVE} ROWS ]
+
+     * col_type must be a valid data type as defined in the
+       "valid_data_types" section of the dialect file for the
+       current dialect
+
+     * col_constriaints may be "PRIMARY KEY" or one or both of
+       "UNIQUE" and/or "NOT NULL"
+
+     * IMPORTANT NOTE: temporary tables, data types and column
+       constraints are checked for syntax violations but are
+       currently otherwise *IGNORED* -- they are recognized by
+       the parser, but not by the execution engine
+
+     * The following valid ANSI SQL92 options are not currently
+       supported: table constraints, named constraints, check
+       constriants, reference constraints, constraint
+       attributes, collations, default clauses, domain names as
+       data types
+
+=head3 DROP TABLE
+
+ DROP TABLE $table [ RESTRICT | CASCADE ]
+
+     * IMPORTANT NOTE: drop behavior (cascade or restrict) is
+       checked for valid syntax but is otherwise *IGNORED* -- it
+       is recognized by the parser, but not by the execution
+       engine
+
+=head3 INSERT INTO
+
+ INSERT INTO $table [ ( $col1, ..., $colN ) ] VALUES ( $val1, ... $valN )
+
+     * default values are not currently supported
+     * inserting from a subquery is not currently supported
+
+=head3 DELETE FROM
+
+ DELETE FROM $table [ WHERE search_condition ]
+
+     * see "search_condition" below
+
+=head3 UPDATE
+
+ UPDATE $table SET $col1 = $val1, ... $colN = $valN [ WHERE search_condition ]
+
+     * default values are not currently supported
+     * see "search_condition" below
+
+=head3 SELECT
+
+      SELECT select_clause
+        FROM from_clause
+     [ WHERE search_condition ]
+  [ ORDER BY $ocol1 [ASC|DESC], ... $ocolN [ASC|DESC] ]
+     [ LIMIT [start,] length ]
+
+      * select clause ::=
+              [DISTINCT|ALL] *
+           | [DISTINCT|ALL] col1 [,col2, ... colN]
+           | set_function1 [,set_function2, ... set_functionN]
+
+      * set function ::=
+             COUNT ( [DISTINCT|ALL] * )
+           | COUNT | MIN | MAX | AVG | SUM ( [DISTINCT|ALL] col_name )
+
+      * from clause ::=
+             table1 [, table2, ... tableN]
+           | table1 NATURAL [join_type] JOIN table2
+           | table1 [join_type] table2 USING (col1,col2, ... colN)
+           | table1 [join_type] JOIN table2 ON table1.colA = table2.colB
+
+      * join type ::=
+             INNER
+           | [OUTER] LEFT | RIGHT | FULL
+
+      * if join_type is not specified, INNER is the default
+      * if DISTINCT or ALL is not specified, ALL is the default
+      * if start position is omitted from LIMIT clause, position 0 is
+        the default
+      * ON clauses may only contain equal comparisons and AND combiners
+      * self-joins are not currently supported
+      * if implicit joins are used, the WHERE clause must contain
+        and equijoin condition for each table
+
+=head3 SEARCH CONDITION
+
+       [NOT] $val1 $op1 $val1 [ ... AND|OR $valN $opN $valN ]
+
+
+=head3 OPERATORS
+
+       $op  = |  <> |  < | > | <= | >=
+              | IS NULL | IS NOT NULL | LIKE | CLIKE | BETWEEN | IN
+
+  The "CLIKE" operator works exactly the same as the "LIKE"
+  operator, but is case insensitive.  For example:
+
+      WHERE foo LIKE 'bar%'   # succeeds if foo is "barbaz"
+                              # fails if foo is "BARBAZ" or "Barbaz"
+
+      WHERE foo CLIKE 'bar%'  # succeeds for "barbaz", "Barbaz", and "BARBAZ"
+
+=head3 BUILT-IN AND USER-DEFINED FUNCTIONS
+
+There are many built-in functions and you can also create your
+own new functions from perl subroutines.  See L<SQL::Statement::Functions>
+for documentation of functions.
+
+=head3 Identifiers (table & column names)
+
+Regular identifiers (table and column names *without* quotes around them) 
+are case INSENSITIVE so column foo, fOo, FOO all refer to the same column.
+
+Delimited identifiers (table and column names *with* quotes around them) are 
+case SENSITIVE so column "foo", "fOo", "FOO" each refer to different columns.
+
+A delimited identifier is *never* equal to a regular identifer (so "foo" and 
+foo are two different columns).  But don't do that :-).
+
+Remember thought that, in DBD::CSV if table names are used directly as file 
+names, the case sensitivity depends on the OS e.g. on Windows files named foo, 
+FOO, and fOo are the same as each other while on Unix they are different.
+
+=head3 Special Utility SQL Functions
+
+=head4 IMPORT()
+
+Imports the data and structure of a table from an external data source into a permanent or temporary table.
+
+ $dbh->do("CREATE TABLE qux AS IMPORT(?)",{},$oracle_sth);
+
+ $dbh->do("CREATE TABLE qux AS IMPORT(?)",{},$AoA);
+
+ $dbh->do("CREATE TABLE qux AS IMPORT(?)",{},$AoH);
+
+IMPORT() can also be used anywhere that table_names can:
+
+ $sth=$dbh->prepare("
+    SELECT * FROM IMPORT(?) AS T1 NATURAL JOIN IMPORT(?) AS T2 WHERE T1.id ...
+ ");
+ $sth->execute( $pg_sth, $mysql_sth );
+
+The IMPORT() function imports the data and structure of a table from an external data source.  The IMPORT() function is always used with a placeholder parameter which may be 1) a prepared and executed statement handle for any DBI accessible data source;  or 2) an AoA whose first row is column names and whose succeeding rows are data 3) an AoH.
+
+The IMPORT() function may be used in the AS clause of a CREATE statement, and in the FROM clause of any statement.  When used in a FROM clause, it should be used with a column alias e.g. SELECT * FROM IMPORT(?) AS TableA WHERE ...
+
+You can also write your own IMPORT() functions to treat anything as a data source.  See User-Defined Function in L<SQL::Statement::Functions>.
+
+Examples:
+
+ # create a CSV file from an Oracle query
+ #
+ $dbh = DBI->connect('dbi:CSV:');
+ $oracle_sth = $oracle_dbh->prepare($any_oracle_query);
+ $oracle_sth->execute(@params);
+ $dbh->do("CREATE TABLE qux AS IMPORT(?)",{},$oracle_sth);
+
+ # create an in-memory table from an AoA
+ #
+ $dbh      = DBI->connect( 'dbi:File:' );
+ $arrayref = [['id','word'],[1,'foo'],[2,'bar'],];
+ $dbh->do("CREATE TEMP TABLE qux AS IMPORT(?)",{},$arrayref);
+
+ # query a join of a PostgreSQL table and a MySQL table
+ #
+ $dbh        = DBI->connect( 'dbi:File:' );
+ $pg_dbh     = DBI->connect( ... DBD::pg connect params );
+ $mysql_dbh  = DBI->connect( ... DBD::mysql connect params );
+ $pg_sth     = $pg_dbh->prepare( ... any pg query );
+ $pg_sth     = $pg_dbh->prepare( ... any mysql query );
+ #
+ $sth=$dbh->prepare("
+    SELECT * FROM IMPORT(?) AS T1 NATURAL JOIN IMPORT(?) AS T2
+ ");
+ $sth->execute( $pg_sth, $mysql_sth );
+
+=head4 RUN()
+
+Run SQL statements from a user supplied file.
+
+ RUN( sql_file )
+
+If the file contains non-SELECT statements such as CREATE and INSERT, use the RUN() function with $dbh->do().  For example, this prepares and executes all of the SQL statements in a file called "populate.sql":
+
+ $dbh->do(" CALL RUN( 'populate.sql') ");
+
+If the file contains SELECT statements, the RUN() function may be used anywhere a table name may be used, for example, if you have a file called "query.sql" containing "SELECT * FROM Employee", then these two lines are exactly the same:
+
+ my $sth = $dbh->prepare(" SELECT * FROM Employee ");
+
+ my $sth = $dbh->prepare(" SELECT * FROM RUN( 'query.sql' ) ");
+
+If the file contains a statement with placeholders, the values for the placehoders can be passed in the call to $sth->execute() as normal.  If the query.sql file contains "SELECT id,name FROM x WHERE id=?", then these two are the same:
+
+ my $sth = $dbh->prepare(" SELECT id,name FROM x WHERE id=?");
+ $sth->execute(64);
+
+ my $sth = $dbh->prepare(" SELECT * FROM RUN( 'query.sql' ) ");
+ $sth->execute(64);
+
+B<Note> This function assumes that the SQL statements in the file are separated by a semi-colon+newline combination (/;\n/).  If you wish to use different separators or import SQL from a different source, just over-ride the RUN() function with your own user-defined-function.
+
+=head3 Further details
 
 =over 8
 
@@ -2939,228 +3042,41 @@ Prepare(). Parameters are represented by question marks (?).
 Identifiers are table or column names. Syntactically they consist of
 alphabetic characters, followed by an arbitrary number of alphanumeric
 characters. Identifiers like SELECT, INSERT, INTO, ORDER, BY, WHERE,
-... are forbidden and reserved for other tokens.
+... are forbidden and reserved for other tokens.  Identifiers are always compared case-insenitively, i.e. "select foo from bar" will be evaluated the same as "SELECT FOO FROM BAR".  One exception is that if the module is used in conjunction with a file storage system, the names of tables are case sensitive.
 
 =back
 
-What it offers is the following:
-
-=head2 CREATE
-
-This is the CREATE TABLE command:
-
-    CREATE TABLE $table ( $col1 $type1, ..., $colN $typeN,
-                          [ PRIMARY KEY ($col1, ... $colM) ] )
-
-The column names are $col1, ... $colN. The column types can be
-C<INTEGER>, C<CHAR(n)>, C<VARCHAR(n)>, C<REAL> or C<BLOB>. These
-types are currently completely ignored. So is the (optional)
-C<PRIMARY KEY> clause.
-
-=head2 DROP
-
-Very simple:
-
-    DROP TABLE $table
-
-=head2 INSERT
-
-This can be
-
-    INSERT INTO $table [ ( $col1, ..., $colN ) ]
-        VALUES ( $val1, ... $valN )
-
-=head2 DELETE
-
-    DELETE FROM $table [ WHERE $where_clause ]
-
-See L<SELECT> below for a decsription of $where_clause
-
-=head2 UPDATE
-
-    UPDATE $table SET $col1 = $val1, ... $colN = $valN
-        [ WHERE $where_clause ]
-
-See L<SELECT> below for a decsription of $where_clause
-
-=head2 SELECT
-
-    SELECT [DISTINCT] $col1, ... $colN FROM $table
-        [ WHERE $where_clause ] [ ORDER BY $ocol1, ... $ocolM ]
-
-The $where_clause is based on boolean expressions of the form
-$val1 $op $val2, with $op being one of '=', '<>', '>', '<', '>=',
-'<=', 'LIKE', 'CLIKE' or IS. You may use OR, AND and brackets to combine
-such boolean expressions or NOT to negate them.
-
-
 =head1 INSTALLATION
 
-For the moment, just unpack the tarball in a private directory.  For the moment, I suggest this be somewhere other than where you store your current SQL::Statement and you use this version by a "use lib" referencing the private directory where you unpack it.
+There are no prerequisites for using this as a standalone parser.  If you want to access persistant stored data, you either need to write a subclass or use one of the DBI DBD drivers.  You can install this module using CPAN.pm, CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can use the standard perl mantra
 
-There's no Makefile at this time.
+ perl Makefile.PL
+ make
+ make test
+ make install
 
+It works fine on all platforms it's been tested on.  On Windows, you can use nmake instead of make.
 
-=head1 INTERNALS
+=head1 Where to go for more help
 
-Internally the module is splitted into three parts:
+For questions about installation or usage, please ask on the dbi-users@perl.org mailing list or post a question on PerlMonks (L<http://www.perlmonks.org/>, where Jeff is known as jZed).  If you have a bug report, a patch, a suggestion, write Jeff at the email shown below
 
+=head1 Acknowledgements
 
-=head2 Perl-independent C part
+Jochen Wiedmann created the original module as an XS (C) extension in 1998. Jeff Zucker took over the maintenance in 2001 and rewrote all of the C portions in perl and began extending the SQL support.  More recently Ilya Sterin provided help with SQL::Parser, Tim Bunce provided both general and specific support, Dan Wright and Dean Arnold have contributed extensively to the code, and dozens of people from around the world have submitted patches, bug reports, and suggestions.  Thanks to all!
 
-This part, contained in the files C<sql_yacc.y>, C<sql_data.h>,
-C<sql_data.c> and C<sql_op.c>, is completely independent from Perl.
-It might well be used from within another script language, Tcl say,
-or from a true C application.
-
-You probably ask, why Perl independence? Well, first of all, I
-think this is a valuable target in itself. But the main reason was
-the impossibility to use the Perl headers inside bison generated
-code. The Perl headers export almost the complete Yacc interface
-to XS, for whatever reason, thus redefining constants and structures
-created by your own bison code. :-(
-
-
-=head2 Perl-dependent C part
-
-This is contained in C<Statement.xs>. The both C parts communicate via
-a C structure sql_stmt_t. In fact, an SQL::Statement object is nothing
-else than a pointer to such a structure. The XS calls columns(), Table(),
-where(), ... do nothing more than fetching data from this structure
-and converting it to Perl objects. See L<The sql_stmt_t structure>
-below for details on the structure.
-
-
-=head2 Perl part
-
-Besides some stub functions for retrieving statement data, this is
-mainly the query processing with the exception of WHERE clause
-evaluation.
-
-
-=head2 The sql_stmt_t structure
-
-This structure is designed for optimal performance. A typical query
-will be parsed with only 4 or 5 malloc() calls; in particular no
-memory will be aquired for storing strings; only pointers into the
-query string are used.
-
-The statement stores its tokens in the values array. The array elements
-are of type sql_val_t, a union, that can represent the most interesting
-tokens; for example integers and reals are stored in the data.i and
-data.d parts of the union, strings are stored in the data.str part,
-columns in the data.col part and so on. Arrays are allocated in chunks
-of 64 elements, thus a single malloc() will be usually sufficient for
-allocating the complete array. Some types use pointers into the values
-array: For example, operations are stored in an sql_op_t structure that
-containes elements arg1 and arg2 which are pointers into the value
-table, pointing to other operations or scalars. These pointers are
-stored as indices, so that the array can be extended using realloc().
-
-The sql_stmt_t structure contains other arrays: columns, tables,
-rowvals, order, ... representing the data returned by the columns(),
-tables(), row_values() and order() methods. All of these contain
-pointers into the values array, again stored as integers.
-
-Arrays are initialized with the _InitArray call in SQL_Statement_Prepare
-and deallocated with _DestroyArray in SQL_Statement_Destroy. Array
-elements are obtained by calling _AllocData, which returns an index.
-The number -1 is used for errors or as a NULL value.
-
-
-=head2 The WHERE clause evaluation
-
-A WHERE clause is evaluated by calling SQL_Statement_EvalWhere(). This
-function is in the Perl independent part, but it needs the possibility
-to retrieve data from the Perl part, for example column or parameter
-values. These values are retrieved via callbacks, stored in the
-sql_eval_t structure. The field stmt->evalData points to such a
-structure. Of course the calling method can extend the sql_eval_t
-structure (like eval_where in Statement.xs does) to include private data
-not used by SQL_Statement_EvalWhere.
-
-
-=head2 Features
-
-Different parsers are implemented via the sql_parser_t structure. This
-is mainly a set of yes/no flags. If you'd like to add features, do
-the following:
-
-First of all, extend the sql_parser_t structure. If your feature is
-part of a certain statement, place it into the statements section,
-for example "select.join". Otherwise choose a section like "misc"
-or "general". (There's no particular for the section design, but
-structure never hurts.)
-
-Second, add your feature to sql_yacc.y. If your feature needs to
-extend the lexer, do it like this:
-
-    if (FEATURE(misc, myfeature) {
-        /*  Scan your new symbols  */
-        ...
-    }
-
-See the I<BOOL> symbol as an example.
-
-If you need to extend the parser, do it like this:
-
-    my_new_rule:
-        /*  NULL, old behaviour, doesn't use my feature  */
-        | my_feature
-            { YFEATURE(misc, myfeature); }
-    ;
-
-Thus all parsers not having FEATURE(misc, myfeature) set will produce
-a parse error here. Again, see the BOOL symbol for an example.
-
-Third thing is to extend the builtin parsers. If they support your
-feature, add a 1, otherwise a 0. Currently there are two builtin
-parsers: The I<ansiParser> in sql_yacc.y and the sqlEvalParser in
-Statement.xs.
-
-Finally add support for your feature to the C<feature> method in
-Statement.xs. That's it!
-
-
-=head1 MULTITHREADING
-
-The complete module code is reentrant. In particular the parser is
-created with C<%pure_parser>. See L<bison(1)> for details on
-reentrant parsers. That means, the module is ready for multithreading,
-as long as you don't share handles between threads. Read-only handles,
-for example parsers, can even be shared.
-
-Statement handles cannot be shared among threads, at least not, if
-you don't grant serialized access. Per-thread handles are always safe.
-
+If you're interested in helping develop SQL::Statement or want to use it with your own modules, feel free to contact Jeff.
 
 =head1 AUTHOR AND COPYRIGHT
 
-The original version of this module is Copyright (C) 1998 by
+Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
 
-    Jochen Wiedmann
-    Am Eisteich 9
-    72555 Metzingen
-    Germany
-
-    Email: joe@ispsoft.de
-    Phone: +49 7123 14887
-
-The current version is Copyright (c) 2001,2005 by
-
-    Jeff Zucker
-
-    Email: jzuckerATcpan.org
+Portions Copyright (C) 1998 by Jochen Wiedmann: jwiedATcpan.org
 
 All rights reserved.
 
 You may distribute this module under the terms of either the GNU
 General Public License or the Artistic License, as specified in
 the Perl README file.
-
-
-=head1 SEE ALSO
-
-L<DBI(3)>, L<DBD::CSV(3)>, L<DBD::AnyData>
 
 =cut
