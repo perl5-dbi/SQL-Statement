@@ -1,10 +1,26 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.12, released 29 March, 2005
+Version 1.12, released 8 April, 2005
 ----------------------------------------
  * added support for GROUP BY
    (several people sent suggestions for this in the past, please email me
    so I can credit you, sorry I lost the names)
+
+ * added support for true LIMIT - if a LIMIT clause is specified and
+   no ORDER BY clause is specified, the SELECT will stop searching
+   when the limit is reached;  with an ORDER BY clause it will still
+   search the entire table because we can only ORDER a set;  using
+   LIMIT without an ORDER BY will greatly increase speed
+
+ * added support for CREATE/DROP keyword|operator|type|function
+
+ * optimized process_predicate to only look up scalars once
+
+ * completely re-wrote the POD
+
+ * fixed bug in primary key search optimization
+
+ * cleaned up case of temp table column names
 
  * added a META.YML and extra tests
 

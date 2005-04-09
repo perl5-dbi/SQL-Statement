@@ -906,10 +906,17 @@ sub SELECT ($$) {
     if ($self->{"join"}) {
           $e = $table;
     }
+
+    # begin count for limiting if there's a limit clasue and no order clause
+    #
+    my $limit_count = 0 if $self->limit and !$self->order;
+    my $row_count = 0;
     while (my $array = $table->fetch_row($data)) {
         if (eval_where($self,$e,$tableName,$array,\%funcs)) {
-#        if ($self->eval_where($e,$tableName,$array,\%funcs)) {
+            next if defined($limit_count) and $row_count++ < $self->offset;
+            $limit_count++ if defined $limit_count;
             $array = $self->{fetched_value} if $self->{fetched_from_key};
+
             # Note we also include the columns from @extraSortCols that
             # have to be ripped off later!
             @extraSortCols = () unless @extraSortCols;
@@ -919,9 +926,13 @@ sub SELECT ($$) {
                           } (@$cList, @extraSortCols);
             push(@$rows, \@row);
 
+            # We quit here if its a primary key search
+            # or if there's a limit clause without order clause
+            # and the limit has been reached
+            #
             return (scalar(@$rows),$numFields,$rows)
-#            return (scalar(@$rows),scalar @{$self->{column_names}},$rows)
- 	        if $self->{fetched_from_key};
+ 	        if $self->{fetched_from_key}
+                or (defined($limit_count) and $limit_count >= $self->limit);
         }
     }
     if (@order_by) {
@@ -1042,9 +1053,9 @@ sub SELECT ($$) {
         }
     }
 ###################################################################
-    if (defined $self->{"limit_clause"}) {
-        my $offset = $self->{"limit_clause"}->offset || 0;
-        my $limit  = $self->{"limit_clause"}->limit  || 0;
+    if ( defined $self->limit ) {
+        my $offset = $self->offset || 0;
+        my $limit  = $self->limit  || 0;
         @$rows = splice @$rows, $offset, $limit;
     }
     return $self->group_by($rows) if $self->{group_by};
@@ -1341,7 +1352,6 @@ sub process_predicate {
                   );
             $func->{args}=[$val1,$val2];
 	    $match = $self->get_row_value( $func, $eval, $rowhash );
-#bug($match);
 	}
         if ($pred->{"neg"}) {
            $match = $match ? 0 : 1;
@@ -1910,7 +1920,7 @@ sub verify_order_cols {
 #use mylibs; zwarn $self->{"sort_spec_list"}; exit;
 }
 
-sub limit ($) { shift->{limit_clause}->{limit}; }
+sub limit ($)  { shift->{limit_clause}->{limit}; }
 sub offset ($) { shift->{limit_clause}->{'offset'}; }
 sub order {
     my $self = shift;
@@ -2314,7 +2324,9 @@ SQL::Statement - SQL parsing and processing engine
     use SQL::Statement;
 
     # Create a parser
-    my($parser) = SQL::Parser->new();
+    my $parser = SQL::Parser->new( RaiseError);
+
+    # Set the Parser
 
     # Parse an SQL statement
     $@ = '';
@@ -2398,7 +2410,7 @@ For example:
 
 =over
 
-=item Creating a parser object
+=item B<Creating a parser object>
 
 The parser object only needs to be created once per script. It can then be reused to parse any number of SQL statements.  The basic creation of a parser is this:
 
@@ -2406,7 +2418,7 @@ The parser object only needs to be created once per script. It can then be reuse
 
 There are a number of optional parameters to new() and there are methods for mdofiying the behaviour of the parser.  For example, if the dialect you are attempting to parse has a special TYPE called BIG_BLOB, you'll need to modify the parser to accept BIG_BLOB as a valid TYPE name.  By default the parser uses ANSI standard type names and a few extras such as 'TEXT'.  You can also modify other syntax features such as functions, predicates, and operators.  For instructions on modifying parser behavior, see L<SQL::Parser>.
 
-=item Parsing a statement
+=item B<Parsing a statement>
 
 While you only need to define a new SQL::Parser object once per script, you need to define a new SQL::Statment object once for each statement you want to parse. 
 
@@ -2414,7 +2426,7 @@ While you only need to define a new SQL::Parser object once per script, you need
 
 The call to new() takes two arguments - the SQL string you want to parse, and the SQL::Parser object you previously created.  The call to new is the equivalent of a DBI call to prepare() - it parses the SQL into a structure but doesn't attempt to execute the SQL unless you explicitly call execute().
 
-=item Error-reporting
+=item B<Error-reporting>
 
 In case of syntax errors or other problems, the new() method throws a Perl
 exception. Thus, if you want to catch exceptions, the above becomes
@@ -2437,7 +2449,7 @@ query:
 
 =over
 
-=item command
+=item B<command>
 
 Returns the SQL command, currently one of I<SELECT>, I<INSERT>, I<UPDATE>,
 I<DELETE>, I<CREATE> or I<DROP>, the last two referring to
@@ -2445,7 +2457,7 @@ I<CREATE TABLE> and I<DROP TABLE>. See L<SQL syntax> below. Example:
 
     my $command = $stmt->command();
 
-=item columns
+=item B<columns>
 
     my $numColumns = $stmt->columns();  # Scalar context
     my @columnList = $stmt->columns();  # Array context
@@ -2483,7 +2495,7 @@ with
     $col->name() eq 'bar'
     $col->table() eq 'foo'
 
-=item tables
+=item B<tables>
 
     my $tableNum = $stmt->tables();  # Scalar context
     my @tables = $stmt->tables();    # Array context
@@ -2497,7 +2509,7 @@ of joins. Table objects offer a single method, C<name> which
 
 returns the table name.
 
-=item params
+=item B<params>
 
     my $paramNum = $stmt->params();  # Scalar context
     my @params = $stmt->params();    # Array context
@@ -2513,7 +2525,7 @@ implement a single method, C<$param->num()>, which retrieves the
 parameter number. (0 and 1, in the above example). As of now, not very
 usefull ... :-)
 
-=item row_values
+=item B<row_values>
 
     my $rowValueNum = $stmt->row_values(); # Scalar context
     my @rowValues = $stmt->row_values();   # Array context
@@ -2529,7 +2541,7 @@ This method is used for statements like
 to read the values $val1, $val2, ... $valN. It returns scalar values
 or SQL::Statement::Param instances.
 
-=item order
+=item B<order>
 
     my $orderNum = $stmt->order();   # Scalar context
     my @order = $stmt->order();      # Array context
@@ -2544,7 +2556,7 @@ In this case, C<order> could return 2 instances of SQL::Statement::Order.
 You can use the methods C<$o-E<gt>table()>, C<$o-E<gt>column()> and
 C<$o-E<gt>desc()> to examine the order object.
 
-=item limit
+=item B<limit>
 
     my $limit = $stmt->limit();
 
@@ -2561,13 +2573,13 @@ the method C<$stmt-E<gt>limit> returns undef. Otherwise it returns
 the limit number (the maximum number of rows) from the statement
 (5 or 10 for the statements above).
 
-=item offset
+=item B<offset>
 
     my $offset = $stmt->offset();
 
 If no C<LIMIT> clause is used, then the method C<$stmt-E<gt>limit> returns undef. Otherwise it returns the offset number (the index of the first row to be inlcuded in the limit clause).
 
-=item where
+=item B<where>
 
     my $where = $stmt->where();
 
@@ -2627,7 +2639,7 @@ fields would be Op's representing "id > 2" and "name = 'joe'".
 
 Of course there's a ready-for-use method for WHERE clause evaluation:
 
-=item Evaluating a WHERE clause
+=item B<Evaluating a WHERE clause>
 
 The WHERE clause evaluation depends on an object being used for
 fetching parameter and column values. Usually this can be an
@@ -2648,7 +2660,7 @@ Once you have such an object, you can call a
 
 =over 8
 
-=item execute
+=item B<execute>
 
 When called from a DBD or other subclass of SQL::Statement, the execute() method will be executed against whatever datasource (persistant storage) is supplied by the DBD or the subclass (e.g. CSV files for DBD::CSV, or BerkeleyDB for DBD::DBM).  If you are using SQL::Statement directly rather than as a subclass, you can call the execute() method and the statements will be executed() using temporary in-memory tables.  When used directly, like that, you need to create a cache hashref and pass it as the first argument to execute:
 
@@ -2693,7 +2705,7 @@ Only a single fetch() method is provided - it returns a single row of data as an
 
 =back
 
-=head1 Supported SQL syntax
+=head1 SQL syntax
 
 This module is meant primarly as a base class for DBD drivers
 and as such concentrates on a small but useful subset of SQL.
@@ -2701,16 +2713,24 @@ It does *not* in any way pretend to be a complete SQL parser for
 all dialects of SQL. The module will continue to add new supported syntax,
 currently, this is what is supported:
 
-=head2 Summary of supported SQL syntax
+=head2 Default Supported SQL syntax
 
 B<SQL Statements>
 
+   CALL <function>
    CREATE [TEMP] TABLE <table> <column_def_clause>
    CREATE [TEMP] TABLE <table> AS <select statement>
    CREATE [TEMP] TABLE <table> AS IMPORT()
    CREATE FUNCTION <user_defined_function> [ NAME <perl_subroutine> ]
+   CREATE KEYWORD  <user_defined_keyword>  [ NAME <perl_subroutine> ]
+   CREATE OPERATOR <user_defined_operator> [ NAME <perl_subroutine> ]
+   CREATE TYPE     <user_defined_type>     [ NAME <perl_subroutine> ]
    DELETE FROM <table> [<where_clause>]
    DROP TABLE [IF EXISTS] <table>
+   DROP FUNCTION <function>
+   DROP KEYWORD  <keyword>
+   DROP OPERATOR <operator>
+   DROP TYPE     <type>
    INSERT [INTO] <table> [<column_list>] VALUES <value_list>
    LOAD <user_defined_functions_module>
    SELECT <function>
@@ -2765,9 +2785,9 @@ B<NULLs>
 
 See below for further details.
 
-=head2 Details
+=over
 
-=head3 CREATE TABLE
+=item CREATE TABLE
 
 Creates permanenet and in-memory tables.
 
@@ -2831,7 +2851,7 @@ Tables, both temporary and permanent may also be created directly from perl arra
        attributes, collations, default clauses, domain names as
        data types
 
-=head3 DROP TABLE
+=item DROP TABLE
 
  DROP TABLE $table [ RESTRICT | CASCADE ]
 
@@ -2840,27 +2860,27 @@ Tables, both temporary and permanent may also be created directly from perl arra
        is recognized by the parser, but not by the execution
        engine
 
-=head3 INSERT INTO
+=item INSERT INTO
 
  INSERT INTO $table [ ( $col1, ..., $colN ) ] VALUES ( $val1, ... $valN )
 
      * default values are not currently supported
      * inserting from a subquery is not currently supported
 
-=head3 DELETE FROM
+=item DELETE FROM
 
  DELETE FROM $table [ WHERE search_condition ]
 
      * see "search_condition" below
 
-=head3 UPDATE
+=item UPDATE
 
  UPDATE $table SET $col1 = $val1, ... $colN = $valN [ WHERE search_condition ]
 
      * default values are not currently supported
      * see "search_condition" below
 
-=head3 SELECT
+=item SELECT
 
       SELECT select_clause
         FROM from_clause
@@ -2896,12 +2916,12 @@ Tables, both temporary and permanent may also be created directly from perl arra
       * if implicit joins are used, the WHERE clause must contain
         and equijoin condition for each table
 
-=head3 SEARCH CONDITION
+=item SEARCH CONDITION
 
        [NOT] $val1 $op1 $val1 [ ... AND|OR $valN $opN $valN ]
 
 
-=head3 OPERATORS
+=item OPERATORS
 
        $op  = |  <> |  < | > | <= | >=
               | IS NULL | IS NOT NULL | LIKE | CLIKE | BETWEEN | IN
@@ -2914,13 +2934,13 @@ Tables, both temporary and permanent may also be created directly from perl arra
 
       WHERE foo CLIKE 'bar%'  # succeeds for "barbaz", "Barbaz", and "BARBAZ"
 
-=head3 BUILT-IN AND USER-DEFINED FUNCTIONS
+=item BUILT-IN AND USER-DEFINED FUNCTIONS
 
 There are many built-in functions and you can also create your
 own new functions from perl subroutines.  See L<SQL::Statement::Functions>
 for documentation of functions.
 
-=head3 Identifiers (table & column names)
+=item Identifiers (table & column names)
 
 Regular identifiers (table and column names *without* quotes around them) 
 are case INSENSITIVE so column foo, fOo, FOO all refer to the same column.
@@ -2935,9 +2955,9 @@ Remember thought that, in DBD::CSV if table names are used directly as file
 names, the case sensitivity depends on the OS e.g. on Windows files named foo, 
 FOO, and fOo are the same as each other while on Unix they are different.
 
-=head3 Special Utility SQL Functions
+=item Special Utility SQL Functions
 
-=head4 IMPORT()
+=item IMPORT()
 
 Imports the data and structure of a table from an external data source into a permanent or temporary table.
 
@@ -2988,7 +3008,7 @@ Examples:
  ");
  $sth->execute( $pg_sth, $mysql_sth );
 
-=head4 RUN()
+=item RUN()
 
 Run SQL statements from a user supplied file.
 
@@ -3014,7 +3034,7 @@ If the file contains a statement with placeholders, the values for the placehode
 
 B<Note> This function assumes that the SQL statements in the file are separated by a semi-colon+newline combination (/;\n/).  If you wish to use different separators or import SQL from a different source, just over-ride the RUN() function with your own user-defined-function.
 
-=head3 Further details
+=item Further details
 
 =over 8
 
@@ -3046,20 +3066,87 @@ characters. Identifiers like SELECT, INSERT, INTO, ORDER, BY, WHERE,
 
 =back
 
+=back
+
+=head2 Extending SQL syntax using SQL
+
+The Supported SQL syntax shown above is the default for SQL::Statement but it can be extended (or contracted) either on-the-fly or on a permanent basis.
+In other words, you can modify the SQL syntax accepted as valid by the parser and accepted as executable by the executer.  There are two methods for extending the syntax - 1) with SQL commands that can be issued directly in SQL::Statement or form a DBD or 2) by subclassing SQL::Parser.
+
+
+The following SQL commands modify the default SQL syntax:
+
+  CREATE/DROP FUNCTION
+  CREATE/DROP KEYWORD
+  CREATE/DROP TYPE
+  CREATE/DROP OPERATOR
+
+A simple example would be a situation in which you have a table named 'TABLE'.  Since table is an ANSI reserved key word, by default SQL::Statement will produce an error when you attempt to create or access it.  You could put the table name inside double quotes since quoted identifiers can validly be reserved words, or you could rename the table.  But if those aren't options, you would do this:
+
+  DROP KEYWORD table
+
+Once that statement is issued, the parser will no longer object to 'table' as a table name.  Careful though, if you drop too many keywords you may confuse the parser, especially keywords like FROM and WHERE that are central to parsing the statement.
+
+In the reverse situation, suppose you want to parse some SQL that defines a column as type BIG_BLOB.  Since 'BIG_BLOB' isn't a recognized ANSI data type, an error will be produced by default.  To make the parser treat it as a valid data type, you'd do this:
+
+ CREATE TYPE big_blob
+
+Keywords and types are case-insensitive, so it doesn't matter what case you define it or use it with.
+
+Suppose you're working with some SQL that contains the cosh() function (an Oracle function for hyperbolic cosine, whatever that is :-).  The cosh() function isn't currently implemented in SQL::Statement so the parser would die with an error.  But you can easily trick the parser into accepting the function:
+
+ CREATE FUNCTION cosh
+
+Once the parser has read that CREATE FUNCTION statement, it will no longer object to the use of the cosh() function in SQL statements.
+
+If your only interest is in parsing SQL statements, then 'CREATE FUNCTION cosh' is sufficient.  But if you actually want to be able to use the cosh() function in executable statements, you need to supply a perl subroutine that performs the cosh() function:
+
+  CREATE FUNCTION cosh AS perl_subroutine_name
+
+The subroutine name can refer to a subroutine in your current script, or to a subroutine in any available package.  See L<SQL::Statement::Functions> for details of how to create and load functions.
+
+Functions can be used as  predicates in search clauses, for example:
+
+ SELECT * FROM x WHERE c1=7 AND SOUNDEX(c3,'foo') AND c8='bar'
+
+In the SQL above, the SOUNDEX() function full predicate - it plays the same role as "c1=7" or "c8='bar'".
+
+Functions can also serve as predicate operators.  An operator, unlike a full predicate, has something on the left and right sides.  An equal sign is an operator, so is LIKE.  If you really want to you can get the parser to not accept LIKE as an operator with
+
+ DROP OPERATOR like
+
+Or, you can invent your own operator.  Suppose you have an operator "REVERSE_OF" that is true if the string on its left side when reversed is equal to the string on the right side:
+
+  CREATE OPERATOR reverse_of
+  SELECT * FROM x WHERE c1=7 AND c3 REVERSE_OF 'foo'
+
+The operator could just as well have been written as a function:
+
+  CREATE FUNCTION reverse_of
+  SELECT * FROM x WHERE c1=7 AND REVERSE_OF(c3,'foo')
+
+Like functions, if you want to actually execute a user-defined operator as didistinct form just parsing it, you need to assign the operator to a perl subroutine.  This is done exactly like assignin functions:
+
+  CREATE OPERATOR reverse_of AS perl_subroutine_name
+
+=head2 Extending SQL syntax using subclasses
+
+In addition to using the SQL shown above to modify the parser's behavior, you can also extend the SQL syntax by subclassing SQL::Parser.  See L<SQL::Parser> for details.
+
 =head1 INSTALLATION
 
-There are no prerequisites for using this as a standalone parser.  If you want to access persistant stored data, you either need to write a subclass or use one of the DBI DBD drivers.  You can install this module using CPAN.pm, CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can use the standard perl mantra
+There are no prerequisites for using this as a standalone parser.  If you want to access persistant stored data, you either need to write a subclass or use one of the DBI DBD drivers.  You can install this module using CPAN.pm, CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can download the tar.gz file form CPAN and use the standard perl mantra
 
  perl Makefile.PL
  make
  make test
  make install
 
-It works fine on all platforms it's been tested on.  On Windows, you can use nmake instead of make.
+It works fine on all platforms it's been tested on.  On Windows, you can use ppm or with the mantra use nmake, dmake, or make depending on which is available.
 
 =head1 Where to go for more help
 
-For questions about installation or usage, please ask on the dbi-users@perl.org mailing list or post a question on PerlMonks (L<http://www.perlmonks.org/>, where Jeff is known as jZed).  If you have a bug report, a patch, a suggestion, write Jeff at the email shown below
+For questions about installation or usage, please ask on the dbi-users@perl.org mailing list or post a question on PerlMonks (L<http://www.perlmonks.org/>, where Jeff is known as jZed).  If you have a bug report, a patch, a suggestion, write Jeff at the email shown below.
 
 =head1 Acknowledgements
 
