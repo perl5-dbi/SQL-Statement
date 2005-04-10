@@ -11,7 +11,7 @@ use strict;
 use SQL::Parser;
 use SQL::Eval;
 use SQL::Statement::RAM;
-use vars qw($VERSION $numexp $s2pops $arg_num $dlm $warg_num $HAS_DBI $DEBUG);
+use vars qw($VERSION $new_execute $numexp $s2pops $arg_num $dlm $warg_num $HAS_DBI $DEBUG);
 BEGIN {
     eval { require 'Data/Dumper.pm'; $Data::Dumper::Indent=1};
     *bug = ($@) ? sub {warn @_} : sub { print Data::Dumper::Dumper(\@_) };
@@ -150,7 +150,8 @@ sub prepare {
        }
        for (@$columns) {
            my $newcol = $_;
-           my $col_obj = delete $self->{col_obj}->{$newcol};
+           #  my $col_obj = delete $self->{col_obj}->{$newcol};
+           my $col_obj =  $self->{col_obj}->{$newcol};
            if ($col_obj and ref($col_obj)=~/::Column$/ ) {
                $self->{"computed_column"}->{$newcol} = $col_obj
                    if defined $col_obj->function;
@@ -184,6 +185,7 @@ sub prepare {
 
 sub execute {
     my($self, $data, $params) = @_;
+    $new_execute=1;
     ($self->{'NUM_OF_ROWS'}, $self->{'NUM_OF_FIELDS'},
           $self->{'data'}) =  (0,0,[]) and return 'OEO' if $self->{no_execute};
     $self->{procedure}->{data}=$data if $self->{procedure};
@@ -1226,9 +1228,18 @@ sub eval_where {
 		while ( ($f,$fval) = each %$funcs);
 
     my @truths;
-    $arg_num=0;
+    $arg_num=0;  # set placeholder start
     my $where = $self->{"where_clause"} || return 1;
-    return $self->process_predicate ($where,$eval,$rowhash);
+    my $match = $self->process_predicate ($where,$eval,$rowhash);
+
+    # we set the $new_execute flag to 0 to allow reuse;
+    # it's set to 1 at the start of execute()
+    # we set it here because all predicates have been processed
+    # at this point
+    #
+    $new_execute=0;  # we don't need to get the reuse values again;
+
+    return $match;
 }
 
 
@@ -1284,29 +1295,36 @@ sub process_predicate {
         # my $val1 = $self->get_row_value( $pred->{"arg1"}, $eval, $rowhash );
         # my $val2 = $self->get_row_value( $pred->{"arg2"}, $eval, $rowhash );
 
-        # we only need to call get_row_value on these once
+        # define types that we only need to call get_row_value on once
+        # per execute
         #
         my %is_value = map {$_=>1} qw(placeholder string number null);
 
-        # if we've already called it, the value will be a scalar
-        # so we don't call it again
+        # use a reuse value if defined, get_row_value() otherwise
         #
-        my $val1 = (ref($pred->{arg1}) eq '')
-                 ? $pred->{arg1}
+        # except we ignore the reuse value if this is the first pass
+        # on an execute() since placeholders need to be reset on the
+        # first pass
+        #
+        # $new_execute is set to 1 at the start of execute()
+        # and set to 0 at the end of  eval_where()
+        #
+        my $val1 = (!$new_execute and defined $pred->{arg1}->{reuse})
+                 ? $pred->{arg1}->{reuse}
 	         : $self->get_row_value( $pred->{"arg1"}, $eval, $rowhash );
-        my $val2 = (ref($pred->{arg2}) eq '')
-                 ? $pred->{arg2}
+        my $val2 = (!$new_execute and defined $pred->{arg2}->{reuse})
+                 ? $pred->{arg2}->{reuse}
 	         : $self->get_row_value( $pred->{"arg2"}, $eval, $rowhash );
 
-        # the first time we call get_row_value, we replace the predicate
-        # argument object with its scalar value
+        # the first time we call get_row_value, we set the reuse value
+        # for the argument object with its scalar value
         #
         my $type1 = $pred->{arg1}->{type} if ref($pred->{arg1}) eq 'HASH';
         my $type2 = $pred->{arg2}->{type} if ref($pred->{arg2}) eq 'HASH';
-
-	$pred->{arg1} = $val1 if $type1 and $is_value{$type1};
-	$pred->{arg2} = $val2 if $type2 and $is_value{$type2};
-
+	$pred->{arg1}->{reuse} = $val1
+                              if $type1 and $is_value{$type1} and $new_execute;
+	$pred->{arg2}->{reuse} = $val2
+                              if $type2 and $is_value{$type2} and $new_execute;
 
         my $op     = $pred->{op};
         my $opfunc = $op;
@@ -1656,10 +1674,10 @@ sub verify_columns {
         }
     }
     #
-    # CLEAN parser's {strcut} - no longer needed
+    # CLEAN parser's {strcut} - no, maybe needed by second execute?
     #
     # delete $self->{opts};  # need $opts->{function_defs}
-    delete $self->{select_procedure};
+    # delete $self->{select_procedure};
     return $fully_qualified_cols;
 }
 
