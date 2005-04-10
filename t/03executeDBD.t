@@ -1,18 +1,20 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-use lib  qw( ../lib );
+use lib qw' ./ ./t ';
+use SQLtest;
 use Test::More;
-eval { require DBD::File; };
+eval {
+    require DBI;
+    require DBD::File;
+};
 if ($@) {
-        plan skip_all => "No DBD::File available";
+        plan skip_all => "Requires DBI and DBD::File";
 }
 else {
     plan tests => 16;
 }
-use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
-use DBI;
-my $sth;
+my($sth,$str);
 my $dbh = DBI->connect('dbi:File(RaiseError=1):');
 
 ########################################
@@ -32,7 +34,7 @@ for (split /\n/,
 
 $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
 $sth->execute;
-my $str = '';
+$str = '';
 while (my $r=$sth->fetch) { $str.="@$r^"; }
 ok($str eq 'A FOO^A BAR^','SELECT');
 ok(2==$dbh->selectrow_array("SELECT COUNT(*) FROM phrase"),'COUNT *');
