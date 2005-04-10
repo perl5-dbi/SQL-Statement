@@ -19,6 +19,7 @@ Version 1.12, released 8 April, 2005
  * completely re-wrote the POD
 
  * fixed bug in primary key search optimization
+   thanks for bug report and test scripts: Jim Lambert, <jimlambrtATmac.com>
 
  * cleaned up case of temp table column names
 
