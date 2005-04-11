@@ -314,9 +314,9 @@ B<REGEX>
 sub SQL_FUNCTION_REGEX {
     my($self,$sth,$rowhash,@params)=@_;
     return 0 unless defined $params[0] and defined $params[1];
-    my($pattern,$modifier) = $params[1] =~ m~^/(.+)/([a-z]+)$~;
-    $pattern = "(?$modifier:$pattern)";
-    return $params[0] =~ qr($pattern);
+    my($pattern,$modifier) = $params[1] =~ m~^/(.+)/([a-z]*)$~;
+    $pattern = "(?$modifier:$pattern)" if $modifier;
+    return ($params[0] =~ qr($pattern)) ? 1 : 0;
 }
 
 =pod
@@ -336,7 +336,7 @@ sub SQL_FUNCTION_SOUNDEX {
     require Text::Soundex;
     my $s1 = Text::Soundex::soundex($params[0]) or return 0;
     my $s2 = Text::Soundex::soundex($params[1]) or return 0;
-    return $s1 eq $s2;
+    return ($s1 eq $s2) ? 1 : 0;
 }
 
 =pod
@@ -477,6 +477,17 @@ sub SQL_FUNCTION_REPLACE {
 }
 
 sub SQL_FUNCTION_SUBSTITUTE { return SQL_FUNCTION_REPLACE(@_); }
+
+
+sub SQL_FUNCTION_SUBSTR {
+    my($self,$sth,$rowhash,@params)=@_;
+    my $string = $params[0] || '';
+    my $start  = $params[1] || 0;
+    my $offset = $params[2] || length $string;
+    my $value = '';
+       $value = substr($string,$start-1,$offset)
+       if length $string >= $start-2+$offset;
+}
 
 =pod
 

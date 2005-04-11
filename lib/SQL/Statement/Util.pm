@@ -69,44 +69,6 @@ sub display_name { shift->{"display_name"} }
 sub name         { shift->{"name"} }
 sub table        { shift->{"table"} }
 
-package SQL::Statement::Util::ARRAY::Function;  # Just a test, don't use yet
-use base 'SQL::Statement::Util';
-use constant NAME     => 0;
-use constant PKG_NAME => 1;
-use constant SUB_NAME => 2;
-use constant ARGS     => 3;
-sub new {
-    my($class,$name,$sub_name,$args) = @_;
-    my($pkg,$sub) = $sub_name =~ /^(.*::)([^:]+$)/;
-    if (!$sub) { $pkg = 'main'; $sub = $sub_name }
-    $pkg = 'main' if $pkg eq '::';
-    $pkg =~ s/::$//;
-    return bless [$name,$pkg,$sub,$args],$class;
-}
-sub name     { shift->[NAME]     }
-sub pkg_name { shift->[PKG_NAME] }
-sub sub_name { shift->[SUB_NAME] }
-sub args     { shift->[ARGS]     }
-sub validate {
-    my($self) = @_;
-    my $pkg = $self->pkg_name;
-    my $sub = $self->sub_name;
-    $pkg =~ s~::~/~g;
-    eval { require "$pkg.pm" }
-         unless $pkg eq 'SQL/Statement/Functions' or $pkg eq 'main';
-    die $@ if $@;
-    $pkg =~ s~/~::~g;
-    die "Can't find subroutine $pkg"."::$sub\n" unless $pkg->can($sub);
-    return 1;
-}
-sub run {
-    my($self) = shift;
-    my $sub = $self->sub_name;
-    my $pkg = $self->pkg_name;
-    return $pkg->$sub(@_);
-#    return $self->pkg_name->$sub(@_);
-}
-
 package SQL::Statement::Util::Function;
 use base 'SQL::Statement::Util';
 sub new {
