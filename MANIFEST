@@ -25,3 +25,6 @@ t/07case.t
 t/08join.t
 t/09ops.t
 t/10limit.t
+t/11functions.t
+t/12eval.t
+t/13call.t

@@ -913,9 +913,10 @@ sub SELECT ($$) {
     #
     my $limit_count = 0 if $self->limit and !$self->order;
     my $row_count = 0;
+    my $offset = $self->offset || 0;
     while (my $array = $table->fetch_row($data)) {
         if (eval_where($self,$e,$tableName,$array,\%funcs)) {
-            next if defined($limit_count) and $row_count++ < $self->offset;
+            next if defined($limit_count) and $row_count++ < $offset;
             $limit_count++ if defined $limit_count;
             $array = $self->{fetched_value} if $self->{fetched_from_key};
 
@@ -1728,7 +1729,7 @@ sub row_values {
 
 sub get_row_value {
     my($self,$structure,$eval,$rowhash) = @_;
-#    bug($self) unless defined $structure;
+#    bug($structure);
     $structure = '' unless defined $structure;
     return $rowhash->{$structure} unless ref $structure;
     my $type = $structure->{"type"} if ref $structure eq 'HASH';
@@ -1842,7 +1843,6 @@ sub get_row_value {
                if $vtype eq 'function';
 
         /TRIM/                    &&do {
-
                 my $trim_char = $structure->{"trim_char"} || ' ';
                 my $trim_spec = $structure->{"trim_spec"} || 'BOTH';
                 $trim_char = quotemeta($trim_char);
@@ -2262,8 +2262,8 @@ sub new ($$) {
     my $self  = shift;
     bless($self, (ref($proto) || $proto));
 }
-sub limit ($) { shift->{'limit'}; }
-sub offset ($) { shift->{'offset'}; }
+#sub limit ($) { shift->{'limit'}; }
+#sub offset ($) { shift->{'offset'}; }
 
 package SQL::Statement::Param;
 
@@ -2311,8 +2311,8 @@ sub new {
     return bless $self, $class;
 }
 
-sub value { shift->{"value"} }
-sub type  { shift->{"type"} }
+#sub value { shift->{"value"} }
+#sub type  { shift->{"type"} }
 sub name  { shift->{"name"} }
 sub table { shift->{"table"} }
 

@@ -36,11 +36,13 @@ sub execute {
 }
 sub fetchStr {
     my($sql,@params)=@_;
-    do_($sql,@params);   
+    do_($sql,@params);
     my $str='';
     while (my $r=$stmt->fetch) {
+        @$r = map { defined $_ ? $_ : '' } @$r;
         $str .= sprintf "%s^",join'~',@$r;
     }
+    $str =~ s/\^$//;
     return $str;
 }
 1;

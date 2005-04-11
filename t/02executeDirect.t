@@ -3,7 +3,7 @@ $|=1;
 use strict;
 use lib qw' ./ ./t ';
 use SQLtest;
-use Test::More tests => 16;
+use Test::More tests => 24;
 my $DEBUG;
 
 eval { $parser = SQL::Parser->new() };
@@ -18,8 +18,12 @@ for my $sql(<DATA>) {
     ok(1 == scalar $stmt->params,'$stmt->params');
     ok('C' eq $stmt->tables(1)->name,'$stmt->tables');
     ok('A' eq $stmt->columns(0)->name,'$stmt->columns');
+    ok('A' eq join('',$stmt->column_names),'$stmt->column_names');
     ok('DESC' eq $stmt->order(0)->{desc},'$stmt->order');
-    ok('AND' eq $stmt->where->op,'$stmt->where');
+    ok('AND' eq $stmt->where->op,'$stmt->where->op');
+    ok(0== $stmt->where->neg,'$stmt->where->neg');
+    ok('C' eq $stmt->where->arg1->arg1->name,'$stmt->where->arg1');
+    ok(7 == $stmt->where->arg2->arg2,'$stmt->where->arg2');
     ok(2 == $stmt->limit,'$stmt->limit');
     ok(5 == $stmt->offset,'$stmt->offset');
 
@@ -35,12 +39,15 @@ for my $sql(<DATA>) {
 }
 my $stmt = SQL::Statement->new("INSERT a VALUES(3,7)",$parser);
 ok(7 == $stmt->row_values(1)->{value},'$stmt->row_values');
+ok( ref($parser->structure) eq 'HASH','structure');
+ok( $parser->command eq 'INSERT','command');
+ok( SQL::Statement->new("SELECT DISTINCT c1 FROM tbl",$parser),'distinct');
 my $cache={};
 for my $sql(split /\n/,
-"   CREATE TABLE a (b INT)
-    INSERT INTO a VALUES(1)
-    INSERT INTO a VALUES(2)
-    SELECT MAX(b) FROM a "
+"   CREATE TABLE a (b INT, c CHAR)
+    INSERT INTO a VALUES(1,'abc')
+    INSERT INTO a VALUES(2,'ayc')
+    SELECT b FROM a WHERE c LIKE '%b%' "
 ) {
     # print "<$sql>\n";
     $stmt = SQL::Statement->new($sql,$parser);
@@ -48,8 +55,9 @@ for my $sql(split /\n/,
     warn $@ if $@;
     ok(!$@,'$stmt->execute '.$stmt->command);
     next unless $stmt->command eq 'SELECT';
+    ok( ref($stmt->where_hash) eq 'HASH','$stmt->where_hash');
     while (my $row=$stmt->fetch) {
-        ok(2==$row->[0],'$stmt->fetch');
+        ok(1==$row->[0],'$stmt->fetch');
     }
 }
 __DATA__

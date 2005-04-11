@@ -1080,7 +1080,9 @@ sub SELECT_LIST {
             #
 	    if (!$newcol) {
                 my $func_obj = $self->ROW_VALUE($col);
-                if ( ref($func_obj) =~ /::Function$/ ){
+                if ( ref($func_obj) =~ /::Function$/ 
+or (ref($func_obj)eq 'HASH'and $func_obj->{type}and $func_obj->{type}eq'function')
+){
 #                    die "Functions in the SELECT LIST must have an alias!\n"
 #                        unless defined $alias;
                     $alias ||= $func_obj->{name};
@@ -1090,6 +1092,7 @@ sub SELECT_LIST {
                                uc $alias,[],$alias,$func_obj
                            );
                 }
+
                 #
                 # SELECT_LIST COLUMN IS NOT A COMPUTED COLUMN
                 #
@@ -2221,13 +2224,18 @@ sub COLUMN_NAME {
     }
     $col_name =~ s/^\s+//;
     $col_name =~ s/\s+$//;
-#    my $user_func = $col_name;
-#    $user_func =~ s/^(\S+).*$/$1/;
-#    undef $user_func unless $self->{opts}->{function_names}->{uc $user_func};
-#    if (!$user_func) {
+    my $user_func = $col_name;
+    $user_func =~ s/^(\S+).*$/$1/;
+    if ($col_name =~ /(TRIM|SUBSTRING)/i) {
+       # ?
+    }
+    else {
+      undef $user_func unless $self->{opts}->{function_names}->{uc $user_func};
+    }
+    if (!$user_func) {
         return undef unless $col_name eq '*'
                          or $self->IDENTIFIER($col_name);
-#    }
+    }
     #
     # MAKE COL NAMES ALL UPPER CASE UNLESS IS DELIMITED IDENTIFIER
     my $orgcol = $col_name;
