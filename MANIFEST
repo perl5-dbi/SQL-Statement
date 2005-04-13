@@ -28,3 +28,4 @@ t/10limit.t
 t/11functions.t
 t/12eval.t
 t/13call.t
+t/SQLtest.pm

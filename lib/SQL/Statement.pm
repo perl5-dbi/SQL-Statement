@@ -1445,6 +1445,8 @@ sub open_tables {
         elsif ($data->{Database}->{sql_ram_tables}->{uc $name}) {
             $t->{"$name"} = $data->{Database}->{sql_ram_tables}->{uc $name};
             $t->{"$name"}->{index}=0;
+ 	    $t->{$name}->init_table($data,$name,$createMode,$lockMode)
+                if $t->{$name}->can('init_table');
 	}
         elsif ( $self->{"is_ram_table"} or !($self->can('open_table'))) {
             $t->{"$name"} = $data->{Database}->{sql_ram_tables}->{uc $name}
