@@ -21,6 +21,9 @@ Version 1.12, released 12 April, 2005
  * fixed bug in primary key search optimization
    thanks for bug report and test scripts: Jim Lambert, <jimlambrtATmac.com>
 
+ * fixed problem with all_cols slowing inserts
+   thanks for patch and test Cosimo Streppone <cosimoATcpan.org>
+
  * cleaned up case of temp table column names
    thanks for bug report: Dan Wright
 
