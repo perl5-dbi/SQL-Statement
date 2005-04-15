@@ -56,11 +56,11 @@ sub new {
     my $class  = shift;
     my $sql    = shift;
     my $flags  = shift;
-    #
+
     # IF USER DEFINED extend_csv IN SCRIPT
     # USE THE ANYDATA DIALECT RATHER THAN THE CSV DIALECT
     # WITH DBD::CSV
-    #
+
     if ($main::extend_csv or $main::extend_sql ) {
        $flags = SQL::Parser->new('AnyData');
     }
@@ -1510,11 +1510,22 @@ $t->{"$name"}->{"col_names"} = \@cnames;
 	}
         @c = ( @c, @newcols );
     }
-    my $all_cols = $self->{all_cols} 
-                || [ map {$_->{name} }@{$self->{columns}} ]
-                || [];
-    @$all_cols = (@$all_cols,@c);
-    $self->{all_cols} = $all_cols;
+    ##################################################
+    # Patch from Cosimo Streppone <cosimoATcpan.org>
+
+    # my $all_cols = $self->{all_cols} 
+    #             || [ map {$_->{name} }@{$self->{columns}} ]
+    #             || [];
+    # @$all_cols = (@$all_cols,@c);
+    # $self->{all_cols} = $all_cols;
+    my $all_cols = [];
+    if(!$self->{all_cols}) {
+        $all_cols   = [ map {$_->{name}} @{$self->{columns}} ];
+        $all_cols ||= []; # ?
+        @$all_cols  = (@$all_cols, @c);
+        $self->{all_cols} = $all_cols;
+    }
+    ##################################################
     return SQL::Eval->new({'tables' => $t}), \@c;
 }
 sub verify_columns {
