@@ -599,7 +599,7 @@ Thanks in advance :-).
 
 =head1 ACKNOWLEDGEMENTS
 
-Dean Arnold supplied 
+Dean Arnold supplied DECODE, COALESCE, REPLACE, many thanks!
 
 =head1 AUTHOR & COPYRIGHT
 

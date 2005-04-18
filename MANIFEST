@@ -10,9 +10,12 @@ lib/SQL/Parser.pm
 lib/SQL/Dialects/ANSI.pm
 lib/SQL/Dialects/AnyData.pm
 lib/SQL/Dialects/CSV.pm
+lib/SQL/Statement/Embed.pod
 lib/SQL/Statement/Functions.pm
 lib/SQL/Statement/GetInfo.pm
 lib/SQL/Statement/RAM.pm
+lib/SQL/Statement/Structure.pod
+lib/SQL/Statement/Syntax.pod
 lib/SQL/Statement/Util.pm
 t/00error.t
 t/01prepare.t
