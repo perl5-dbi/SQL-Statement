@@ -1,20 +1,5 @@
 package SQL::Dialects::ANSI;
 
-
-=head1 NAME
-
- SQL::Dialects::ANSI -- ANSI config file for SQL::Parse
-
-=head1 SYNOPSIS
-
-  see SQL::Parse, SQL::Squish
-
-=head1 DESCRIPTION
-
- The makemaker police say i gotta have one of these
-
-=cut
-
 sub get_config {
 return <<EOC;
 [VALID COMMANDS]

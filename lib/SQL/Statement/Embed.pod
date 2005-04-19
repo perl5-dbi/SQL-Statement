@@ -210,7 +210,7 @@ Assuming you saved the DBD::Foo shown above as a file called "Foo.pm" in a direc
 
 =head1 Expanding the DBD
 
-Now that we have a basic DBD operational, there are several directions for expansion.  In the first place, we might want to override some or all of DBD::File::Table to provide alternate means of reading, writing, and deleting from our data source.  We might want to override the open_table() method to provide a different means of identifying column names (e.g. reading them from the file itself) or to provide other kinds of metadata.  See L<DBD::File>. 
+Now that we have a basic DBD operational, there are several directions for expansion.  In the first place, we might want to override some or all of DBD::File::Table to provide alternate means of reading, writing, and deleting from our data source.  We might want to override the open_table() method to provide a different means of identifying column names (e.g. reading them from the file itself) or to provide other kinds of metadata.  See L<SQL::Eval> for documentation of the API for ::Table objects and see L<DBD::File> for an example subclass. 
 
 We might want to create extensions to the SQL syntax specific to our DBD. See the section on extending SQL syntax in L<SQL::Statement::Syntax>.
 

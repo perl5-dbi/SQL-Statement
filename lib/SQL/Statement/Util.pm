@@ -4,28 +4,6 @@ sub type {
     return 'function' if $self->isa('SQL::Statement::Util::Function');
     return 'column'   if $self->isa('SQL::Statement::Util::Column');
 }
-=pod
-
-=head1 Objects & Methods for accessing parsed SQL Statements
-
-=head2 Column Object
-
- Column->name()           # column name in upper-case
- Column->display_name()   # column alias or name in user-supplied case
- Column->table()          # name of table column belongs to, if known
- Column->function()       # a Function object, if it's a computed column
-
-=head3 Column->name()
-
-=head3 Column->display_name()
-
-=head3 Column->table()
-
-=head3 Column->function()
-
-=head2 Function Object
-
-=cut
 
 package SQL::Statement::Util::Column;
 use base 'SQL::Statement::Util';
@@ -113,27 +91,4 @@ sub run {
     my $pkg = $self->pkg_name;
     return $pkg->$sub(@_);
 }
-=pod
-
-Value objects
-   placeholders, columns, functions, etc.
-
-=head2 SQL::Statement::Func Objects
-
-A new S::S::Func object is created for each function once per prepare, after which, the following methods are available:
-
- name()     # function's name, e.g. UPPER
- alias()    # function's alias, e.g. c1
- args()     # an arrayref of value objects
- class()    # name of package holding func's subroutine, e.g. Bar::MyFuncs
- subname()  # name of func's subroutine, e.g. SQL_FUNCTION_UPPER
-
-At this point, only the name of the class and sub are known, it isn't known whether there actually is a corresponding subroutine in the class.  Value objects in the args arrayref may also be unknown at this point: placeholders and column names have not yet been replaced with values.
-
-Each Func object is validated once per execute, during open_tables().  Validation requires the function's package and checks for the existence of a routine named with the function's subname.  An error will be generated if the subroutine can't be found.
-
- validate() # checks if the function corresponds to an available subroutine
-
-
-=cut
 1;
