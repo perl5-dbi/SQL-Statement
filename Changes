@@ -1,6 +1,10 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.12, released 12 April, 2005
+Version 1.13, released 18 April, 2005
+----------------------------------------
+ * pod fixes
+
+Version 1.12, released 18 April, 2005
 ----------------------------------------
  * added support for GROUP BY
    (several people sent suggestions for this in the past, please email me

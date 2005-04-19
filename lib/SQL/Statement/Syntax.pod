@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-SQL::Syntax - documentation of SQL::Statement's SQL Syntax
+SQL::Statement::Syntax - documentation of SQL::Statement's SQL Syntax
 
 =head1 SYNOPSIS
 
@@ -16,7 +16,7 @@ SQL::Statement is meant primarly as a base class for DBD drivers
 and as such concentrates on a small but useful subset of SQL.
 It does *not* in any way pretend to be a complete SQL parser for
 all dialects of SQL.  The module will continue to add new supported syntax,
-and users may also extend the syntax (see L<Extending the SQL syntax>).
+and users may also extend the syntax (see L<#Extending the SQL syntax>).
 
 =head1 USAGE
 

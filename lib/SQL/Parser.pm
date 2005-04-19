@@ -15,7 +15,7 @@ use warnings;
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join '|', qw( TRIM SUBSTRING );
 
-$VERSION = '1.12';
+$VERSION = '1.13';
 
 BEGIN { if( $ENV{SQL_USER_DEFS} ) { require SQL::UserDefs; } }
 eval { require 'Data/Dumper.pm'; $Data::Dumper::Indent=1};
