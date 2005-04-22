@@ -12,7 +12,7 @@ if ($@) {
         plan skip_all => "Requires DBI and DBD::File";
 }
 else {
-    plan tests => 18;
+    plan tests => 16;
 }
 my($sth,$str);
 my $dbh = DBI->connect('dbi:File(RaiseError=1):');
@@ -128,15 +128,15 @@ sub external_sth {
     return ($str eq '1 foo^');
 }
 
-my $foo=0;
-sub test2 {$foo = 6;}
-open(O,'>','tmpss.sql') or die $!;
-print O "SELECT test2";
-close O;
-$dbh->do("CREATE FUNCTION test2");
-ok($dbh->do(q{CALL RUN('tmpss.sql')}),'run');
-ok(6==$foo,'call run');
-unlink 'tmpss.sql' if -e 'tmpss.sql';
+#my $foo=0;
+#sub test2 {$foo = 6;}
+#open(O,'>','tmpss.sql') or die $!;
+#print O "SELECT test2";
+#close O;
+#$dbh->do("CREATE FUNCTION test2");
+#ok($dbh->do(q{CALL RUN('tmpss.sql')}),'run');
+#ok(6==$foo,'call run');
+#unlink 'tmpss.sql' if -e 'tmpss.sql';
 
 ok( $dbh->do("DROP TABLE phrase"), 'DROP TEMP TABLE');
 

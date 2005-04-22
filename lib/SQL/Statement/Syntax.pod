@@ -317,7 +317,7 @@ Examples:
 
 =head4 RUN()
 
-Run SQL statements from a user supplied file.
+Run SQL statements from a user supplied file.  <b>Please Note:</b> this function is experimental, please let me know if you have problems.
 
  RUN( sql_file )
 
