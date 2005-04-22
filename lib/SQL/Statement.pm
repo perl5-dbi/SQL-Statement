@@ -31,7 +31,7 @@ BEGIN {
 
 #use locale;
 
-$VERSION = '1.13';
+$VERSION = '1.14';
 $dlm = '~';
 $arg_num=0;
 $warg_num=0;

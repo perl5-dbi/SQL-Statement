@@ -1,5 +1,9 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.14, released 21 April, 2005
+----------------------------------------
+ * fixed circular dependency in tests (one mistakenly required AnyData)
+
 Version 1.13, released 18 April, 2005
 ----------------------------------------
  * pod fixes
