@@ -128,7 +128,7 @@ sub external_sth {
     return ($str eq '1 foo^');
 }
 
-my $foo;
+my $foo=0;
 sub test2 {$foo = 6;}
 open(O,'>','tmpss.sql') or die $!;
 print O "SELECT test2";
