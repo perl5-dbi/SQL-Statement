@@ -1,28 +1,21 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-#   /home/jeff/data/module/SQL-Statement/SQL-Statement-0.1021/blib/lib
-#   /home/jeff/data/module/SQL-Statement/SQL-Statement-0.1021/blib/arch
-#   /home/jeff/data/module/DBD-AnyData/current/lib
-#   ../lib
-use lib  qw(
-);
+use lib  qw( ../lib );
 use vars qw($DEBUG);
 use Test::More;
-{require DBD::File;}
+eval { require DBI; require DBD::File;};
 if ($@) {
-    plan skip_all => "No DBD::File available";
+    plan skip_all => "No DBI or DBD::File available";
 }
 elsif ($DBD::File::VERSION < '0.033' ) {
-    plan skip_all => "Tests require DBD::File => 0.33";
+    plan skip_all => "Tests require DBD::File >= 0.33";
 }
 else {
-    plan tests => 16;
+    plan tests => 12;
 }
 use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
-use DBD::AnyData; printf "DBD::AnyData v.%s\n", $DBD::AnyData::VERSION;
-use DBD::File; printf "DBD::File v.%s\n", $DBD::File::VERSION;
-my $dbh=DBI->connect('dbi:AnyData(RaiseError=0):');
+my $dbh=DBI->connect('dbi:File(RaiseError=0):');
 
 my $t='TEMP';
 my %create = (
@@ -37,7 +30,7 @@ my %query = (
     asterisked => "SELECT *   FROM tbl WHERE 1=0",
 );
 
-$DEBUG=1;
+$DEBUG=0;
 if ($DEBUG) {
     my $pg  = DBI->connect('dbi:Pg(RaiseError=1):dbname=test1');
 #    eval { $pg->do("DROP TABLE pg") };
@@ -72,7 +65,7 @@ if ($DEBUG) {
 }
 
 for my $create_case(qw(lower upper mixed)) {
-    eval{ $dbh->do("DROP TABLE tbl") };
+    eval{ $dbh->do("DROP TABLE IF EXISTS tbl") };
     $dbh->do( $create{$create_case} );
     for my $query_case(qw(lower upper mixed asterisked)) {
         my $sth = $dbh->prepare( $query{$query_case} );

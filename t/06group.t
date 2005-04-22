@@ -4,8 +4,9 @@ use strict;
 use Test::More;
 use lib  qw( ../lib );
 use vars qw($DEBUG);
+eval { require DBI; require DBD::File; };
 if ($@) {
-        plan skip_all => "No DBD::File available";
+        plan skip_all => "No DBI or DBD::File available";
 }
 else {
     plan tests => 3;

@@ -2,16 +2,15 @@
 $|=1;
 use strict;
 use Test::More;
-eval { require DBD::File; };
+eval { require DBI; require DBD::File; };
 if ($@) {
-        plan skip_all => "No DBD::File available";
+        plan skip_all => "No DBI or DBD::File available";
 }
 else {
     plan tests => 5;
 }
 use lib  qw( ../lib );
 use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
-use DBI;
 use vars qw($dbh $sth $DEBUG);
 $dbh = DBI->connect('dbi:File(RaiseError=1):');
 

@@ -3,9 +3,9 @@ $|=1;
 use strict;
 use Test::More;
 use lib  qw( ../lib );
-{require DBD::File;}
+eval {require DBI; require DBD::File;};
 if ($@) {
-    plan skip_all => "No DBD::File available";
+    plan skip_all => "DBI or DBD::File not available";
 }
 elsif ($DBD::File::VERSION < '0.033' ) {
     plan skip_all => "Tests require DBD::File => 0.33";
@@ -14,7 +14,6 @@ else {
     plan tests => 2;
 }
 use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
-use DBI;
 use vars qw($dbh $sth $DEBUG);
 $DEBUG = 0;
 $dbh = DBI->connect('dbi:File(RaiseError=1):');
