@@ -1,5 +1,10 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.15, released 18 May, 2005
+----------------------------------------
+* fixed placeholder bug in SQL::Statement::UPDATE
+  thanks for bug report Tanktalus
+
 Version 1.14, released 21 April, 2005
 ----------------------------------------
  * fixed circular dependency in tests (one mistakenly required AnyData)
