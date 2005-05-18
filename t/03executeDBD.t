@@ -12,10 +12,24 @@ if ($@) {
         plan skip_all => "Requires DBI and DBD::File";
 }
 else {
-    plan tests => 16;
+    plan tests => 22;
 }
 my($sth,$str);
 my $dbh = DBI->connect('dbi:File(RaiseError=1):');
+
+$dbh->do(q{ CREATE TEMP TABLE Tmp (id INT,phrase VARCHAR(30)) } );
+ok($dbh->do(q{ INSERT INTO Tmp (id,phrase) VALUES (?,?) },{},9,'yyy'),'placeholder insert with named cols');
+ok($dbh->do(q{ INSERT INTO Tmp VALUES(?,?) },{},2,'zzz'),'placeholder insert without named cols');
+$dbh->do(q{ INSERT INTO Tmp (id,phrase) VALUES (?,?) },{},3,'baz');
+ok($dbh->do(q{ DELETE FROM Tmp WHERE id=? or phrase=? },{},3,'baz'),'placeholder delete');
+ok($dbh->do(q{ UPDATE Tmp SET phrase=? WHERE id=?},{},'bar',2),'placeholder update');
+ok($dbh->do(q{ UPDATE Tmp SET phrase=?,id=? WHERE id=? and phrase=?},{},'foo',1,9,'yyy'),'placeholder update');
+$sth = $dbh->prepare("SELECT id,phrase FROM Tmp");
+$sth->execute;
+$str = '';
+while (my $r=$sth->fetch) { $str.="@$r^"; }
+ok($str eq '1 foo^2 bar^','Placeholders');
+$dbh->do(q{ DROP TABLE IF EXISTS Tmp } );
 
 ########################################
 # CREATE, INSERT, UPDATE, DELETE, SELECT
