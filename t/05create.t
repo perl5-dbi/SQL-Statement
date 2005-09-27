@@ -2,7 +2,7 @@
 $|=1;
 use strict;
 use Test::More;
-eval { require DBI; require DBD::File; };
+eval { require DBI; require DBD::File; require IO::File;};
 if ($@) {
         plan skip_all => "No DBI or DBD::File available";
 }

@@ -7,6 +7,7 @@ use Test::More;
 eval {
     require DBI;
     require DBD::File;
+    require IO::File;
 };
 if ($@) {
         plan skip_all => "Requires DBI and DBD::File";

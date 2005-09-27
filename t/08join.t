@@ -3,7 +3,7 @@ $|=1;
 use strict;
 use Test::More;
 use lib  qw( ../lib );
-eval { require DBI; require DBD::File;};
+eval { require DBI; require DBD::File; require IO::File };
 if ($@) {
         plan skip_all => "No DBD::File available";
 }
