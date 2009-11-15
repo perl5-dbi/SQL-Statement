@@ -21,14 +21,14 @@ my $sth=$dbh->prepare("
 ok('2700~1000^' eq query2str($sth),'AGGREGATE FUNCTIONS WITHOUT GROUP BY');
 
 $sth=$dbh->prepare("
-    SELECT region,SUM(sales), MAX(sales) FROM biz GROUP BY region
+    SELECT class,SUM(sales), MAX(sales) FROM biz GROUP BY class
 ");
-ok('West~2000~1000^East~700~700^' eq query2str($sth),'GROUP BY one column');
+ok('Car~2000~1000^Truck~700~400^' eq query2str($sth),'GROUP BY one column');
 
 $sth=$dbh->prepare("
-    SELECT region,store,SUM(sales), MAX(sales) FROM biz GROUP BY region,store
+    SELECT color,class,SUM(sales), MAX(sales) FROM biz GROUP BY color,class
 ");
-ok('West~Los Angeles~1500~1000^West~San Diego~500~500^East~Boston~700~700^'
+ok('White~Car~1000~1000^Blue~Car~500~500^White~Truck~700~400^Red~Car~500~500^'
  eq query2str($sth),'GROUP BY several columns');
 
 sub query2str {
@@ -44,8 +44,9 @@ sub query2str {
     return $str;
 }
 __END__
-CREATE TEMP TABLE biz (region TEXT, store TEXT, sales INTEGER)
-INSERT INTO biz VALUES ('West','Los Angeles',1000 )
-INSERT INTO biz VALUES ('West','San Diego'  ,500  )
-INSERT INTO biz VALUES ('West','Los Angeles',500  )
-INSERT INTO biz VALUES ('East','Boston'     ,700  )
+CREATE TEMP TABLE biz (class TEXT, color TEXT, sales INTEGER)
+INSERT INTO biz VALUES ('Car'  ,'White',1000)
+INSERT INTO biz VALUES ('Car'  ,'Blue' ,500 )
+INSERT INTO biz VALUES ('Truck','White',400 )
+INSERT INTO biz VALUES ('Car'  ,'Red'  ,500 )
+INSERT INTO biz VALUES ('Truck','White',300 )

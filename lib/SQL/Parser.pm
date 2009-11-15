@@ -17,7 +17,7 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.14_02';
+$VERSION = '1.15';
 
 BEGIN
 {

@@ -32,6 +32,7 @@ my %opts =
      'PREREQ_PM'    => {
          'Scalar::Util' => '1.0',
          'Params::Util' => '0.35',
+         'Clone'        => '0.30',
      },
      );
 if ($ExtUtils::MakeMaker::VERSION >= 5.43) {
