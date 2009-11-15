@@ -179,6 +179,14 @@ sub parse
     }
 }
 
+sub replace_quoted_commas
+{
+    my $self = shift;
+    my $id   = shift;
+    $id =~ s/\?COMMA\?/,/gs;
+    return $id;
+}
+
 sub replace_quoted_ids
 {
     my $self = shift;
@@ -1005,8 +1013,74 @@ sub CREATE
     return undef unless $self->TABLE_NAME($table_name);
     $table_element_def =~ s/\s+\(/(/g;
     my $primary_defined;
+    $table_element_def =~ s/( # start of grouping 1
+			   \( # match a bracket; vi compatible bracket -> \)(
+                        [^)]+ # everything up to but not including the comma, no nesting of brackets is required
+                            ) # end of grouping 1
+                            , # the comma to be removed to allow splitting on commas
+                            ( # start of grouping 2; vi compatible bracket -> \(
+                        .*?\) # everything up to and including the end bracket
+                            )/$1?COMMA?$2/sgx;
     for my $col ( split ',', $table_element_def )
     {
+        if ($col =~ /^\s*(?:CONSTRAINT\s+(\S+)\s*)? # optional name of foreign key
+                              FOREIGN\s+KEY\s*\(\s* # start of list of; vi compatibile bracket -> (
+                                      (\s*[^)]+\s*) # field names in this table
+                                           \s*\)\s* # end of field names in this table
+                                         REFERENCES # key word
+                                        \s*(\S+)\s* # table name being referenced in foreign key
+                                              \(\s* # start of list of; vi compatible bracket -> (
+                                      (\s*[^)]+\s*) # field names in foreign table
+                                           \s*\)\s* # end of field names in foreign table
+                    $/x)
+        {
+            my ($name, $local_cols, $referenced_table, $referenced_cols) = ($1, $2, $3, $4);
+            my @local_cols = map { $self->replace_quoted_ids($_) } split(',', $self->replace_quoted_commas($local_cols));
+            $referenced_table = $self->replace_quoted_ids($referenced_table);
+            my @referenced_cols = map { $self->replace_quoted_ids($_) } split(',', $self->replace_quoted_commas($referenced_cols));
+            if (defined $name) {
+                $name = $self->replace_quoted_ids($name);
+            } else {
+                $name = $self->replace_quoted_ids($table_name);
+		my ($quote_char) = '';
+		if ($name =~ s/(\W)$//) {
+			$quote_char = ($1);
+		}
+		foreach my $local_col (@local_cols) {
+			my $col_name = $local_col;
+			$col_name =~ s/^\W//;
+			$col_name =~ s/\W$//;
+			$name .= "_" . $col_name;
+		}
+		$name .= "_fkey" . $quote_char;
+            }
+            $self->{"struct"}->{"table_defs"}->{"$name"}->{"type"} = "FOREIGN";
+            $self->{"struct"}->{"table_defs"}->{"$name"}->{"local_cols"} = \@local_cols;
+            $self->{"struct"}->{"table_defs"}->{"$name"}->{"referenced_table"} = $referenced_table;
+            $self->{"struct"}->{"table_defs"}->{"$name"}->{"referenced_cols"} = \@referenced_cols;
+            next;
+        } elsif ($col =~ /^\s*(?:CONSTRAINT\s+(\S+)\s*)? # optional name of foreign key
+                                   PRIMARY\s+KEY\s*\(\s* # start of list of; vi compatibile bracket -> (
+                                           (\s*[^)]+\s*) # field names in this table
+                                                \s*\)\s* # end of field names in this table
+                        $/x)
+        {
+            my ($name, $local_cols) = ($1, $2);
+            my @local_cols = map { $self->replace_quoted_ids($_) } split(',', $self->replace_quoted_commas($local_cols));
+            if (defined $name) {
+                $name = $self->replace_quoted_ids($name);
+            } else {
+                $name = $table_name;
+		if ($name =~ s/(\W)$//) {
+			$name .= "_pkey" . $1;
+		} else {
+			$name .= "_pkey";
+		}
+            }
+            $self->{"struct"}->{"table_defs"}->{"$name"}->{"type"} = "PRIMARY";
+            $self->{"struct"}->{"table_defs"}->{"$name"}->{"local_cols"} = \@local_cols;
+            next;
+        }
         my ( $name, $type, $constraints ) =
           ( $col =~ /\s*(\S+)\s+(\S+)\s*(.*)/ );
         if ( !$type )

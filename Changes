@@ -1,5 +1,39 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.20, released March 5th, 2009
+------------------------------------------
+
+* Fixed Makefile in MANIFEST (reported by Havard Eidnes in RT #43586)
+* Fixed invalid label FETCHROW used (reported by Michael in RT #42982)
+* separated update_one_row and update_specific_row method names for tables
+  to avoid confusion
+
+Version 1.19, released February 6th, 2009
+------------------------------------------
+
+* Fixed OUTER JOIN behaviour
+* Added version info to all *.pm files to allow CPAN::Reporter find updates
+* Correct META-Files
+* Fixed reported bugs:
+
+
+Version 1.18_02, no public release
+-----------------------------------
+
+Additional (profiled) optimizations for complicated where clauses
+
+Version 1.18_01, released January 12th, 2009
+---------------------------------------------
+
+No code changes within SQL::Statement - but deliver and execute additional
+tests.
+
+Version 1.17, released January 12th, 2009
+------------------------------------------
+
+* Fixed reported bugs:
+  * RT#42263: GROUP BY doesn't group on multiple columns
+
 Version 1.16_04, released 4 January, 2009
 ------------------------------------------
 

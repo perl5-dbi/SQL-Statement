@@ -12,12 +12,10 @@ lib/SQL/Statement/RAM.pm
 lib/SQL/Statement/Structure.pod
 lib/SQL/Statement/Syntax.pod
 lib/SQL/Statement/Util.pm
-Makefile
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
 META.yml
-p/01profile_joins.pl
 README
 t/00error.t
 t/01prepare.t
@@ -26,7 +24,6 @@ t/03executeDBD.t
 t/04names.t
 t/05create.t
 t/06group.t
-t/06group.t.orig
 t/07case.t
 t/08join.t
 t/09ops.t
@@ -38,5 +35,4 @@ t/14allcols.t
 t/15naturaljoins.t
 t/16morejoins.t
 t/17quoting.t
-t/18idents.t
 t/SQLtest.pm

@@ -1,5 +1,8 @@
 package SQL::Statement::Util;
 
+use vars qw($VERSION);
+$VERSION = '1.0';
+
 sub type
 {
     my ($self) = @_;

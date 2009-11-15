@@ -24,7 +24,7 @@ BEGIN
 
 #use locale;
 
-$VERSION  = '1.19';
+$VERSION  = '1.20';
 $dlm      = '~';
 $arg_num  = 0;
 $warg_num = 0;
@@ -474,7 +474,8 @@ sub UPDATE ($$$)
         if ( $self->eval_where( $eval, $tname, $array ) )
         {
             my $originalValues;
-            if ( $self->{fetched_from_key} and $table->can('update_one_row') )
+            if ( not( $self->{fetched_from_key} )
+                 and $table->can('update_specific_row') )
             {
                 $originalValues = clone($array);
                 $array          = $self->{fetched_value};
@@ -510,10 +511,10 @@ sub UPDATE ($$$)
             # Martin Fabiani <martin@fabiani.net>:
             # the following block is the most important enhancement to SQL::Statement::UPDATE
             if ( not( $self->{fetched_from_key} )
-                 and $table->can('update_one_row') )
+                 and $table->can('update_specific_row') )
             {
-                $table->update_one_row( $data, $array, $originalValues );
-                next FETCH_ROW;
+                $table->update_specific_row( $data, $array, $originalValues );
+                next;
             }
             ++$affected;
         }

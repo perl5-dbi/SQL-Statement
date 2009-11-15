@@ -1,2 +1,5 @@
 \B\.svn\b
-\B\.[Bb][Aa][Kk]\b
+\.[Bb][Aa][Kk]$
+\.orig$
+\.old$
+Makefile$

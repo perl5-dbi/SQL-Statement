@@ -1,6 +1,10 @@
 ############################
 package SQL::Statement::RAM;
 ############################
+
+use vars qw($VERSION);
+$VERSION = '1.0';
+
 sub new
 {
     my ( $self, $tname, $col_names, $data_tbl ) = @_;
