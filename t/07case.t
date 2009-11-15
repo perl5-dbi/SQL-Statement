@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-use lib  qw( ../lib );
+#use lib  qw( ../lib );
 use vars qw($DEBUG);
 use Test::More;
 eval { require DBI; require DBD::File; require IO::File; };
@@ -55,7 +55,7 @@ if ($DEBUG) {
         is($col, 'col',$msg) if $query_case eq 'lower';
         is($col, 'COL',$msg) if $query_case eq 'upper';
         is($col, 'cOl',$msg) if $query_case eq 'mixed';
-        is($col, 'col',$msg) if $query_case eq 'asterisked';
+        is($col, 'COL',$msg) if $query_case eq 'asterisked';
         $sth->finish;
         $sth->{Active}=0;
     }
@@ -76,9 +76,7 @@ for my $create_case(qw(lower upper mixed)) {
         is($col, 'COL',$msg) if $query_case eq 'upper';
         is($col, 'cOl',$msg) if $query_case eq 'mixed';
         if ($query_case eq 'asterisked') {
-            is($col, 'col',$msg) if $create_case eq 'lower';
-            is($col, 'COL',$msg) if $create_case eq 'upper';
-            is($col, 'cOl',$msg) if $create_case eq 'mixed';
+            is($col, 'COL',$msg);
 	}
         $sth->finish;
         $sth->{Active}=0;

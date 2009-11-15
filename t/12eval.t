@@ -1,19 +1,18 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-use Test::More tests => 15;
+use Test::More tests => 13;
 use lib qw' ./ ./t ';
 use SQLtest;
 
 my $table = SQL::Eval::Table->new({
 
     col_names => [qw(c1 c2 c3)],
-    col_nums  => {c1=>0,c2=>1,c3=>2}
+    col_nums  => {c1=>0,c2=>1,c3=>2},
+    row       => [1,2,3],
 });
-ok( $table->row([1,2,3]), 'eval row($val)' );
-ok( 3 == scalar @{ $table->row() }, 'eval row()');
 
-ok( $table->column('c2',2), 'eval column($val)' );
+ok( 3 == scalar @{ $table->row() }, 'eval row()');
 ok( 2 == $table->column('c2'), 'eval column()');
 
 my $eval = SQL::Eval->new({});
@@ -21,7 +20,7 @@ ok( $eval->params([1,2,3]), 'eval params($val)' );
 ok( 3 == scalar @{ $eval->params() }, 'eval params()');
 
 $eval->{tables}->{a}=$table;
-ok( $eval->column('a','c2','c'), 'eval column($tbl,$col,$val)' );
+ok( 3 == $eval->column('a','c3'), 'eval column($tbl,$col)' );
 
 my $ram = bless {},'SQL::Statement::RAM::Table';
 $ram->{records}=1;

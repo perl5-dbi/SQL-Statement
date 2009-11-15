@@ -12,8 +12,8 @@ if ($@) {
 else {
     plan tests => 1;
 }
-use lib  qw( ../lib );
-use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
+#use lib  qw( ../lib );
+use SQL::Statement; # printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
 use vars qw($dbh $sth $DEBUG);
 $dbh = DBI->connect('dbi:File(RaiseError=1):') or die "Can't create dbi:File connection";
 

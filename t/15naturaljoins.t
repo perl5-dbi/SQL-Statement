@@ -26,7 +26,7 @@ author_name,author_id,book_title
 
 =cut
 
-my $names = join(',',@{$sth->{NAME}});
+my $names = join(',',@{$sth->{NAME_lc}});
 cmp_ok( q{author_name,author_id,book_title}, 'eq', $names, 'Natural Join - columns ok' );
 my $values = sprintf( q{'%s'}, join( q{', '}, $sth->fetchrow_array() ) );
 cmp_ok( q{'Neal Stephenson', '1', 'Cryptonomicon'}, 'eq', $values, 'Natural Join - values ok' );

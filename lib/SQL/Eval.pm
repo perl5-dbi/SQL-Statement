@@ -6,11 +6,11 @@ use strict;
 package SQL::Eval;
 
 use vars qw($VERSION);
-$VERSION = '1.0';
+$VERSION = '1.21_1';
 
 require SQL::Statement;
 
-sub new ($$)
+sub new($)
 {
     my ( $proto, $attr ) = @_;
     my ($self) = {%$attr};
@@ -18,12 +18,13 @@ sub new ($$)
     $self;
 }
 
-sub param ($$;$)
+sub param($;$)
 {
     my ( $self, $paramNum, $param ) = @_;
+
     if ( @_ == 3 )
     {
-        $self->{'params'}->[$paramNum] = $param;
+        return $self->{params}->[$paramNum] = $param;
     }
     else
     {
@@ -31,88 +32,52 @@ sub param ($$;$)
         {
             die "Illegal parameter number: $paramNum";
         }
-        $self->{'params'}->[$paramNum];
+
+        return $self->{params}->[$paramNum];
     }
 }
 
-sub params ($;$)
+sub params(;$)
 {
     my ( $self, $array ) = @_;
+
     if ( @_ == 2 )
     {
-        $self->{'params'} = $array;
+        $self->{params} = $array;
     }
     else
     {
-        $self->{'params'};
+        $self->{params};
     }
 }
 
-sub table ($$)
+sub table($)
 {
-    my ( $self, $table ) = @_;
-    $self->{'tables'}->{$table};
+    return $_[0]->{tables}->{ $_[1] };
 }
 
-sub column ($$$;$)
+sub column($$)
 {
-    my ( $self, $table, $column, $val ) = @_;
-    if ( @_ == 4 )
-    {
-        $self->table($table)->column( $column, $val );
-    }
-    else
-    {
-        $self->table($table)->column($column);
-    }
+    my ( $self, $table, $column ) = @_;
+
+    return $self->table($table)->column($column);
 }
 
 package SQL::Eval::Table;
 
-sub new ($$)
+sub new($)
 {
     my ( $proto, $attr ) = @_;
     my ($self) = {%$attr};
     bless( $self, ( ref($proto) || $proto ) );
-    $self;
+    return $self;
 }
 
-sub row ($;$)
-{
-    my ( $self, $row ) = @_;
-    if ( @_ == 2 )
-    {
-        $self->{'row'} = $row;
-    }
-    else
-    {
-        $self->{'row'};
-    }
-}
-
-sub column ($$;$)
-{
-    my ( $self, $column, $val ) = @_;
-    if ( @_ == 3 )
-    {
-        $self->{'row'}->[ $self->{'col_nums'}->{$column} ] = $val;
-    }
-    else
-    {
-        $self->{'row'}->[ $self->{'col_nums'}->{$column} ];
-    }
-}
-
-sub column_num ($$)
-{
-    my ( $self, $col ) = @_;
-    $self->{'col_nums'}->{$col};
-}
-
-sub col_names ($)
-{
-    shift->{'col_names'};
-}
+sub row()         { return $_[0]->{row}; }
+sub column($)     { return $_[0]->{row}->[ $_[0]->column_num( $_[1] ) ]; }
+sub column_num($) { $_[0]->{col_nums}->{ $_[1] }; }
+sub col_nums()    { $_[0]->{col_nums} }
+sub col_names()   { $_[0]->{col_names}; }
 
 1;
 

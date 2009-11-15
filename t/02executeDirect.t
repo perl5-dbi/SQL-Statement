@@ -4,6 +4,7 @@ use strict;
 use lib qw' ./ ./t ';
 use SQLtest;
 use Test::More tests => 24;
+use Params::Util qw(_INSTANCE);
 my $DEBUG;
 
 eval { $parser = SQL::Parser->new() };
@@ -17,13 +18,10 @@ for my $sql(<DATA>) {
     ok('SELECT' eq $stmt->command,'$stmt->command');
     ok(1 == scalar $stmt->params,'$stmt->params');
     ok('C' eq $stmt->tables(1)->name,'$stmt->tables');
-    ok('A' eq $stmt->columns(0)->name,'$stmt->columns');
-    ok('A' eq join('',$stmt->column_names),'$stmt->column_names');
-    ok('DESC' eq $stmt->order(0)->{desc},'$stmt->order');
-    ok('AND' eq $stmt->where->op,'$stmt->where->op');
-    ok(0== $stmt->where->neg,'$stmt->where->neg');
-    ok('C' eq $stmt->where->arg1->arg1->name,'$stmt->where->arg1');
-    ok(7 == $stmt->where->arg2->arg2,'$stmt->where->arg2');
+    ok(defined(_INSTANCE($stmt->where(), 'SQL::Statement::Operation::And' )),'$stmt->where()->op');
+    ok(defined(_INSTANCE($stmt->where()->{LEFT}, 'SQL::Statement::Operation::Equal' )),'$stmt->where()->left');
+    ok(defined(_INSTANCE($stmt->where()->{LEFT}->{LEFT}, 'SQL::Statement::ColumnValue' )),'$stmt->where()->left->left');
+    ok(defined(_INSTANCE($stmt->where()->{LEFT}->{RIGHT}, 'SQL::Statement::Placeholder' )),'$stmt->where()->left->right');
     ok(2 == $stmt->limit,'$stmt->limit');
     ok(5 == $stmt->offset,'$stmt->offset');
 
@@ -47,7 +45,7 @@ for my $sql(split /\n/,
 "   CREATE TABLE a (b INT, c CHAR)
     INSERT INTO a VALUES(1,'abc')
     INSERT INTO a VALUES(2,'ayc')
-    SELECT b FROM a WHERE c LIKE '%b%' "
+    SELECT b,c FROM a WHERE c LIKE '%b%' ORDER BY c DESC"
 ) {
     # print "<$sql>\n";
     $stmt = SQL::Statement->new($sql,$parser);
@@ -56,6 +54,9 @@ for my $sql(split /\n/,
     ok(!$@,'$stmt->execute '.$stmt->command);
     next unless $stmt->command eq 'SELECT';
     ok( ref($stmt->where_hash) eq 'HASH','$stmt->where_hash');
+    ok('B' eq $stmt->columns(0)->name,'$stmt->columns');
+    ok('BC' eq join('',$stmt->column_names),'$stmt->column_names');
+    ok('DESC' eq $stmt->order(0)->{desc},'$stmt->order');
     while (my $row=$stmt->fetch) {
         ok(1==$row->[0],'$stmt->fetch');
     }

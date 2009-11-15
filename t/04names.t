@@ -2,7 +2,7 @@
 $|=1;
 use strict;
 use Test::More;
-use lib  qw( ../lib );
+#use lib  qw( ../lib );
 eval {require DBI; require DBD::File; require IO::File;};
 if ($@) {
     plan skip_all => "DBI or DBD::File not available";
@@ -20,19 +20,19 @@ $dbh = DBI->connect('dbi:File(RaiseError=1):');
 $dbh->do($_) for <DATA>;
 
 $sth = $dbh->prepare("SELECT * FROM Prof");
-is( (join' ',cols($sth)),'pid pname','Column Names: select list = *');
+is( (join' ',cols($sth)),'PID PNAME','Column Names: select list = *');
 
 $sth = $dbh->prepare("SELECT pname,pID FROM Prof");
 is( (join' ',cols($sth)), 'pname pID' ,'Column Names: select list = named');
 
-$sth = $dbh->prepare('SELECT pname "ProfName", pId "Magic#" from prof');
-is( (join' ',cols($sth)), 'ProfName Magic#' ,'Column Names: select list = aliased');
+$sth = $dbh->prepare('SELECT pname AS "ProfName", pId AS "Magic#" from prof');
+is( (join' ',cols($sth)), '"ProfName" "Magic#"' ,'Column Names: select list = aliased');
 
 $sth = $dbh->prepare(q{SELECT pid, concat(pname, ' is #', pId ) from prof});
 is( (join' ',cols($sth)), 'pid CONCAT' ,'Column Names: select list with function');
 
-$sth = $dbh->prepare(q{SELECT pid "ID", concat(pname, ' is #', pId ) "explanation"  from prof});
-is( (join' ',cols($sth)), 'ID explanation' ,'Column Names: select list with function = aliased');
+$sth = $dbh->prepare(q{SELECT pid AS "ID", concat(pname, ' is #', pId ) AS "explanation"  from prof});
+is( (join' ',cols($sth)), '"ID" "explanation"' ,'Column Names: select list with function = aliased');
 
 sub cols {
     my($sth)=@_;

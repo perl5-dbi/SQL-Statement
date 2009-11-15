@@ -3,7 +3,7 @@ package SQL::Statement::RAM;
 ############################
 
 use vars qw($VERSION);
-$VERSION = '1.0';
+$VERSION = '1.21_1';
 
 sub new
 {
@@ -23,9 +23,11 @@ sub new
 ####################################
 package SQL::Statement::RAM::Table;
 ####################################
-sub column_num { $_[0]->{"col_nums"}->{ $_[1] } }
-sub col_names  { shift->{col_names} }
-sub get_pos    { my $s = shift; $s->{CUR} = $s->{index} }
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Eval::Table);
+
+sub get_pos()     { return $_[0]->{CUR} = $_[0]->{index} }
 
 ##################################
 # fetch_row()
@@ -34,11 +36,11 @@ sub fetch_row
 {
     my ( $self, $data ) = @_;
     my $currentRow = $self->{index};
-    return undef unless $self->{records};
-    return undef if $currentRow >= @{ $self->{records} };
+    return $self->{row} = undef unless $self->{records};
+    return $self->{row} = undef if $currentRow >= @{ $self->{records} };
     $self->{index} = $currentRow + 1;
     $self->get_pos( $self->{index} );
-    return $self->{records}->[$currentRow];
+    return $self->{row} = $self->{records}->[$currentRow];
 }
 ####################################
 # push_row()
@@ -56,8 +58,7 @@ sub push_row
 ##################################
 sub truncate
 {
-    my $self = shift;
-    return splice @{ $self->{records} }, $self->{index}, 1;
+    return splice @{ $_[0]->{records} }, $_[0]->{index}, 1;
 }
 #####################################
 # push_names()

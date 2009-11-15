@@ -34,7 +34,7 @@ my %opts =
     ('NAME'         => 'SQL::Statement',
      'VERSION_FROM' => './lib/SQL/Statement.pm',
      'dist'         => { 'SUFFIX'       => ".gz",
-	 'DIST_DEFAULT' => 'all tardist',
+	 'DIST_DEFAULT' => 'manifest tardist',
 	 'COMPRESS'     => "gzip -9vf" },
      'PREREQ_PM'    => {
          'Scalar::Util' => '1.0',

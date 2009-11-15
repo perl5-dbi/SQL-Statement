@@ -1,7 +1,7 @@
 package SQL::Dialects::ANSI;
 
 use vars qw($VERSION);
-$VERSION = '0.1';
+$VERSION = '1.21_1';
 
 sub get_config {
 return <<EOC;

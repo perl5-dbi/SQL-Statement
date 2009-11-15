@@ -11,5 +11,5 @@ $parser = new_parser();
 my $foo=0;
 sub test {$foo = 9;}
 do_("CREATE FUNCTION test");
-ok(do_("CALL test"),'call function');
+ok(do_("CALL test(1000)"),'call function');
 ok(9==$foo,'call function');

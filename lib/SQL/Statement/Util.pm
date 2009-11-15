@@ -1,7 +1,7 @@
 package SQL::Statement::Util;
 
 use vars qw($VERSION);
-$VERSION = '1.0';
+$VERSION = '1.21_1';
 
 sub type
 {
@@ -13,53 +13,44 @@ sub type
 package SQL::Statement::Util::Column;
 use base 'SQL::Statement::Util';
 
+use Params::Util qw(_ARRAY _HASH0 _STRING);
+
 sub new
 {
     my $class        = shift;
     my $col_name     = shift;
-    my $tables       = shift;
+    my $table_name   = shift;
+    my $term         = shift;
     my $display_name = shift || $col_name;
-    my $function     = shift;
-    my $table_name   = $col_name;
-
-    #my @c = caller 0; print $c[2];
-    if ( ref $col_name eq 'HASH' )
-    {
-        $tables   = [ $col_name->{"table"} ];
-        $col_name = $col_name->{"column"};
-    }
 
     # print " $col_name !\n";
-    my $num_tables = scalar @{$tables};
-    if (
-         $table_name
-         && (    $table_name =~ /^(".+")\.(.*)$/
-              or $table_name =~ /^([^.]*)\.(.*)$/ )
-       )
+    if ( $col_name && ( ( $col_name =~ m/^(".+")\.(.*)$/ ) || ( $col_name =~ m/^([^.]*)\.(.*)$/ ) ) )
     {
         $table_name = $1;
         $col_name   = $2;
     }
-    elsif ( $num_tables == 1 )
+    elsif ( _ARRAY($table_name) && ( scalar( @{$table_name} ) == 1 ) )
     {
-        $table_name = $tables->[0];
+        $table_name = $table_name->[0];
     }
-    else
-    {
-        undef $table_name;
-    }
-    my $self = {
-                 name         => $col_name,
-                 table        => $table_name,
-                 display_name => $display_name,
-                 function     => $function,
-               };
-    return bless $self, $class;
+
+    my %instance = (
+                     name         => $col_name,
+                     table        => $table_name,
+                     display_name => $display_name,
+                     term         => $term,
+                   );
+
+    my $self = bless( \%instance, $class );
+
+    return $self;
 }
-sub function     { shift->{"function"} }
-sub display_name { shift->{"display_name"} }
-sub name         { shift->{"name"} }
-sub table        { shift->{"table"} }
+
+sub value($)     { $_[0]->{term}->value( $_[1] ); }
+sub term()       { $_[0]->{term} }
+sub display_name { $_[0]->{display_name} }
+sub name         { $_[0]->{name} }
+sub table        { $_[0]->{table} }
 
 package SQL::Statement::Util::Function;
 use base 'SQL::Statement::Util';
@@ -113,4 +104,5 @@ sub run
     my $pkg    = $self->pkg_name;
     return $pkg->$sub(@_);
 }
+
 1;

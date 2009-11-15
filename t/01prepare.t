@@ -3,7 +3,7 @@ use strict;
 $|=1;
 use lib qw' ./ ./t ';
 use SQLtest;
-use Test::More tests => 102;
+use Test::More tests => 105;
 
 $parser = new_parser();
 $parser->{PrintError}=0;
@@ -48,8 +48,11 @@ CREATE TABLE foo ( id INTEGER PRIMARY KEY, phrase VARCHAR(40) UNIQUE )
 CREATE TABLE foo ( id INTEGER PRIMARY KEY, phrase VARCHAR(40) NOT NULL )
 CREATE TABLE foo ( id INTEGER NOT NULL, phrase VARCHAR(40) NOT NULL )
 CREATE TABLE foo ( id INTEGER UNIQUE NOT NULL, phrase VARCHAR(40) )
+CREATE TABLE foo ( phrase CHARACTER VARYING(255) )
+CREATE TABLE foo ( phrase NUMERIC(4,6) )
 CREATE TABLE foo ( id INTEGER, phrase VARCHAR(40), CONSTRAINT "foo_pkey" PRIMARY KEY ( "id", "phrase" ), CONSTRAINT "foo_fkey" FOREIGN KEY ( "id" ) REFERENCES "bar" ( "bar_id" ))
 CREATE TABLE foo ( id INTEGER, phrase VARCHAR(40), PRIMARY KEY ( "id" ), FOREIGN KEY ("id", "phrase") REFERENCES "bar" ("id2", "phrase2"))
+CREATE TABLE foo ( id INTEGER, phrase CHAR(255), phrase2 VARCHAR(40), CONSTRAINT "foo_pkey" PRIMARY KEY ( "id", phrase, "phrase2" ), CONSTRAINT "foo_fkey" FOREIGN KEY ("id", "phrase", "phrase2") REFERENCES "bar" ("id2", "phrase2", "phase10"))
   /* JOINS */
 SELECT Lnum,Llet,Ulet FROM zLower NATURAL INNER JOIN zUpper
 SELECT Lnum,Llet,Ulet FROM zLower NATURAL LEFT JOIN zUpper

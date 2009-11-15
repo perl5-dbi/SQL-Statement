@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 31;
+use Test::More tests => 32;
 use Data::Dumper;
 
 # test 1
@@ -117,7 +117,7 @@ EOD
 	    $stmt->execute($cache);
 	}
 
-	$stmt = SQL::Statement->new( q{SELECT T1."COLUMN WITH SPACES" FROM T1 WITH SPACES" WHERE id=1}, $parser );
+	$stmt = SQL::Statement->new( q{SELECT T1."COLUMN WITH SPACES" FROM T1 WHERE id=1}, $parser );
 	ok( !defined($parser->structure()->{errstr} ), q{Parsing SELECT T1."COLUMN WITH SPACES" ...: } . ($parser->structure()->{errstr} || '') );
 	if( defined($parser->structure()->{errstr} ) )
 	{
@@ -143,7 +143,7 @@ EOD
 	    }
 	}
 
-	$stmt = SQL::Statement->new( q{SELECT "COLUMN WITH SPACES" FROM T1 WITH SPACES" WHERE id=1}, $parser );
+	$stmt = SQL::Statement->new( q{SELECT "COLUMN WITH SPACES" FROM T1 WHERE id=1}, $parser );
 	ok( !defined($parser->structure()->{errstr} ), q{Parsing SELECT "COLUMN WITH SPACES" ...: } . ($parser->structure()->{errstr} || '') );
 	if( defined($parser->structure()->{errstr} ) )
 	{
@@ -169,7 +169,7 @@ EOD
 	    }
 	}
 
-	$stmt = SQL::Statement->new( q{SELECT "COLUMN WITH SPACES" AS CWS FROM T1 WITH SPACES" WHERE id=1}, $parser );
+	$stmt = SQL::Statement->new( q{SELECT "COLUMN WITH SPACES" AS CWS FROM T1 WHERE id=1}, $parser );
 	ok( !defined($parser->structure()->{errstr} ), q{Parsing SELECT "COLUMN WITH SPACES" AS CWS ...: } . ($parser->structure()->{errstr} || '') );
 	if( defined($parser->structure()->{errstr} ) )
 	{

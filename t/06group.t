@@ -2,7 +2,7 @@
 $|=1;
 use strict;
 use Test::More;
-use lib  qw( ../lib );
+#use lib  qw( ../lib );
 use vars qw($DEBUG);
 eval { require DBI; require DBD::File; };
 if ($@) {

@@ -1,5 +1,21 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21_1, release July ..., 2009
+------------------------------------------
+
+[Things that may break your code]
+* removed SQL::Statement::Column
+* don't instantiate SQL::Statement::Functions objects
+* Reworked internal column and function handling to reduce code complexity
+* rows and columns aren't settable from outside a table or eval object
+  anymore
+
+[Bug fixes and other changes]
+* Fixed bugs:
+  + RT #47292: Test failures with recent DBI
+  + RT #44512: Patch for CREATE TABLE parsing
+  + RT #42676: tests 16 failed
+
 Version 1.20, released March 5th, 2009
 ------------------------------------------
 

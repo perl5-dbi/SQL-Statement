@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-use lib  qw( ../lib );
+#use lib  qw( ../lib );
 use vars qw($DEBUG);
 use Data::Dumper;
 use Test::More tests => 2;
@@ -32,7 +32,7 @@ sub do_ {
 }
 sub fetchStr {
     my($sql,@params)=@_;
-    do_($sql,@params);   
+    do_($sql,@params);
     my $str='';
     while (my $r=$stmt->fetch) {
         $str .= sprintf "%s^",join'~',@$r;

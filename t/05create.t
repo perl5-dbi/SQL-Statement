@@ -9,8 +9,8 @@ if ($@) {
 else {
     plan tests => 5;
 }
-use lib  qw( ../lib );
-use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
+#use lib  qw( ../lib );
+use SQL::Statement; # printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
 use vars qw($dbh $sth $DEBUG);
 $dbh = DBI->connect('dbi:File(RaiseError=1):');
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 $|=1;
 use strict;
-use lib  qw( ../lib );
+#use lib  qw( ../lib );
 use vars qw($DEBUG);
 use Data::Dumper;
 use Test::More tests => 18;
@@ -84,12 +84,16 @@ sub do_ {
 }
 sub fetchStr {
     my($sql,@params)=@_;
-    do_($sql,@params);   
+    do_($sql,@params);
     my $str='';
     while (my $r=$stmt->fetch) {
         $str .= sprintf "%s^",join'~',@$r;
     }
     return $str;
+}
+sub newop {
+    my ( $self, $owner, $left, $right ) = @_;
+    return $left < $right;
 }
 __END__
 "a disjunction of conjunctions of literals, where each literal is an elementary relational formula or its negation"

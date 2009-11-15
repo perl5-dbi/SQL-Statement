@@ -2,6 +2,12 @@
 package SQL::Statement::Functions;
 ##################################
 
+use strict;
+use warnings;
+
+use Params::Util qw(_ARRAY0 _HASH0 _INSTANCE);
+use Scalar::Util qw(looks_like_number);
+
 =pod
 
 =head1 NAME
@@ -42,7 +48,7 @@ When using SQL::Statement/SQL::Parser directly to parse SQL, functions (either b
 
 In addition to the built-in functions, you can create any number of your own user-defined functions (UDFs).  In order to use a UDF in a script, you first have to create a perl subroutine (see below), then you need to make the function available to your database handle with the CREATE FUNCTION or LOAD commands:
 
- # load a single function "foo"from a subroutine 
+ # load a single function "foo"from a subroutine
  # named "foo" in the current package
 
       $dbh->do(" CREATE FUNCTION foo EXTERNAL ");
@@ -192,7 +198,7 @@ Table-Returning functions are a way to turn *anything* that can be modeled as an
 =cut
 
 use vars qw($VERSION);
-$VERSION = '0.2';
+$VERSION = '1.21_1';
 
 =pod
 
@@ -220,7 +226,7 @@ B<CURRENT_DATE>
 sub SQL_FUNCTION_CURRENT_DATE
 {
     my ( $sec, $min, $hour, $day, $mon, $year ) = localtime;
-    sprintf "%4s-%02s-%02s", $year + 1900, $mon + 1, $day;
+    return sprintf( '%4s-%02s-%02s', $year + 1900, $mon + 1, $day );
 }
 
 =pod
@@ -235,7 +241,7 @@ B<CURRENT_TIME>
 
 sub SQL_FUNCTION_CURRENT_TIME
 {
-    sprintf "%02s::%02s::%02s", (localtime)[ 2, 1, 0 ];
+    return sprintf( '%02s::%02s::%02s', (localtime)[ 2, 1, 0 ] );
 }
 
 =pod
@@ -251,8 +257,7 @@ B<CURRENT_TIMESTAMP>
 sub SQL_FUNCTION_CURRENT_TIMESTAMP
 {
     my ( $sec, $min, $hour, $day, $mon, $year ) = localtime;
-    sprintf "%4s-%02s-%02s %02s::%02s::%02s",
-      $year + 1900, $mon + 1, $day, $hour, $min, $sec;
+    return sprintf( '%4s-%02s-%02s %02s::%02s::%02s', $year + 1900, $mon + 1, $day, $hour, $min, $sec );
 }
 
 =pod
@@ -271,8 +276,8 @@ B<CHAR_LENGTH>
 
 sub SQL_FUNCTION_CHAR_LENGTH
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
-    return length $params[0];
+    my ( $self, $owner, $str ) = @_;
+    return length($str);
 }
 
 =pod
@@ -287,14 +292,14 @@ B<LOWER & UPPER>
 
 sub SQL_FUNCTION_LOWER
 {
-    my ( $self, $sth, $rowhash, $str ) = @_;
-    return "\L$str";
+    my ( $self, $owner, $str ) = @_;
+    return lc($str);
 }
 
 sub SQL_FUNCTION_UPPER
 {
-    my ( $self, $sth, $rowhash, $str ) = @_;
-    return "\U$str";
+    my ( $self, $owner, $str ) = @_;
+    return uc($str);
 }
 
 =pod
@@ -310,8 +315,8 @@ B<POSITION>
 
 sub SQL_FUNCTION_POSITION
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
-    return index( $params[1], $params[0] ) + 1;
+    my ( $self, $owner, $substr, $str ) = @_;
+    return index( $str, $substr ) + 1;
 }
 
 =pod
@@ -329,10 +334,10 @@ B<REGEX>
 
 sub SQL_FUNCTION_REGEX
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
-    return 0 unless defined $params[0] and defined $params[1];
+    my ( $self, $owner, @params ) = @_;
+    return 0 unless ( defined( $params[0] ) && defined( $params[1] ) );
     my ( $pattern, $modifier ) = $params[1] =~ m~^/(.+)/([a-z]*)$~;
-    $pattern = "(?$modifier:$pattern)" if $modifier;
+    $pattern = "(?$modifier:$pattern)" if ($modifier);
     return ( $params[0] =~ qr($pattern) ) ? 1 : 0;
 }
 
@@ -351,7 +356,7 @@ B<SOUNDEX>
 
 sub SQL_FUNCTION_SOUNDEX
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
+    my ( $self, $owner, @params ) = @_;
     require Text::Soundex;
     my $s1 = Text::Soundex::soundex( $params[0] ) or return 0;
     my $s2 = Text::Soundex::soundex( $params[1] ) or return 0;
@@ -375,7 +380,7 @@ B<CONCAT>
 
 sub SQL_FUNCTION_CONCAT
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
+    my ( $self, $owner, @params ) = @_;
 
     my $str = '';
     foreach (@params)
@@ -402,7 +407,7 @@ B<COALESCE> I<aka> B<NVL>
 
 sub SQL_FUNCTION_COALESCE
 {
-    my ( $obj, $sth, $rowhash, @params ) = @_;
+    my ( $self, $owner, @params ) = @_;
 
     #
     #	eval each expr in list until a non-null
@@ -422,7 +427,7 @@ sub SQL_FUNCTION_NVL { return SQL_FUNCTION_COALESCE(@_); }
 
 B<DECODE>
 
- # purpose   : compare the first argument against 
+ # purpose   : compare the first argument against
  #             succeding arguments at position 1 + 2N
  #             (N = 0 to (# of arguments - 2)/2), and if equal,
  #				return the value of the argument at 1 + 2N + 1; if no
@@ -431,7 +436,7 @@ B<DECODE>
  # returns   : the value of the argument at 1 + 2N + 1 if argument 1 + 2N
  #             is equal to argument1; else the last argument value
  #
- # example   : SELECT DECODE(some_column, 
+ # example   : SELECT DECODE(some_column,
  #                    'first value', 'first value matched'
  #                    '2nd value', '2nd value matched'
  #                    'no value matched'
@@ -448,14 +453,13 @@ B<DECODE>
 #
 sub SQL_FUNCTION_DECODE
 {
-    my ( $obj, $sth, $rowhash, @params ) = @_;
+    my ( $self, $owner, @params ) = @_;
 
     #
     #	check param list size, must be at least 4,
     #	and even in length
     #
-    return $obj->do_err('Invalid DECODE argument list!')
-      unless ( ( scalar @params > 3 ) && ( $#params & 1 == 1 ) );
+    die 'Invalid DECODE argument list!' unless ( ( scalar @params > 3 ) && ( $#params & 1 == 1 ) );
 
     #
     #	eval first argument, and last argument,
@@ -465,7 +469,7 @@ sub SQL_FUNCTION_DECODE
     my $lhs     = shift @params;
     my $default = pop @params;
     return $default unless defined($lhs);
-    my $lhs_isnum = is_number($lhs);
+    my $lhs_isnum = looks_like_number($lhs);
 
     while (@params)
     {
@@ -473,17 +477,11 @@ sub SQL_FUNCTION_DECODE
         shift @params, next
           unless defined($rhs);
         return shift @params
-          if (    ( is_number($rhs) && $lhs_isnum && ( $lhs == $rhs ) )
+          if (    ( looks_like_number($rhs) && $lhs_isnum && ( $lhs == $rhs ) )
                || ( $lhs eq $rhs ) );
         shift @params;
     }
     return $default;
-}
-
-sub is_number
-{
-    my $v = shift;
-    return ( $v =~ /^([+-]?|\s+)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/ );
 }
 
 =pod
@@ -502,7 +500,7 @@ B<REPLACE>, B<SUBSTITUTE>
 
 sub SQL_FUNCTION_REPLACE
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
+    my ( $self, $owner, @params ) = @_;
     return undef unless defined $params[0] and defined $params[1];
 
     eval "\$params[0]=~$params[1]";
@@ -513,7 +511,7 @@ sub SQL_FUNCTION_SUBSTITUTE { return SQL_FUNCTION_REPLACE(@_); }
 
 sub SQL_FUNCTION_SUBSTR
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
+    my ( $self, $owner, @params ) = @_;
     my $string = $params[0] || '';
     my $start  = $params[1] || 0;
     my $offset = $params[2] || length $string;
@@ -573,44 +571,46 @@ Note: The TRIM function is implemented in SQL::Parser and SQL::Statement and, at
 
 sub SQL_FUNCTION_IMPORT
 {
-    my ( $self, $sth, $rowhash, @params ) = @_;
-    if ( ref $params[0] eq 'ARRAY' )
+    my ( $self, $owner, @params ) = @_;
+    if ( _ARRAY0( $params[0] ) )
     {
-        my $type = ref $params[0]->[0];
-        return $params[0] unless $type and $type eq 'HASH';
+        return $params[0] unless ( _HASH0( $params[0]->[0] ) );
         my @tbl = ();
         for my $row ( @{ $params[0] } )
         {
-            my @cols = sort keys %$row;
+            my @cols = sort keys %{$row};
             push @tbl, \@cols unless @tbl;
             push @tbl, [ @$row{@cols} ];
         }
         return \@tbl;
     }
-    my $tmp_sth = $params[0];
-
-    #   my @cols = map{$_->name} $tmp_sth->{f_stmt}->columns if $tmp_sth->{f_stmt};
-    my @cols;
-    @cols = @{ $tmp_sth->{NAME} } unless @cols;
-
-    #    push @{$sth->{org_names}},$_ for @cols;
-    my $tbl = [ \@cols ];
-    while ( my @row = $tmp_sth->fetchrow_array )
+    elsif ( _INSTANCE( $params[0], 'DBI::st' ) )
     {
-        push @$tbl, \@row;
+
+        #   my @cols = map{$_->name} $tmp_sth->{f_stmt}->columns if $tmp_sth->{f_stmt};
+        my @cols;
+        @cols = @{ $params[0]->{NAME} } unless @cols;
+
+        #    push @{$sth->{org_names}},$_ for @cols;
+        my $tbl = [ \@cols ];
+        while ( my @row = $params[0]->fetchrow_array() )
+        {
+            push @$tbl, \@row;
+        }
+
+        return $tbl;
     }
-    return $tbl;
 }
 
 # RUN()
 #
 # takes the name of a file containing SQL statements, runs the statements
 # see SQL::Parser for details
-#
+
 sub SQL_FUNCTION_RUN
 {
-    my ( $self, $sth, $rowhash, $file ) = @_;
-    my @params = $sth->{f_stmt}->params;
+    my ( $self, $owner, $file ) = @_;
+    my @params = $owner->{f_stmt}->params();
     @params = () unless @params;
     local *IN;
     open( IN, '<', $file ) or die "Couldn't open SQL File '$file': $!\n";
@@ -621,11 +621,11 @@ sub SQL_FUNCTION_RUN
 
     for my $sql (@stmts)
     {
-        my $tmp_sth = $sth->{Database}->prepare($sql);
+        my $tmp_sth = $owner->{Database}->prepare($sql);
         $tmp_sth->execute(@params);
         next unless $tmp_sth->{NUM_OF_FIELDS};
         push @results, $tmp_sth->{NAME} unless @results;
-        while ( my @r = $tmp_sth->fetchrow_array ) { push @results, \@r }
+        while ( my @r = $tmp_sth->fetchrow_array() ) { push @results, \@r }
     }
 
     #use Data::Dumper; print Dumper \@results and exit if @results;

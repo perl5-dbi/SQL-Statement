@@ -3,13 +3,13 @@ package SQLtest;
 ################
 use strict;
 use warnings;
-use lib  qw( ../lib );
+#use lib  qw( ../lib );
 use SQL::Statement;
 printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
 our(@ISA,@EXPORT,$DEBUG,$parser,$stmt,$cache);
 $cache = {};
 require Exporter;
-@ISA = qw(Exporter); 
+@ISA = qw(Exporter);
 @EXPORT = qw(&new_parser &parse &do_ &execute &fetchStr $parser $stmt);
 
 sub new_parser{

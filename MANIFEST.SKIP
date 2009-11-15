@@ -2,4 +2,5 @@
 \.[Bb][Aa][Kk]$
 \.orig$
 \.old$
+\..*swp
 Makefile$

@@ -44,7 +44,7 @@ for (split /\n/,
       DELETE FROM phrase WHERE id = 2                   }
 ){
     $sth = $dbh->prepare($_);
-    ok($sth->execute($_),$sth->{f_stmt}->command);
+    ok($sth->execute(),$sth->{f_stmt}->command);
 }
 
 $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
@@ -92,10 +92,11 @@ unlink 'Bar.pm' if -e 'Bar.pm';
 ####################
 $sth = $dbh->prepare("SELECT word FROM IMPORT(?) ORDER BY id DESC");
 my $AoA=  [ [qw( id word    )],
-    [qw( 1  Hacker  )],
-    [qw( 2  Perl    )],
+    [qw( 4  Just    )],
     [qw( 3  Another )],
-    [qw( 4  Just    )] ];
+    [qw( 2  Perl    )],
+    [qw( 1  Hacker  )],
+];
 
 $sth->execute($AoA);
 $str = '';
