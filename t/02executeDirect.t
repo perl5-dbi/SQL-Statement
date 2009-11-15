@@ -3,7 +3,7 @@ $|=1;
 use strict;
 use lib qw' ./ ./t ';
 use SQLtest;
-use Test::More tests => 24;
+use Test::More tests => 55;
 use Params::Util qw(_INSTANCE);
 my $DEBUG;
 
@@ -44,7 +44,14 @@ my $cache={};
 for my $sql(split /\n/,
 "   CREATE TABLE a (b INT, c CHAR)
     INSERT INTO a VALUES(1,'abc')
-    INSERT INTO a VALUES(2,'ayc')
+    INSERT INTO a VALUES(2,'efg')
+    INSERT INTO a VALUES(3,'hij')
+    INSERT INTO a VALUES(4,'klm')
+    INSERT INTO a VALUES(5,'nmo')
+    INSERT INTO a VALUES(6,'pqr')
+    INSERT INTO a VALUES(7,'stu')
+    INSERT INTO a VALUES(8,'vwx')
+    INSERT INTO a VALUES(9,'yz')
     SELECT b,c FROM a WHERE c LIKE '%b%' ORDER BY c DESC"
 ) {
     # print "<$sql>\n";
@@ -60,6 +67,34 @@ for my $sql(split /\n/,
     while (my $row=$stmt->fetch) {
         ok(1==$row->[0],'$stmt->fetch');
     }
+}
+
+my %gen_inbtw = (
+    q{SELECT b,c FROM a WHERE b IN (2,3,5,7)} => '2^efg^3^hij^5^nmo^7^stu',
+    q{SELECT b,c FROM a WHERE b NOT IN (2,3,5,7)} => '1^abc^4^klm^6^pqr^8^vwx^9^yz',
+    q{SELECT b,c FROM a WHERE NOT b IN (2,3,5,7)} => '1^abc^4^klm^6^pqr^8^vwx^9^yz',
+    q{SELECT b,c FROM a WHERE b BETWEEN (5,7)} => '5^nmo^6^pqr^7^stu',
+    q{SELECT b,c FROM a WHERE b NOT BETWEEN (5,7)} => '1^abc^2^efg^3^hij^4^klm^8^vwx^9^yz',
+    q{SELECT b,c FROM a WHERE NOT b BETWEEN (5,7)} => '1^abc^2^efg^3^hij^4^klm^8^vwx^9^yz',
+    q{SELECT b,c FROM a WHERE c IN ('abc','klm','pqr','vwx','yz')} => '1^abc^4^klm^6^pqr^8^vwx^9^yz',
+    q{SELECT b,c FROM a WHERE c NOT IN ('abc','klm','pqr','vwx','yz')} => '2^efg^3^hij^5^nmo^7^stu',
+    q{SELECT b,c FROM a WHERE NOT c IN ('abc','klm','pqr','vwx','yz')} => '2^efg^3^hij^5^nmo^7^stu',
+    q{SELECT b,c FROM a WHERE c BETWEEN ('abc','nmo')} => '1^abc^2^efg^3^hij^4^klm^5^nmo',
+    q{SELECT b,c FROM a WHERE c NOT BETWEEN ('abc','nmo')} => '6^pqr^7^stu^8^vwx^9^yz',
+    q{SELECT b,c FROM a WHERE NOT c BETWEEN ('abc','nmo')} => '6^pqr^7^stu^8^vwx^9^yz',
+);
+
+while( my ( $sql, $result ) = each(%gen_inbtw) )
+{
+    $stmt = SQL::Statement->new($sql,$parser);
+    eval { $stmt->execute($cache) };
+    warn $@ if $@;
+    ok(!$@,'$stmt->execute "'.$sql.'" ('.$stmt->command.')');
+    my @res;
+    while (my $row=$stmt->fetch) {
+        push( @res, @{$row} );
+    }
+    is( $result, join( '^', @res ), $sql );
 }
 __DATA__
 SELECT a FROM b JOIN c WHERE c=? AND e=7 ORDER BY f DESC LIMIT 5,2

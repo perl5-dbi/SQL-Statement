@@ -3,6 +3,7 @@ package SQL::Parser;
 ######################################################################
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
+# This module is copyright (c), 2007,2009 by Jeff Zucker, Jens Rehsack.
 # All rights resered.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -17,7 +18,7 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.21_2';
+$VERSION = '1.21_3';
 
 BEGIN
 {
@@ -44,7 +45,7 @@ sub new
     $self->dialect( $self->{dialect} );
     $self->set_feature_flags( $self->{select}, $self->{create} );
 
-    $self->LOAD("LOAD SQL::Statement::Functions");
+    $self->LOAD('LOAD SQL::Statement::Functions');
 
     return $self;
 }
@@ -1532,8 +1533,7 @@ sub SORT_SPEC_LIST
 
 sub SEARCH_CONDITION
 {
-    my $self = shift;
-    my $str  = shift;
+    my ($self,$str  ) = @_;
     $str =~ s/^\s*WHERE (.+)/$1/;
     $str =~ s/^\s+//;
     $str =~ s/\s+$//;
@@ -1543,8 +1543,7 @@ sub SEARCH_CONDITION
     #	DAA
     #	make these OO so subclasses can override them
     #
-    $str = $self->get_btwn($str);
-    $str = $self->get_in($str);
+    $str = $self->repl_btwin($str);
 
     #
     #	DAA
@@ -1573,191 +1572,16 @@ sub SEARCH_CONDITION
 # UTILITY FUNCTIONS CALLED TO PARSE PARENS IN WHERE CLAUSE
 ############################################################
 
-# get BETWEEN clause
-#
-#	DAA
-#	rewrite to remove recursion and optimize code
-#
-sub get_btwn
+sub repl_btwin
 {
-    my $self = shift;    # DAA make OO for subclassing
-    my $str  = shift;
-    while ( $str =~ /^(.+?)\b(NOT\s+)?BETWEEN (.+)$/i )
-    {
-        my $front = $1;
-        my $back  = $3;
-        my $not   = $2 ? 1 : undef;
+    my ($self,$str)   = @_;    # DAA make OO for subclassing
+    my @lids;
 
-        #
-        #	scan the front piece to determine where
-        #	it really starts (esp wrt parens)
-        #
-        my $col = ( $front =~ s/^(.+\b(AND|NOT|OR))\b(.+)$/$1/i ) ? $3 : $front;
-        $front = ''
-          if ( $col eq $front );
+    my $i = -1;
+    $str =~ s/\s+(IN|BETWEEN)\s+\(([^\)]+)\)/push(@lids,$2);$i++;" $1 ?LI$i?"/ige;
+    $self->{struct}->{list_ids} = \@lids;
 
-        #
-        #	check on the number of parens
-        #	we've got
-        #
-        my $parens = 0;
-        $parens += ( $1 eq '(' ) ? 1 : -1 while ( $col =~ /\G.*?([\(\)])/gcs );
-
-        return $self->do_err("Unmatched right parentheses!")
-          if ( $parens < 0 );
-
-        #
-        #	trim leading parens if any
-        #
-        pos($col) = 0;
-        while ( $parens && ( $col =~ /\G.*?([\(\)])/gcs ) )
-        {
-            return $self->do_err("Unmatched right parentheses!")
-              if ( $1 eq ')' );
-
-            $parens--;
-        }
-
-        $front .= substr( $col, 0, pos($col) );
-        $col = substr( $col, pos($col) );
-
-        return $self->do_err("Incomplete BETWEEN predicate!")
-          unless ( $back =~ s/^(.+?) AND (.+)$/$2/i );
-        my $val1 = $1;
-
-        my $val2 = ( $back =~ s/^(.+?)( (AND|OR).+)$/$2/i ) ? $1 : $back;
-        $back = ''
-          if ( $val2 eq $back );
-
-        #
-        #	look for closing parens to match any remaining open
-        #	parens
-        #
-        if ($parens)
-        {
-            $parens += ( $1 eq '(' ) ? 1 : -1 while ( $parens && ( $val2 =~ /\G.*?([\(\)])/gcs ) );
-            $back = substr( $val2, pos($val2) ) . $back;
-            $val2 = substr( $val2, 0, pos($val2) );
-        }
-        elsif ( $val2 =~ /\G.*?([\(\)])/gcs )
-        {
-            $parens += ( $1 eq '(' ) ? 1 : -1 while ( ( $parens >= 0 ) && ( $val2 =~ /\G.*?([\(\)])/gcs ) );
-            $back = substr( $val2, pos($val2) ) . $back;
-            $val2 = substr( $val2, 0, pos($val2) );
-        }
-
-        $str =
-          $not
-          ? "$front ($col <= $val1 OR $col >= $val2) $back"
-          : "$front ($col > $val1 AND $col < $val2) $back";
-    }
-    return $str;
-}
-
-# get IN clause
-#
-#  a IN (b,c)     -> (a=b OR a=c)
-#  a NOT IN (b,c) -> (a<>b AND a<>c)
-#
-sub get_in
-{
-    my $self             = shift;    # DAA make OO for subclassing
-    my $str              = shift;
-    my $in_inside_parens = 0;
-
-    #
-    #	DAA optimize regex
-    #	and fix to properly track parens
-    #
-    while ( $str =~ /^(.+?)\b(NOT\s+)?IN \((.+)$/i )
-    {
-        my ( $col, $contents );
-        my $front = $1;
-        my $back  = $3;
-        my $not   = $2 ? 1 : 0;
-
-        #
-        #	scan the front piece to determine where
-        #	it really starts (esp wrt parens)
-        #
-        my $pos = ( $front =~ /^.+\b(AND|NOT|OR)\b(.+)$/igcs ) ? $-[2] : 0;
-        pos($front) = $pos;    # reset
-
-        #
-        #	this can be an arbitrary expression,
-        #	so scan for balanced parens
-        #
-        $in_inside_parens += ( $1 eq '(' ) ? 1 : -1 while ( $front =~ /\G.*?([\(\)])/gcs );
-
-        return $self->do_err("Unmatched right parentheses during IN processing!")
-          if ( $in_inside_parens < 0 );
-
-        #
-        #	reset scanner so we can find the true beginning
-        #	of the expression
-        #
-        pos($front) = $pos;
-        $in_inside_parens--, $pos = $+[0] while ( $in_inside_parens && ( $front =~ /\G.*?\(/gcs ) );
-
-        #
-        #	we've isolated the left expression
-        #
-        $col = substr( $front, $pos );
-        $front = substr( $front, 0, $pos );
-
-        #
-        #	now isolate the right expression list
-        #
-        $in_inside_parens = 1;    # for the opening paren
-
-        $in_inside_parens += ( $1 eq '(' ) ? 1 : -1 while ( $in_inside_parens
-                                                            && ( $back =~ /\G.*?([\(\)])/gcs ) );
-
-        $contents = substr( $back, 0, $+[0] - 1 );
-        $back = substr( $back, $+[0] );
-
-        return $self->do_err("Unmatched left parentheses during IN processing!")
-          if ( $in_inside_parens > 0 );
-
-        #
-        #	need a better arglist extractor
-        #
-        #        my @vals = split /,/, $contents;
-        #
-        my @vals   = ();
-        my $spos   = 0;
-        my $parens = 0;
-        my $epos   = 0;
-        while ( $contents =~ /\G.*?([\(\),])/gcs )
-        {
-            $epos = $+[0];
-            push( @vals, substr( $contents, $spos, $epos - $spos - 1 ) ), $spos = $epos, next
-              unless ( $parens or ( $1 ne ',' ) );
-            $parens += ( $1 eq '(' ) ? 1 : -1;
-        }
-
-        #
-        #	don't forget the last argument
-        #
-        $epos = length($contents), push( @vals, substr( $contents, $spos, $epos - $spos ) )
-          if ( $spos != length($contents) );
-
-        my ( $op, $combiner ) = $not ? ( '<>', ' AND ' ) : ( '=', ' OR ' );
-        @vals = map { "$col $op $_" } @vals;
-        $str = "$front (" . join( $combiner, @vals ) . ") $back";
-        $str =~ s/\s+/ /g;
-
-        #
-        #	DAA
-        #	removed recursion
-        #
-        #        return $self->get_in($str);
-    }
-    $str =~ s/^\s+//;
-    $str =~ s/\s+$//;
-    $str =~ s/\(\s+/(/;
-    $str =~ s/\s+\)/)/;
-    return $str;
+    $str;
 }
 
 # groups clauses by nested parens
@@ -2119,15 +1943,17 @@ sub PREDICATE
     $opexp = $self->{opts}{valid_comparison_ops_regex}, ( $arg1, $op, $arg2 ) = $str =~ /$opexp/i
       if ( !defined($op) && $self->{opts}{valid_comparison_ops_regex} );
 
-    $op = uc $op;
-
     #
     ### USER-DEFINED PREDICATE
     #
-    $arg1 = $str,
+    unless ( defined $arg1 && defined $op && defined $arg2 )
+    {
+        $arg1 = $str;
+        $op   = 'USER_DEFINED';
+        $arg2 = '';
+    }
 
-      $op = 'USER_DEFINED', $arg2 = ''
-      unless ( defined $arg1 && defined $op && defined $arg2 );
+    $op = uc $op;
 
     #	my $uname = $self->is_func($arg1);
     #        if (!$uname) {
@@ -2165,11 +1991,16 @@ sub PREDICATE
         #        $arg2 = $self->ROW_VALUE($arg2);
     }
 
-    push( @{ $self->{struct}->{keycols} }, $arg1->{value} ), push( @{ $self->{struct}->{keycols} }, $arg2->{value} )
-      if (     ref($arg1) eq 'HASH'
-           and ( $arg1->{type} || '' ) eq 'column'
-           and ( $arg2->{type} || '' ) eq 'column'
-           and $op eq '=' );
+    if (     ref($arg1) eq 'HASH'
+         and ref($arg2) eq 'HASH'
+         and ( $arg1->{type} || '' ) eq 'column'
+         and ( $arg2->{type} || '' ) eq 'column'
+         and $op eq '=' )
+    {
+        push( @{ $self->{struct}->{keycols} }, $arg1->{value} );
+        push( @{ $self->{struct}->{keycols} }, $arg2->{value} );
+    }
+
     return {
              neg  => $negated,
              nots => \%not,
@@ -2533,8 +2364,12 @@ sub ROW_VALUE
     {
         return {
                  type  => 'string',
-                 value => $self->{struct}->{literals}->[$1]
+                 value => $self->{struct}->{literals}->[$1],
                };
+    }
+    elsif ( $str =~ /^\?LI(\d+)\?$/ )
+    {
+        return $self->ROW_VALUE_LIST( $self->{struct}->{list_ids}->[$1] );
     }
 
     # COLUMN NAME
@@ -2566,6 +2401,31 @@ sub ROW_VALUE
              type  => 'column',
              value => $str
            };
+}
+
+#########################################################
+# ROW_VALUE_LIST ::= <row_value> [,<row_value>...]
+#########################################################
+sub ROW_VALUE_LIST
+{
+    my $self     = shift;
+    my $row_str  = shift;
+    my @row_list = split ',', $row_str;
+    if ( !( scalar @row_list ) )
+    {
+        return $self->do_err('Missing row value list!');
+    }
+    my @newvals;
+    my $newval;
+    for my $row_val (@row_list)
+    {
+        $row_val =~ s/^\s+//;
+        $row_val =~ s/\s+$//;
+
+        return undef if !( $newval = $self->ROW_VALUE($row_val) );
+        push @newvals, $newval;
+    }
+    return \@newvals;
 }
 
 ###############################################
@@ -2607,8 +2467,10 @@ sub COLUMN_NAME
     {
         $col_name = $str;
     }
+
     $col_name =~ s/^\s+//;
     $col_name =~ s/\s+$//;
+
     my $user_func = $col_name;
     $user_func =~ s/^(\S+).*$/$1/;
     if ( $col_name !~ m/(TRIM|SUBSTRING)/i )
@@ -2650,8 +2512,8 @@ sub COLUMN_NAME
     {
         my $alias = $self->{tmp}->{is_table_alias}->{"\L$table_name"};
         $table_name = $alias if defined $alias;
-        $table_name = lc $table_name unless( $table_name =~ m/^"/ );
-        $col_name   = "$table_name.$col_name";
+        $table_name = lc $table_name unless ( $table_name =~ m/^"/ );
+        $col_name = "$table_name.$col_name";
     }
     return $col_name;
 }
@@ -2824,25 +2686,25 @@ sub IDENTIFIER
         $id = $2;
     }
     return 1 if $id =~ /^".+?"$/s;    # QUOTED IDENTIFIER
-    my $err = "Bad table or column name '$id' ";    # BAD CHARS
+    my $err = "Bad table or column name: '$id' ";    # BAD CHARS
     if ( $id =~ /\W/ )
     {
         $err .= "has chars not alphanumeric or underscore!";
         return $self->do_err($err);
     }
     if ( $id =~ /^_/ or $id =~ /^\d/ )
-    {                                               # BAD START
+    {                                                # BAD START
         $err .= "starts with non-alphabetic character!";
         return $self->do_err($err);
     }
     if ( length $id > 128 )
-    {                                               # BAD LENGTH
+    {                                                # BAD LENGTH
         $err .= "contains more than 128 characters!";
         return $self->do_err($err);
     }
     $id = uc $id;
     if ( $self->{opts}->{reserved_words}->{$id} )
-    {                                               # BAD RESERVED WORDS
+    {                                                # BAD RESERVED WORDS
         $err .= "is a SQL reserved word!";
         return $self->do_err($err);
     }
@@ -3215,7 +3077,7 @@ NOT IN.
 =item C<$self->E<gt>C<transform_syntax($string)>
 
 Abstract method; default simply returns the original string.
-Called after get_btwn() and get_in(), but before any further
+Called after repl_btwn() and repl_in(), but before any further
 predicate processing is applied. Possible uses include converting
 other predicate syntax not recognized by SQL::Parser into user-defined
 functions.

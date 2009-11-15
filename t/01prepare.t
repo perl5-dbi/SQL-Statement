@@ -3,10 +3,12 @@ use strict;
 $|=1;
 use lib qw' ./ ./t ';
 use SQLtest;
-use Test::More tests => 105;
+use Test::More tests => 113;
+
+$SQLtest::DEBUG = 1;
 
 $parser = new_parser();
-$parser->{PrintError}=0;
+$parser->{PrintError}=1;
 $parser->{RaiseError}=1;
 my $count;
 my @data;
@@ -18,7 +20,7 @@ for (<DATA>) {
     push @data,$_;
 }
 for my $sql(@data) {
-    ok( parse($sql) );
+    ok( parse($sql), "parse '$sql'" );
 }
 __DATA__
   /* DROP TABLE */
@@ -142,3 +144,13 @@ SELECT * from ztable WHERE (sev IN(50,60))
 SELECT * FROM foo WHERE NOT bar = 'baz' AND bop = 7 OR NOT blat = bar
 SELECT * FROM foo WHERE NOT bar = 'baz' AND NOT bop = 7 OR NOT blat = bar
 SELECT * FROM foo WHERE NOT bar = 'baz' AND NOT bop = 7 OR blat IS NOT NULL
+  /* IN */
+SELECT * FROM bar WHERE foo IN ('aa','ab','ba','bb')
+SELECT * FROM bar WHERE foo IN (3.14,2.72,1.41,9.81)
+SELECT * FROM bar WHERE foo NOT IN ('aa','ab','ba','bb')
+SELECT * FROM bar WHERE foo NOT IN (3.14,2.72,1.41,9.81)
+  /* BETWEEN */
+SELECT * FROM bar WHERE foo BETWEEN ('aa','bb')
+SELECT * FROM bar WHERE foo BETWEEN (1.41,9.81)
+SELECT * FROM bar WHERE foo NOT BETWEEN ('aa','bb')
+SELECT * FROM bar WHERE foo NOT BETWEEN (1.41,9.81)

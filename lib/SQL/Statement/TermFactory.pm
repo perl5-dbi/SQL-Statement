@@ -6,25 +6,26 @@ require SQL::Statement::Placeholder;
 require SQL::Statement::Function;
 
 use Data::Dumper;
-use Params::Util qw(_HASH);
+use Params::Util qw(_HASH _ARRAY0);
 use Scalar::Util qw(blessed weaken);
 
-our $VERSION = '1.21_1';
+our $VERSION = '1.21_3';
 
 my %oplist = (
-               '='     => 'Equal',
-               '<>'    => 'NotEqual',
-               'AND'   => 'And',
-               'OR'    => 'Or',
-               '<='    => 'LowerEqual',
-               '>='    => 'GreaterEqual',
-               '<'     => 'Lower',
-               '>'     => 'Greater',
-               'LIKE'  => 'Like',
-               'RLIKE' => 'Rlike',
-               'CLIKE' => 'Clike',
-               'IN'    => 'Contains',
-               'IS'    => 'Is',
+               '='       => 'Equal',
+               '<>'      => 'NotEqual',
+               'AND'     => 'And',
+               'OR'      => 'Or',
+               '<='      => 'LowerEqual',
+               '>='      => 'GreaterEqual',
+               '<'       => 'Lower',
+               '>'       => 'Greater',
+               'LIKE'    => 'Like',
+               'RLIKE'   => 'Rlike',
+               'CLIKE'   => 'Clike',
+               'IN'      => 'Contains',
+               'BETWEEN' => 'Between',
+               'IS'      => 'Is',
              );
 
 sub new
@@ -44,7 +45,11 @@ sub buildCondition
     my $pred = shift;
     my $term;
 
-    if ( defined( $pred->{op} ) )
+    if ( _ARRAY0($pred) )
+    {
+        $term = [ map { $self->buildCondition($_) } @{$pred} ];
+    }
+    elsif ( defined( $pred->{op} ) )
     {
         my $op = uc( $pred->{op} );
         if ( $op eq 'USER_DEFINED' && !$pred->{arg2} )

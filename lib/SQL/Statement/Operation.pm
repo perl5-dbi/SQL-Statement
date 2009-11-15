@@ -5,7 +5,7 @@ require Carp;
 
 require SQL::Statement::Term;
 
-our $VERSION = '1.21_1';
+our $VERSION = '1.21_3';
 
 @ISA = qw(SQL::Statement::Term);
 
@@ -75,7 +75,53 @@ sub operate($)
     }
     else
     {
-        $expr = !defined($left) || ($left eq ''); # FIXME I don't like that '' IS NULL
+        $expr = !defined($left) || ( $left eq '' );      # FIXME I don't like that '' IS NULL
+    }
+
+    return $expr;
+}
+
+package SQL::Statement::Operation::Contains;
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Statement::Operation);
+use Scalar::Util qw(looks_like_number);
+
+sub operate($)
+{
+    my ( $self, $eval ) = @_;
+    my $left  = $self->{LEFT}->value($eval);
+    my @right = map { $_->value($eval); } @{ $self->{RIGHT} };
+    my $expr  = 0;
+
+    foreach my $r (@right)
+    {
+        last if $expr |= ( looks_like_number($left) && looks_like_number($r) ) ? $left == $r : $left eq $r;
+    }
+
+    return $expr;
+}
+
+package SQL::Statement::Operation::Between;
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Statement::Operation);
+use Scalar::Util qw(looks_like_number);
+
+sub operate($)
+{
+    my ( $self, $eval ) = @_;
+    my $left  = $self->{LEFT}->value($eval);
+    my @right = map { $_->value($eval); } @{ $self->{RIGHT} };
+    my $expr  = 0;
+
+    if ( looks_like_number($left) && looks_like_number( $right[0] ) && looks_like_number( $right[1] ) )
+    {
+        $expr = ( $left >= $right[0] ) && ( $left <= $right[1] );
+    }
+    else
+    {
+        $expr = ( $left ge $right[0] ) && ( $left le $right[1] );
     }
 
     return $expr;

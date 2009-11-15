@@ -1,10 +1,24 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21_3, release September 17th, 2009
+----------------------------------------------
+
+[Things that may break your code]
+* When someone accesses the where_clause attribute of the SQL::Statement
+  instance - be aware that now IN and BETWEEN can be native entries
+
+[Bug fixes]
+* convert operation to upper case when surely initialized
+
+[Improvements]
+* IN and BETWEEN are now native operations - they are not expanded
+  to OR'ed equalize operations anymore
+
 Version 1.21_2, release September 15th, 2009
 ----------------------------------------------
 
 [Things that may break your code]
-* modify behaviour for unquoted identifiers - they're converted and
+* modify behavior for unquoted identifiers - they're converted and
   returned lower cased now (instead upper cased as in 1.21_1)
   Fixes bug RT #48502
 
@@ -94,7 +108,7 @@ Version 1.16_01, released 1 January, 2009
 * With this release, I'd like to welcome Jens Rehsack as co-maintainer of
   the SQL::Statement and SQL::Parser modules.  Jens has added in some
   great improvements.
-  Thanks Jens! -- Jeff 
+  Thanks Jens! -- Jeff
 
 * Adding a lot of join tests (once from Jeff, 48 from
   PostgreSQL official handbook) - no error of them will be corrected in the
@@ -191,10 +205,10 @@ Version 1.10, released 27 March, 2005
 	- added transform_syntax() abstract method
 		to permit subclasses to add their own
 		syntax extensions
-	- rewrite of parens_search() to fixed predicate 
+	- rewrite of parens_search() to fixed predicate
 		paren processing, remove recursion, and optimize
 		code
-	- rewrite of non_parens_search() to fixed predicate 
+	- rewrite of non_parens_search() to fixed predicate
 		paren processing and optimize code
 	- rewrite of PREDICATE to optimize code; moved
 		operator regex construction to dialect
@@ -221,8 +235,8 @@ Version 1.10, released 27 March, 2005
  	- DECODE (same as Oracle DECODE)
  	- CONCAT
  	- REPLACE/SUBSTITUTE
- 
-     * fixed/adapted SQL::Statement::get_row_value(), 
+
+     * fixed/adapted SQL::Statement::get_row_value(),
 	SQL::Statement::SELECT(), for join'ed
  	resultsets
 
@@ -253,7 +267,7 @@ Version 1.06, released 18 April, 2004
  * column and table name hashes now default to case sensitive
 
  * where() method now supported as per the docs
-   
+
 
 Version 1.005, released 26 October, 2002
 ------------------------------------------
@@ -262,7 +276,7 @@ Version 1.005, released 26 October, 2002
 
  * fixed bug in dotted column names e.g. tableA.colB
 
- * fixed bug in MAX and MIN (thanks Michael Kovacs, 
+ * fixed bug in MAX and MIN (thanks Michael Kovacs,
    mkovacs@turing.une.edu.au)
 
  * fixed bug in ORDER BY (when col names not in SELECT list)
@@ -301,7 +315,7 @@ Version 1.003, released 01 March, 2002
    case sensitive column names
 
  * added numerous examples to test.pl
-   
+
  * improved and/or fixed bugs in:
 
    * placeholder support

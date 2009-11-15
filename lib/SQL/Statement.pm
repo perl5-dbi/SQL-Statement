@@ -1,7 +1,9 @@
 package SQL::Statement;
 #########################################################################
 #
-# This module is copyright (c), 2001 by Jeff Zucker, All Rights Reserved
+# This module is copyright (c), 2001,2005 by Jeff Zucker.
+# This module is copyright (c), 2007,2009 by Jeff Zucker, Jens Rehsack.
+# All rights resered.
 #
 # It may be freely distributed under the same terms as Perl itself.
 #
@@ -32,7 +34,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.21_2';
+$VERSION = '1.21_3';
 
 sub new
 {

@@ -7,6 +7,15 @@ Open to do actions for SQL::Statement 1.xx
   SELECT * FROM ... WHERE t1.c1 = t2.c4 AND t2.c2 = 'Take me'
   Entire t1 will be cross joined t2 and than filtered.
   Proposals are welcome - even codeless, just ideas.
-* Adding direct support for IN and BETWEEN operators to avoid "deep
-  recursion" - it can be done so easy (now), just the parser has to be
-  fixed a little ...
+
+Open to do actions for SQL::Statement 2.xx
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Rewrite Parser to use a grammar (e.g. like SQL::Translator::Parser)
+  + Implement ANSI SQL grammar as default
+  + Be flexible which grammars to use (as currently supported)
+* Rewrite Statement handler to have command instances per command
+  + Use sub-classes for different join behaviors to reduce flag
+    comparing in inner loops
+* Add Optimizer for conditions (constant first, ...)
+* Add Sub-Select support
