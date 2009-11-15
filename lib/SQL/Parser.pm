@@ -18,7 +18,9 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.21_4';
+use Params::Util qw(_ARRAY0);
+
+$VERSION = '1.21_5';
 
 BEGIN
 {
@@ -132,8 +134,8 @@ sub parse
             }
         }
         $self->{struct}->{join}->{table_order} = $self->{struct}->{table_names}
-          if $self->{struct}->{join}->{table_order}
-              and scalar( @{ $self->{struct}->{join}->{table_order} } ) == 0;
+          if ( $self->{struct}->{join}->{table_order}
+               && !defined( _ARRAY0( $self->{struct}->{join}->{table_order} ) ) );
         @{ $self->{struct}->{join}->{keycols} } =
           map { lc $_ } @{ $self->{struct}->{join}->{keycols} }
           if $self->{struct}->{join}->{keycols};
@@ -142,8 +144,7 @@ sub parse
           if $self->{struct}->{join}->{shared_cols};
 ##
         #  For RR aliases, added quoted id protection from upper casing
-        my @uCols =
-          map { ( $_ =~ /^(\w+\.)?"/ ) ? $_ : lc $_ } @{ $self->{struct}->{column_names} };
+        my @uCols = map { ( $_ =~ /^(\w+\.)?"/ ) ? $_ : lc $_ } @{ $self->{struct}->{column_names} };
 ##
         $self->{struct}->{column_names} = \@uCols unless $com eq 'CREATE';
         if ( $self->{original_string} =~ /Y\.\*/ )
@@ -1282,7 +1283,7 @@ sub extract_column_list
 
 sub SELECT_LIST
 {
-    my ($self,$col_str ) = @_;
+    my ( $self, $col_str ) = @_;
     if ( $col_str =~ /^\s*\*\s*$/ )
     {
         $self->{struct}->{column_names} = ['*'];

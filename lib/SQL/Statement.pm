@@ -34,7 +34,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.21_4';
+$VERSION = '1.21_5';
 
 sub new
 {
@@ -592,6 +592,7 @@ sub JOIN
          and scalar @{ $self->{join}->{table_order} } == 0 )
     {
         $self->{join}->{table_order} = $self->order_joins( $self->{join}->{keycols} );
+        $self->{join}->{table_order} = $self->{table_names} unless( defined( $self->{join}->{table_order} ) );
     }
     my @tables = $self->tables;
 
@@ -679,6 +680,7 @@ sub join_2_tables
     {
         for (@tmpshared)
         {
+            $_ =~ s/\w+$self->{dlm}//;
             push @shared_cols, $tableA . $self->{dlm} . $_;
             push @shared_cols, $tableB . $self->{dlm} . $_;
         }
@@ -1326,9 +1328,8 @@ sub group_by
     {
         for my $c2 (@$set_columns)
         {
-
-            #            printf "%s %s\n",$c1->{name}, $c2->{arg};
-            next unless lc $c1->{name} eq lc $c2->{arg};
+            next unless( defined($c2->{arg}) );
+            next if( lc( $c1->{name} ) ne lc( $c2->{arg} ) );
             $c1->{arg}  = $c2->{arg};
             $c1->{name} = $c2->{name};
             last;
@@ -2057,7 +2058,8 @@ sub order_joins
     my @new_keycols;
     for (@$links)
     {
-        push @new_keycols, $self->colname2table($_) . ".$_";
+        my ( $tbl, $col ) = $self->full_qualified_column_name($_);
+        push @new_keycols, $tbl . '.' . $col;
     }
     my @tmp = @new_keycols;
     @tmp = map { s/\./$self->{dlm}/g; $_ } @tmp;
@@ -2097,8 +2099,17 @@ sub order_joins
             push @tables, $t if $visited{$t}++ < @all_tables;
         }
     }
-    return $self->do_err('Unconnected tables in equijoin statement!')
-      if @order < @all_tables;
+    if( @order < @all_tables )
+    {
+        my @missing;
+        my %in_order = map { $_ => 1 } @order;
+        foreach my $tbl (@all_tables)
+        {
+            next if( $in_order{$tbl} );
+            push( @missing, $tbl );
+        }
+        return $self->do_err( sprintf( 'Unconnected tables (%s) in equijoin statement!', join( ', ', @missing ) ) );
+    }
     $self->{join}->{table_order} = \@order;
     return \@order;
 }
@@ -2469,7 +2480,7 @@ For questions about installation or usage, please ask on the dbi-users@perl.org 
 
 Jochen Wiedmann created the original module as an XS (C) extension in 1998. Jeff Zucker took over the maintenance in 2001 and rewrote all of the C portions in perl and began extending the SQL support.  More recently Ilya Sterin provided help with SQL::Parser, Tim Bunce provided both general and specific support, Dan Wright and Dean Arnold have contributed extensively to the code, and dozens of people from around the world have submitted patches, bug reports, and suggestions.  Thanks to all!
 
-If you're interested in helping develop SQL::Statement or want to use it with your own modules, feel free to contact Jeff.
+If you're interested in helping develop SQL::Statement or want to use it with your own modules, feel free to contact Jeff or Jens.
 
 =head1 BUGS AND LIMITATIONS
 
@@ -2488,6 +2499,7 @@ No nested C-style comments allowed as SQL99 says
 =head1 AUTHOR AND COPYRIGHT
 
 Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
+Copyright (c) 2008,2009 by Jens Rehsack: rehsackATcpan.org
 
 Portions Copyright (C) 1998 by Jochen Wiedmann: jwiedATcpan.org
 

@@ -1,23 +1,27 @@
 --- #YAML:1.0
 name:               SQL-Statement
-version:            1.21_4
+version:            1.21_5
 abstract:           ~
 author:
-    - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@web.de>
+    - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>
 license:            perl
 distribution_type:  module
 configure_requires:
+    version:  0
+build_requires:
     ExtUtils::MakeMaker:  0
 requires:
+    Carp:          0
     Clone:         0.30
-    Params::Util:  0.35
+    Data::Dumper:  0
+    Params::Util:  1.00
     Scalar::Util:  1.0
     Test::Simple:  0.86
 no_index:
     directory:
         - t
         - inc
-generated_by:       ExtUtils::MakeMaker version 6.48
+generated_by:       ExtUtils::MakeMaker version 6.54
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4

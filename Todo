@@ -1,12 +1,7 @@
 Open to do actions for SQL::Statement 1.xx
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Speed up join_2_tables:
-  join_2_tables neither respect joins described in where_clause nor it
-  left out unnecessary rows:
-  SELECT * FROM ... WHERE t1.c1 = t2.c4 AND t2.c2 = 'Take me'
-  Entire t1 will be cross joined t2 and than filtered.
-  Proposals are welcome - even codeless, just ideas.
+* None known
 
 Open to do actions for SQL::Statement 2.xx
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

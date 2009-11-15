@@ -646,13 +646,14 @@ Dean Arnold supplied DECODE, COALESCE, REPLACE, many thanks!
 
 =head1 AUTHOR & COPYRIGHT
 
-This module is copyright (c) 2005 by Jeff Zucker. All rights reserved.
+Copyright (c) 2005 by Jeff Zucker: jzuckerATcpan.org
+Copyright (c) 2009 by Jens Rehsack: rehsackATcpan.org
+
+All rights reserved.
 
 The module may be freely distributed under the same terms as
 Perl itself using either the "GPL License" or the "Artistic
 License" as specified in the Perl README file.
-
-Jeff can be reached at: jzucker AT cpan.org
 
 =cut
 

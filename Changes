@@ -1,5 +1,20 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21_5, release September 23th, 2009
+----------------------------------------------
+
+[Bug fixes]
+* table order isn't wrongly used in order of appearance when SQL::Parser
+  couldn't determine an order
+* Some internal fixes
+
+[Misc]
+* Updated dependency to Params::Util to non-leaking 1.00
+* Note dependency to Carp and Data::Dumper
+* rely on version to compare versions
+* Update POD for terms
+* Update
+
 Version 1.21_4, release September 21th, 2009
 ----------------------------------------------
 
@@ -38,7 +53,7 @@ Version 1.21_1, release July 30th, 2009
 * removed SQL::Statement::Column
 * don't instantiate SQL::Statement::Functions objects
 * Reworked internal column and function handling to reduce code complexity
-* rows and columns aren't settable from outside a table or eval object
+* rows and columns aren't setable from outside a table or eval object
   anymore
 
 [Bug fixes and other changes]
@@ -58,7 +73,7 @@ Version 1.20, released March 5th, 2009
 Version 1.19, released February 6th, 2009
 ------------------------------------------
 
-* Fixed OUTER JOIN behaviour
+* Fixed OUTER JOIN behavior
 * Added version info to all *.pm files to allow CPAN::Reporter find updates
 * Correct META-Files
 * Fixed reported bugs:
@@ -98,7 +113,7 @@ Version 1.16_04, released 4 January, 2009
 Version 1.16_03, released 1 January, 2009
 ------------------------------------------
 
-* removed *.orig and *.rej relicts
+* removed *.orig and *.rej relics
 
 Version 1.16_02, released 1 January, 2009
 ------------------------------------------
@@ -115,7 +130,7 @@ Version 1.16_01, released 1 January, 2009
 ------------------------------------------
 
 * With this release, I'd like to welcome Jens Rehsack as co-maintainer of
-  the SQL::Statement and SQL::Parser modules.  Jens has added in some
+  the SQL::Statement and SQL::Parser modules. Jens has added in some
   great improvements.
   Thanks Jens! -- Jeff
 

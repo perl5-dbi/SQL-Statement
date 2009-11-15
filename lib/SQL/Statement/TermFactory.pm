@@ -9,7 +9,7 @@ use Data::Dumper;
 use Params::Util qw(_HASH _ARRAY0);
 use Scalar::Util qw(blessed weaken);
 
-our $VERSION = '1.21_4';
+our $VERSION = '1.21_5';
 
 my %oplist = (
                '='       => 'Equal',
@@ -147,5 +147,42 @@ sub DESTROY
     my $self = $_[0];
     undef $self->{OWNER};
 }
+
+=pod
+
+=head1 NAME
+
+SQL::Statement::TermFactory - Factory for SQL::Statement::Term instances
+
+=head1 SYNOPSIS
+
+  my $termFactory = SQL::Statement::TermFactory->new($stmt);
+  my $whereTerms = $termFactory->buildCondition( $stmt->{where_clause} );
+  my $col = $termFactory->buildCondition( $stmt->{col_obj}->{$name}->{content} );
+
+=head1 DESCRIPTION
+
+This package implements a factory to create type and operation based terms.
+Those terms are used to access data from the table(s) - either when evaluating
+the where clause or returning column data.
+
+The concept of a factory can be studied in I<Design Patterns> by the Gang of
+Four. The concept of using polymophism instead of conditions is suggested by
+Martin Fowler in his book I<Refactoring>.
+
+=head1 AUTHOR AND COPYRIGHT
+
+Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
+Copyright (c) 2008,2009 by Jens Rehsack: rehsackATcpan.org
+
+Portions Copyright (C) 1998 by Jochen Wiedmann: jwiedATcpan.org
+
+All rights reserved.
+
+You may distribute this module under the terms of either the GNU
+General Public License or the Artistic License, as specified in
+the Perl README file.
+
+=cut
 
 1;
