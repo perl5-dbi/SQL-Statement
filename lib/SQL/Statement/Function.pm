@@ -3,7 +3,7 @@ package SQL::Statement::Function;
 require SQL::Statement::Term;
 @ISA = qw(SQL::Statement::Term);
 
-our $VERSION = '1.21_5';
+our $VERSION = '1.21';
 
 =pod
 

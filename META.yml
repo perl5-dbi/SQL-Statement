@@ -1,19 +1,20 @@
 --- #YAML:1.0
 name:               SQL-Statement
-version:            1.21_8
+version:            1.21
 abstract:           ~
 author:
     - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>
 license:            perl
 distribution_type:  module
 configure_requires:
-    version:  0.77
+    ExtUtils::MakeMaker:  0
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
     Carp:          0
     Clone:         0.30
     Data::Dumper:  0
+    DBD::File:     0.37
     Params::Util:  1.00
     Scalar::Util:  1.0
     Test::Simple:  0.86
