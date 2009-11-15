@@ -1,5 +1,14 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21_4, release September 21th, 2009
+----------------------------------------------
+
+[Bug fixes]
+* modify regex to match types to fix problems with Perl 5.6.2
+* add DESTROY methods to ensure clean up
+* fix lower casing internal table names when joining tables
+* replace parameter shifting by assigning @_ to the list of parameters
+
 Version 1.21_3, release September 17th, 2009
 ----------------------------------------------
 

@@ -1,13 +1,12 @@
 package SQL::Statement::Term;
 
-our $VERSION = '1.21_1';
+our $VERSION = '1.21_4';
 
 use Scalar::Util qw(weaken);
 
 sub new
 {
-    my $class = shift;
-    my $owner = shift;
+    my ($class,$owner )= @_;
 
     my %instance = ( OWNER => $owner );
 
@@ -15,6 +14,12 @@ sub new
     weaken( $self->{OWNER} );
 
     return $self;
+}
+
+sub DESTROY
+{
+    my $self = $_[0];
+    undef $self->{OWNER};
 }
 
 sub value($) { Carp::confess( sprintf( q{pure virtual function '%s->value' called}, ref( $_[0] ) || __PACKAGE__ ) ); }
@@ -82,6 +87,11 @@ sub value($)
     {
         return undef unless ( defined( $eval->{rowpos} ) );
         my $line = $eval->{table}->[ $eval->{rowpos} - 1 ];
+
+        unless( defined( $eval->{col_nums}->{ $self->{TMPVAL} } ) )
+        {
+            print("Help\n");
+        }
 
         return $line->[ $eval->{col_nums}->{ $self->{TMPVAL} } ];
     }

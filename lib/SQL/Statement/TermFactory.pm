@@ -9,7 +9,7 @@ use Data::Dumper;
 use Params::Util qw(_HASH _ARRAY0);
 use Scalar::Util qw(blessed weaken);
 
-our $VERSION = '1.21_3';
+our $VERSION = '1.21_4';
 
 my %oplist = (
                '='       => 'Equal',
@@ -41,8 +41,7 @@ sub new
 
 sub buildCondition
 {
-    my $self = shift;
-    my $pred = shift;
+    my ( $self, $pred ) = @_;
     my $term;
 
     if ( _ARRAY0($pred) )
@@ -141,6 +140,12 @@ sub buildCondition
     }
 
     return $term;
+}
+
+sub DESTROY
+{
+    my $self = $_[0];
+    undef $self->{OWNER};
 }
 
 1;

@@ -1,6 +1,18 @@
 package SQL::Statement::Function;
 
-our $VERSION = '1.21_1';
+require SQL::Statement::Term;
+@ISA = qw(SQL::Statement::Term);
+
+our $VERSION = '1.21_4';
+
+sub DESTROY
+{
+    my $self = $_[0];
+
+    undef $self->{PARAMS};
+
+    $self->SUPER::DESTROY();
+}
 
 package SQL::Statement::Function::UserFunc;
 
@@ -9,10 +21,9 @@ use vars qw(@ISA);
 require Carp;
 use Params::Util qw(_INSTANCE);
 
-require SQL::Statement::Term;
 use SQL::Statement::Functions;
 
-@ISA = qw(SQL::Statement::Term);
+@ISA = qw(SQL::Statement::Function);
 
 sub new
 {
@@ -70,9 +81,8 @@ package SQL::Statement::Function::NumericEval;
 use vars qw(@ISA);
 
 use Params::Util qw(_NUMBER);
-require SQL::Statement::Term;
 
-@ISA = qw(SQL::Statement::Term);
+@ISA = qw(SQL::Statement::Function);
 
 sub new
 {
@@ -109,9 +119,7 @@ package SQL::Statement::Function::Trim;
 
 use vars qw(@ISA);
 
-require SQL::Statement::Term;
-
-BEGIN { @ISA = qw(SQL::Statement::Term); }
+BEGIN { @ISA = qw(SQL::Statement::Function); }
 
 sub new
 {
@@ -145,9 +153,7 @@ package SQL::Statement::Function::SubString;
 
 use vars qw(@ISA);
 
-require SQL::Statement::Term;
-
-@ISA = qw(SQL::Statement::Term);
+@ISA = qw(SQL::Statement::Function);
 
 sub new
 {
@@ -178,9 +184,7 @@ package SQL::Statement::Function::StrConcat;
 
 use vars qw(@ISA);
 
-require SQL::Statement::Term;
-
-@ISA = qw(SQL::Statement::Term);
+@ISA = qw(SQL::Statement::Function);
 
 sub new
 {

@@ -18,7 +18,7 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.21_3';
+$VERSION = '1.21_4';
 
 BEGIN
 {
@@ -52,8 +52,7 @@ sub new
 
 sub parse
 {
-    my $self = shift;
-    my $sql  = shift;
+    my ( $self, $sql ) = @_;
     $self->dialect( $self->{dialect} ) unless $self->{dialect_set};
     $sql =~ s/^\s+//;
     $sql =~ s/\s+$//;
@@ -173,16 +172,14 @@ sub parse
 
 sub replace_quoted_commas
 {
-    my $self = shift;
-    my $id   = shift;
+    my ( $self, $id ) = @_;
     $id =~ s/\?COMMA\?/,/gs;
     return $id;
 }
 
 sub replace_quoted_ids
 {
-    my $self = shift;
-    my $id   = shift;
+    my ( $self, $id ) = @_;
     return $id unless $self->{struct}->{quoted_ids};
     if ($id)
     {
@@ -210,8 +207,8 @@ sub replace_quoted_ids
     delete $self->{struct}->{quoted_ids};
 }
 
-sub structure { shift->{struct} }
-sub command { my $x = shift->{struct}->{command} || '' }
+sub structure { $_[0]->{struct} }
+sub command { my $x = $_[0]->{struct}->{command} || '' }
 
 sub feature
 {
@@ -241,7 +238,7 @@ sub feature
     }
 }
 
-sub errstr { shift->{struct}->{errstr} }
+sub errstr { $_[0]->{struct}->{errstr} }
 
 sub list
 {
@@ -365,8 +362,7 @@ sub create_op_regexen
 ####################################################
 sub DROP
 {
-    my $self     = shift;
-    my $stmt     = shift;
+    my ( $self, $stmt ) = @_;
     my $features = 'TYPE|KEYWORD|FUNCTION|OPERATOR|PREDICATE';
     if ( $stmt =~ /^\s*DROP\s+($features)\s+(.+)$/si )
     {
@@ -503,7 +499,7 @@ sub GROUPBY_LIST
 
 sub IMPLICIT_JOIN
 {
-    my $self = shift;
+    my $self = $_[0];
     delete $self->{struct}->{multiple_tables};
     if (   !$self->{struct}->{join}->{clause}
          or $self->{struct}->{join}->{clause} ne 'ON' )
@@ -528,8 +524,7 @@ sub IMPLICIT_JOIN
 
 sub EXPLICIT_JOIN
 {
-    my $self      = shift;
-    my $remainder = shift;
+    my ( $self, $remainder ) = @_;
     return undef unless $remainder;
     my ( $tableA, $tableB, $keycols, $jtype, $natural );
     if ( $remainder =~ /^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|UNION|JOIN)(.+)$/is )
@@ -771,8 +766,7 @@ sub LOAD
 
 sub CREATE_RAM_TABLE
 {
-    my $self = shift;
-    my $stmt = shift;
+    my ( $self, $stmt ) = @_;
     $self->{struct}->{is_ram_table} = 1;
     $self->{struct}->{command}      = 'CREATE_RAM_TABLE';
     my ( $table_name, $table_element_def, %is_col_name );
@@ -801,8 +795,7 @@ sub CREATE_RAM_TABLE
 
 sub CREATE_FUNCTION
 {
-    my $self = shift;
-    my $stmt = shift;
+    my ( $self, $stmt ) = @_;
     $self->{struct}->{command}    = 'CREATE_FUNCTION';
     $self->{struct}->{no_execute} = 1;
     my ( $func, $subname );
@@ -829,8 +822,7 @@ sub CREATE_FUNCTION
 
 sub CALL
 {
-    my $self = shift;
-    my $stmt = shift;
+    my ( $self, $stmt ) = @_;
     $stmt =~ s/^CALL\s+(.*)/$1/i;
     $self->{struct}->{command}   = 'CALL';
     $self->{struct}->{procedure} = $self->ROW_VALUE($stmt);
@@ -920,8 +912,7 @@ sub replace_quoted($)
 #########
 sub CREATE
 {
-    my $self     = shift;
-    my $stmt     = shift;
+    my ( $self, $stmt ) = @_;
     my $features = 'TYPE|KEYWORD|FUNCTION|OPERATOR|PREDICATE';
     if ( $stmt =~ /^\s*CREATE\s+($features)\s+(.+)$/si )
     {
@@ -1066,25 +1057,23 @@ sub CREATE
             $self->{struct}->{table_defs}->{$name}->{local_cols} = \@local_cols;
             next;
         }
-        my ($data_types_regex) = join( '|', keys %{ $self->{opts}->{valid_data_types} } );
+
+        # it seems, perl 5.6 isn't greedy enough .. let's help a bit
+        my ($data_types_regex) =
+          join( '|', sort { length($b) <=> length($a) } keys %{ $self->{opts}->{valid_data_types} } );
         $data_types_regex =~ s/ /\\ /g;    # backslash spaces to allow the /x modifier below
         my ( $name, $type, $constraints ) = (
             $col =~ /\s*(\S+)\s+                          # capture the column name
                         ((?:$data_types_regex|\S+)        # check for all allowed data types OR anything that looks like a bad data type to give a good error
                         (?:\s*\(\d+(?:\?COMMA\?\d+)?\))?) # allow the data type to have a precision specifier such as NUMERIC(4,6) on it
-                        \s*(.*)                           # capture the constraints if any
+                        \s*(\W.*|$)                           # capture the constraints if any
                              /ix
                                             );
-        if ( !$type )
-        {
-            return $self->do_err("Column definition is missing a data type!");
-        }
-        return undef if !( $self->IDENTIFIER($name) );
+        return $self->do_err("Column definition is missing a data type!") unless ($type);
+        return undef unless ( $self->IDENTIFIER($name) );
 
-        #        if ($name =~ /^\?QI(.+)\?$/ ) {
         $name = $self->replace_quoted_ids($name);
 
-        #        }
         $constraints =~ s/^\s+//;
         $constraints =~ s/\s+$//;
         if ($constraints)
@@ -1148,9 +1137,8 @@ sub CREATE
 
 sub SET_CLAUSE_LIST
 {
-    my $self       = shift;
-    my $set_string = shift;
-    my @sets       = split /,/, $set_string;
+    my ( $self, $set_string ) = @_;
+    my @sets = split /,/, $set_string;
     my ( @cols, @vals );
     for (@sets)
     {
@@ -1294,8 +1282,7 @@ sub extract_column_list
 
 sub SELECT_LIST
 {
-    my $self    = shift;
-    my $col_str = shift;
+    my ($self,$col_str ) = @_;
     if ( $col_str =~ /^\s*\*\s*$/ )
     {
         $self->{struct}->{column_names} = ['*'];
@@ -1533,7 +1520,7 @@ sub SORT_SPEC_LIST
 
 sub SEARCH_CONDITION
 {
-    my ($self,$str  ) = @_;
+    my ( $self, $str ) = @_;
     $str =~ s/^\s*WHERE (.+)/$1/;
     $str =~ s/^\s+//;
     $str =~ s/\s+$//;
@@ -1574,7 +1561,7 @@ sub SEARCH_CONDITION
 
 sub repl_btwin
 {
-    my ($self,$str)   = @_;    # DAA make OO for subclassing
+    my ( $self, $str ) = @_;    # DAA make OO for subclassing
     my @lids;
 
     my $i = -1;
@@ -1593,10 +1580,8 @@ sub repl_btwin
 #
 sub parens_search
 {
-    my $self       = shift;
-    my $str        = shift;
-    my $predicates = shift;
-    my $index      = scalar @$predicates;
+    my ( $self, $str, $predicates ) = @_;
+    my $index = scalar @$predicates;
 
     # to handle WHERE (a=b) AND (c=d)
     # but needs escape space to not foul up AND/OR
@@ -1656,11 +1641,9 @@ sub parens_search
 #
 sub non_parens_search
 {
-    my $self       = shift;
-    my $str        = shift;
-    my $predicates = shift;
-    my $neg        = 0;
-    my $nots       = {};
+    my ( $self, $str, $predicates ) = @_;
+    my $neg  = 0;
+    my $nots = {};
 
     $neg = 1, $nots = { pred => 1 }
       if ( $str =~ s/^NOT (\^.+)$/$1/i );
@@ -1773,8 +1756,7 @@ sub group_ands
 #
 sub nongroup_string
 {
-    my $self = shift;
-    my $str  = shift;
+    my ( $self, $str ) = @_;
 
     #
     #	add in any user defined functions
@@ -1843,7 +1825,7 @@ sub nongroup_string
 #
 sub nongroup_numeric
 {
-    my $str = shift;
+    my $str = $_[0];
     my $has_op;
 
     #
@@ -1879,8 +1861,7 @@ sub nongroup_numeric
 #########################################################
 sub LITERAL_LIST
 {
-    my $self   = shift;
-    my $str    = shift;
+    my ( $self, $str ) = @_;
     my @tokens = split /,/, $str;
     my @values;
     for my $tok (@tokens)
@@ -1899,8 +1880,7 @@ sub LITERAL_LIST
 ###################################################################
 sub LITERAL
 {
-    my $self = shift;
-    my $str  = shift;
+    my ( $self, $str ) = @_;
 
     #
     #	DAA
@@ -1928,8 +1908,7 @@ sub LITERAL
 ###################################################################
 sub PREDICATE
 {
-    my $self = shift;
-    my $str  = shift;
+    my ( $self, $str ) = @_;
 
     my ( $arg1, $op, $arg2, $opexp );
 
@@ -2012,9 +1991,8 @@ sub PREDICATE
 
 sub undo_string_funcs
 {
-    my $self = shift;
-    my $str  = shift;
-    my $f    = FUNCTION_NAMES;
+    my ( $self, $str ) = @_;
+    my $f = FUNCTION_NAMES;
 
     #
     #	don't forget our UDFs
@@ -2074,7 +2052,7 @@ sub undo_string_funcs
 
 sub undo_math_funcs
 {
-    my $str = shift;
+    my $str = $_[0];
 
     #
     #	eliminate recursion
@@ -2124,8 +2102,7 @@ sub extract_func_args
 ###################################################################
 sub ROW_VALUE
 {
-    my $self = shift;
-    my $str  = shift;
+    my ( $self, $str ) = @_;
 
     $str =~ s/^\s+//;
     $str =~ s/\s+$//;
@@ -2408,8 +2385,7 @@ sub ROW_VALUE
 #########################################################
 sub ROW_VALUE_LIST
 {
-    my $self     = shift;
-    my $row_str  = shift;
+    my ( $self, $row_str ) = @_;
     my @row_list = split ',', $row_str;
     if ( !( scalar @row_list ) )
     {
@@ -2434,8 +2410,7 @@ sub ROW_VALUE_LIST
 
 sub COLUMN_NAME
 {
-    my $self = shift;
-    my $str  = shift;
+    my ( $self, $str ) = @_;
     my ( $table_name, $col_name );
     if ( $str =~ /^\s*(\S+)\.(\S+)$/s )
     {
@@ -2523,8 +2498,7 @@ sub COLUMN_NAME
 #########################################################
 sub COLUMN_NAME_LIST
 {
-    my $self     = shift;
-    my $col_str  = shift;
+    my ( $self, $col_str ) = @_;
     my @col_list = split ',', $col_str;
     if ( !( scalar @col_list ) )
     {
@@ -2550,9 +2524,8 @@ sub COLUMN_NAME_LIST
 #####################################################
 sub TABLE_NAME_LIST
 {
-    my $self           = shift;
-    my $table_name_str = shift;
-    my %aliases        = ();
+    my ( $self, $table_name_str ) = @_;
+    my %aliases = ();
     my @tables;
     $table_name_str =~ s/(\?\d+\?),/$1:/g;    # fudge commas in functions
     my @table_names = split ',', $table_name_str;
@@ -2645,8 +2618,7 @@ sub is_func($)
 #############################
 sub TABLE_NAME
 {
-    my $self       = shift;
-    my $table_name = shift;
+    my ( $self, $table_name ) = @_;
     if ( $table_name =~ /^(.+?)\.([^\.]+)$/ )
     {
         my $schema = $1;    # ignored
@@ -2674,8 +2646,7 @@ sub TABLE_NAME
 ###################################################################
 sub IDENTIFIER
 {
-    my $self = shift;
-    my $id   = shift;
+    my ( $self, $id ) = @_;
     if ( $id =~ /^\?QI(.+)\?$/ )
     {
         return 1;
@@ -2716,8 +2687,7 @@ sub IDENTIFIER
 ########################################
 sub order_joins
 {
-    my $self  = shift;
-    my $links = shift;
+    my ( $self, $links ) = @_;
     for my $link (@$links)
     {
         if ( $link !~ /\./ )
@@ -2789,8 +2759,7 @@ sub set_feature_flags
 
 sub clean_sql
 {
-    my $self = shift;
-    my $sql  = shift;
+    my ( $self, $sql ) = @_;
     my $fields;
     my $i = -1;
     my $e = '\\';
@@ -2882,7 +2851,7 @@ sub clean_sql
 
 sub trim
 {
-    my $str = shift or return '';
+    my $str = $_[0] or return '';
     $str =~ s/^\s+//;
     $str =~ s/\s+$//;
     return $str;
@@ -2919,6 +2888,17 @@ sub transform_syntax
 {
     my ( $self, $str ) = @_;
     return $str;
+}
+
+sub DESTROY
+{
+    my $self = $_[0];
+
+    undef $self->{opts};
+    undef $self->{struct};
+    undef $self->{tmp};
+    undef $self->{dialect};
+    undef $self->{dialect_set};
 }
 
 1;

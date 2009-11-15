@@ -5,7 +5,7 @@ require Carp;
 
 require SQL::Statement::Term;
 
-our $VERSION = '1.21_3';
+our $VERSION = '1.21_4';
 
 @ISA = qw(SQL::Statement::Term);
 
@@ -29,6 +29,17 @@ sub operate($)
 {
     Carp::confess(
           sprintf( q{pure virtual function 'operate' called on %s for %s}, ref( $_[0] ) || __PACKAGE__, $_[0]->{OP} ) );
+}
+
+sub DESTROY
+{
+    my $self = $_[0];
+
+    undef $self->{OP};
+    undef $self->{LEFT};
+    undef $self->{RIGHT};
+
+    $self->SUPER::DESTROY();
 }
 
 sub value($) { return $_[0]->operate( $_[1] ); }
@@ -276,4 +287,3 @@ sub regexp($)
 }
 
 1;
-

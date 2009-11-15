@@ -40,5 +40,6 @@ t/14allcols.t
 t/15naturaljoins.t
 t/16morejoins.t
 t/17quoting.t
+t/18bigjoin.t
 t/SQLtest.pm
 Todo

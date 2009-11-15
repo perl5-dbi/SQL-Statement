@@ -34,13 +34,11 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.21_3';
+$VERSION = '1.21_4';
 
 sub new
 {
-    my $class = shift;
-    my $sql   = shift;
-    my $flags = shift;
+    my ( $class, $sql, $flags ) = @_;
 
     # IF USER DEFINED extend_csv IN SCRIPT
     # USE THE ANYDATA DIALECT RATHER THAN THE CSV DIALECT
@@ -78,11 +76,9 @@ sub new
 
 sub prepare
 {
-    my $self = shift;
-    my $sql  = shift;
+    my ( $self, $sql, $parser ) = @_;
     return $self if ( $self->{already_prepared}->{$sql} );
     $self->{already_prepared} = {};    # delete earlier preparations, they're overwritten after this prepare run
-    my $parser = shift;
     my $rv;
     if ( $rv = $parser->parse($sql) )
     {
@@ -488,8 +484,7 @@ sub UPDATE ($$$)
 
 sub find_join_columns
 {
-    my $self            = shift;
-    my @all_cols        = @_;
+    my ( $self, @all_cols ) = @_;
     my $display_combine = 'NAMED';
     $display_combine = 'NATURAL' if ( -1 != index( $self->{join}->{type},   'NATURAL' ) );
     $display_combine = 'USING'   if ( -1 != index( $self->{join}->{clause}, 'USING' ) );
@@ -666,8 +661,8 @@ sub join_2_tables
         $tableBobj = $tmpTbl;
     }
 
-    my $tableA = $tableAobj->{NAME};
-    my $tableB = $tableBobj->{NAME};
+    my $tableA = ( 0 == index( $tableAobj->{NAME}, '"' ) ) ? $tableAobj->{NAME} : lc( $tableAobj->{NAME} );
+    my $tableB = ( 0 == index( $tableBobj->{NAME}, '"' ) ) ? $tableBobj->{NAME} : lc( $tableBobj->{NAME} );
     my @colsA  = @{ $tableAobj->col_names };
     my @colsB  = @{ $tableBobj->col_names };
     my %isunqualA;
@@ -733,12 +728,10 @@ sub join_2_tables
     $i = 0;
     my %col_numsB = map { $_ => $i++ } @colsB;
 
-    # FIXME move up
-    my %whichqual =
-      map { my ( $t, $c ) = $_ =~ $colrx; $c => $_ } ( @colsA, @colsB );
-
     if ( $share_type eq 'ON' || $share_type eq 'IMPLICIT' )
     {
+        my %whichqual = map { my ( $t, $c ) = $_ =~ $colrx; $c => $_ } ( @colsA, @colsB );
+
         while (@tmpshared)
         {
             my $k1 = shift @tmpshared;
@@ -1544,8 +1537,7 @@ sub open_tables
 
 sub buildColumnObjects($)
 {
-    my $self = shift;
-    my $t    = shift;
+    my ( $self, $t ) = @_;
 
     return if ( defined( _ARRAY0( $self->{columns} ) ) );
     $self->{columns} = [];
@@ -1688,7 +1680,7 @@ sub buildColumnObjects($)
 
 sub buildSortSpecList()
 {
-    my $self = shift;
+    my $self = $_[0];
 
     if ( $self->{sort_spec_list} )
     {
@@ -1921,8 +1913,7 @@ sub row_values(;$)
 #
 sub columns
 {
-    my $self = shift;
-    my $col  = shift;
+    my ( $self, $col ) = @_;
     return 0 if ( !$self->{columns} );
 
     if ( defined $col and $col =~ m/^\d+$/ )
@@ -1952,8 +1943,7 @@ sub colname2colnum
 
 sub colname2table($)
 {
-    my $self     = shift;
-    my $col_name = shift;
+    my ( $self, $col_name ) = @_;
     return undef unless defined $col_name;
 
     my ( $tbl, $col );
@@ -1980,8 +1970,7 @@ sub colname2table($)
 
 sub full_qualified_column_name($)
 {
-    my $self     = shift;
-    my $col_name = shift;
+    my ( $self, $col_name ) = @_;
     return undef unless ( defined($col_name) );
 
     my ( $tbl, $col );
@@ -2007,8 +1996,7 @@ sub full_qualified_column_name($)
 
 sub verify_order_cols
 {
-    my $self  = shift;
-    my $table = shift;
+    my ( $self, $table ) = @_;
     return unless $self->{sort_spec_list};
     my @ocols = $self->order;
     my @tcols = @{ $table->col_names };
@@ -2065,8 +2053,7 @@ sub tables
 
 sub order_joins
 {
-    my $self  = shift;
-    my $links = shift;
+    my ( $self, $links ) = @_;
     my @new_keycols;
     for (@$links)
     {
@@ -2143,9 +2130,8 @@ sub where_hash() { return $_[0]->{where_clause}; }
 
 sub where()
 {
-    my $self = shift;
-    return undef unless $self->{where_terms};
-    return $self->{where_terms};
+    return undef unless $_[0]->{where_terms};
+    return $_[0]->{where_terms};
 }
 
 sub get_user_func_table
@@ -2165,14 +2151,51 @@ sub get_user_func_table
     return $tempTable;
 }
 
+sub DESTROY
+{
+    my $self = $_[0];
+
+    undef $self->{NAME};
+    undef $self->{ORG_NAME};
+    undef $self->{all_cols};
+    undef $self->{already_prepared};
+    undef $self->{argnum};
+    undef $self->{col_obj};
+    undef $self->{column_names};
+    undef $self->{columns};
+    undef $self->{computed_column};
+    undef $self->{cur_table};
+    undef $self->{data};
+    undef $self->{fetched_value};
+    undef $self->{fetched_from_key};
+    undef $self->{group_by};
+    undef $self->{has_OR};
+    undef $self->{join};
+    undef $self->{limit_clause};
+    undef $self->{num_placeholders};
+    undef $self->{num_val_placeholders};
+    undef $self->{org_table_names};
+    undef $self->{params};
+    undef $self->{opts};
+    undef $self->{procedure};
+    undef $self->{set_function};
+    undef $self->{sort_spec_list};
+    undef $self->{subquery};
+    undef $self->{tables};
+    undef $self->{table_names};
+    undef $self->{table_func};
+    undef $self->{where_clause};
+    undef $self->{where_terms};
+    undef $self->{values};
+}
+
 package SQL::Statement::Group;
 
 use Scalar::Util qw(looks_like_number);
 
 sub new
 {
-    my $class = shift;
-    my ( $keycols, $display_cols, $ary ) = @_;
+    my ( $class, $keycols, $display_cols, $ary ) = @_;
     my $self = {
                  keycols      => $keycols,
                  display_cols => $display_cols,
@@ -2183,7 +2206,7 @@ sub new
 
 sub calc
 {
-    my $self = shift;
+    my $self = $_[0];
     $self->ary2hash( $self->{records} );
     my @cols = @{ $self->{display_cols} };
     for my $key ( @{ $self->{keys} } )
@@ -2253,8 +2276,7 @@ sub calc_cols
 
 sub ary2hash
 {
-    my $self       = shift;
-    my $ary        = shift;
+    my ( $self, $ary ) = @_;
     my @keycolnums = @{ $self->{keycols} || [0] };
     my $hash;
     my @keys;
@@ -2282,11 +2304,7 @@ require SQL::Eval;
 
 sub new
 {
-    my $class      = shift;
-    my $name       = shift;
-    my $col_names  = shift;
-    my $table_cols = shift;
-    my $table      = shift;
+    my ( $class, $name, $col_names, $table_cols, $table ) = @_;
     my $col_nums;
     for my $i ( 0 .. scalar @$col_names - 1 )
     {
@@ -2306,8 +2324,8 @@ sub new
     return bless $self, $class;
 }
 
-sub is_shared($) { return $_[0]->{is_shared}->{ $_[1] }; }
-sub get_pos()    { return $_[0]->{rowpos} }
+sub is_shared($) { $_[0]->{is_shared}->{ $_[1] }; }
+sub get_pos()    { $_[0]->{rowpos} }
 
 sub column_num($)
 {
@@ -2316,11 +2334,11 @@ sub column_num($)
     if ( !defined $new_col )
     {
         my @tmp = split '~', $col;
-        return undef unless( 2 == scalar(@tmp) );
+        return undef unless ( 2 == scalar(@tmp) );
         $new_col = lc( $tmp[0] ) . '~' . $tmp[1];
         $new_col = $s->{col_nums}->{$new_col};
     }
-    return $new_col;
+    $new_col;
 }
 
 sub fetch_row()
@@ -2337,16 +2355,15 @@ sub new ($$)
     my $self  = {@_};
     bless( $self, ( ref($proto) || $proto ) );
 }
-sub table ($)  { shift->{col}->table(); }
-sub column ($) { shift->{col}->name(); }
-sub desc ($)   { shift->{desc}; }
+sub table ($)  { $_[0]->{col}->table(); }
+sub column ($) { $_[0]->{col}->name(); }
+sub desc ($)   { $_[0]->{desc}; }
 
 package SQL::Statement::Limit;
 
 sub new ($$)
 {
-    my $proto = shift;
-    my $self  = shift;
+    my ( $proto, $self ) = @_;
     bless( $self, ( ref($proto) || $proto ) );
 }
 
@@ -2357,20 +2374,18 @@ package SQL::Statement::Param;
 
 sub new
 {
-    my $class = shift;
-    my $num   = shift;
-    my $self  = { 'num' => $num };
+    my ( $class, $num ) = @_;
+    my $self = { 'num' => $num };
     return bless $self, $class;
 }
 
-sub num ($) { shift->{num}; }
+sub num ($) { $_[0]->{num}; }
 
 package SQL::Statement::Table;
 
 sub new
 {
-    my $class      = shift;
-    my $table_name = shift;
+    my ( $class, $table_name ) = @_;
 
     if ( $table_name !~ m/"/ )
     {
@@ -2382,7 +2397,7 @@ sub new
     return bless $self, $class;
 }
 
-sub name { shift->{name} }
+sub name { $_[0]->{name} }
 
 1;
 __END__
