@@ -1,7 +1,7 @@
 package SQL::Dialects::CSV;
 
 use vars qw($VERSION);
-$VERSION = '1.21';
+$VERSION = '1.22';
 
 sub get_config {
 return <<EOC;

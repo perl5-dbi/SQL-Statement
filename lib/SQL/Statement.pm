@@ -34,7 +34,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.21';
+$VERSION = '1.22';
 
 sub new
 {

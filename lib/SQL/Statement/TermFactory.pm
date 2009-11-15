@@ -9,7 +9,7 @@ use Data::Dumper;
 use Params::Util qw(_HASH _ARRAY0);
 use Scalar::Util qw(blessed weaken);
 
-our $VERSION = '1.21';
+our $VERSION = '1.22';
 
 my %oplist = (
                '='       => 'Equal',

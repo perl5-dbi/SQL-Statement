@@ -20,7 +20,7 @@ use constant
 
 use Params::Util qw(_ARRAY0);
 
-$VERSION = '1.21';
+$VERSION = '1.22';
 
 BEGIN
 {

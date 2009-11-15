@@ -1,5 +1,18 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21, release October 10th, 2009
+----------------------------------------------
+
+[Misc]
+* Add missing changelog - no code changes
+
+Version 1.21, release October 10th, 2009
+----------------------------------------------
+
+[Misc]
+* remove version dependency to check previously installed version
+* add DBD::File as "Test" requirement
+
 Version 1.21_8, release October 5th, 2009
 ----------------------------------------------
 
