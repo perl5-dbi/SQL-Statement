@@ -67,12 +67,12 @@ queryresult_is("select subject.pid,pname,sname from prof left join subject using
 );
 
 queryresult_is("SELECT * FROM Prof RIGHT JOIN Subject USING(pid)",
- '1~Chem~Sue^2~Bio~Bob^2~Math~Bob^4~English~undef^',
+ '1~Sue~Chem^2~Bob~Bio^2~Bob~Math^undef~undef~English^',
  'RIGHT JOIN'
 );
 
 queryresult_is("SELECT pid,sname,pname FROM Prof RIGHT JOIN Subject USING(pid)",
- '1~Chem~Sue^2~Bio~Bob^2~Math~Bob^4~English~undef^',
+ '1~Chem~Sue^2~Bio~Bob^2~Math~Bob^undef~English~undef^',
  'RIGHT JOIN - enumerated columns'
 );
 

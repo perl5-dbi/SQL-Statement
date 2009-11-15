@@ -35,8 +35,9 @@ my %opts =
          'Clone'        => '0.30',
          'Test::Simple' => '0.86',
      },
+     LICENSE        => 'perl',
      );
 if ($ExtUtils::MakeMaker::VERSION >= 5.43) {
-    $opts{'AUTHOR'} = 'Jeff Zucker (jeff@vpservices.com)';
+    $opts{'AUTHOR'} = 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@web.de>';
 }
 ExtUtils::MakeMaker::WriteMakefile(%opts);

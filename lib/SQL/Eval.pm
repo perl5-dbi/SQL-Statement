@@ -3,9 +3,9 @@
 require 5.004;
 use strict;
 
-require SQL::Statement;
-
 package SQL::Eval;
+
+require SQL::Statement;
 
 sub new ($$)
 {

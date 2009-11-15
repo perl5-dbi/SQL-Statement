@@ -198,11 +198,11 @@ Results:
 =cut
 
 $names = join(',',@{$sth->{NAME}});
-cmp_ok( $names, 'eq', q{num,wert,num,name}, 'Right Joins (using ON condition) - columns ok' );
+cmp_ok( $names, 'eq', q{num,name,num,wert}, 'Right Joins (using ON condition) - columns ok' );
 for my $res (
-    q{'1','xxx','1','a'},
-    q{'3','yyy','3','c'},
-    q{'5','zzz',,},
+    q{'1','a','1','xxx'},
+    q{'3','c','3','yyy'},
+    q{,,'5','zzz'},
 )
 {
     my $values = sprintf( q{%s}, join( q{,}, map { defined($_) ? "'" . $_ . "'" : '' } $sth->fetchrow_array() ) );

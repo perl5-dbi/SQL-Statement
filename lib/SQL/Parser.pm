@@ -17,14 +17,12 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.15';
+$VERSION = '1.16';
 
 BEGIN
 {
     if ( $ENV{SQL_USER_DEFS} ) { require SQL::UserDefs; }
 }
-eval { require 'Data/Dumper.pm'; $Data::Dumper::Indent = 1 };
-*bug = ($@) ? sub { warn @_ } : sub { print Data::Dumper::Dumper( \@_ ) };
 
 #############################
 # PUBLIC METHODS
@@ -43,11 +41,11 @@ sub new
         $dialect = 'AnyData';
     }
     my $flags = shift || {};
-    $flags->{"dialect"} = $dialect;
-    $flags->{"PrintError"} = 1 unless defined $flags->{"PrintError"};
+    $flags->{dialect} = $dialect;
+    $flags->{PrintError} = 1 unless defined $flags->{PrintError};
     my $self = bless_me( $class, $flags );
-    $self->dialect( $self->{"dialect"} );
-    $self->set_feature_flags( $self->{"select"}, $self->{"create"} );
+    $self->dialect( $self->{dialect} );
+    $self->set_feature_flags( $self->{select}, $self->{create} );
     bless $self, $class;
     $self->LOAD("LOAD SQL::Statement::Functions");
     return $self;
@@ -57,13 +55,13 @@ sub parse
 {
     my $self = shift;
     my $sql  = shift;
-    $self->dialect( $self->{"dialect"} ) unless $self->{"dialect_set"};
+    $self->dialect( $self->{dialect} ) unless $self->{dialect_set};
     $sql =~ s/^\s+//;
     $sql =~ s/\s+$//;
-    $self->{"struct"}                    = {};
-    $self->{"tmp"}                       = {};
-    $self->{"original_string"}           = $sql;
-    $self->{struct}->{"original_string"} = $sql;
+    $self->{struct}                    = {};
+    $self->{tmp}                       = {};
+    $self->{original_string}           = $sql;
+    $self->{struct}->{original_string} = $sql;
 
     ################################################################
     #
@@ -71,12 +69,12 @@ sub parse
 
     # C-STYLE
     #
-    my $comment_re = $self->{"comment_re"} || '(\/\*.*?\*\/)';
-    $self->{"comment_re"} = $comment_re;
+    my $comment_re = $self->{comment_re} || '(\/\*.*?\*\/)';
+    $self->{comment_re} = $comment_re;
     my $starts_with_comment;
     if ( $sql =~ /^\s*$comment_re(.*)$/s )
     {
-        $self->{"comment"}   = $1;
+        $self->{comment}   = $1;
         $sql                 = $2;
         $starts_with_comment = 1;
     }
@@ -85,7 +83,7 @@ sub parse
     #
     if ( $sql =~ s/(--.*)(\n|$)/$2/ )
     {
-        $self->{"comment"} = $1;
+        $self->{comment} = $1;
     }
     ################################################################
 
@@ -97,21 +95,21 @@ sub parse
         return $self->do_err("Incomplete statement!");
     }
     $com                                        = uc $com;
-    $self->{"opts"}->{"valid_commands"}->{CALL} = 1;
-    $self->{"opts"}->{"valid_commands"}->{LOAD} = 1;
-    if ( $self->{"opts"}->{"valid_commands"}->{$com} )
+    $self->{opts}->{valid_commands}->{CALL} = 1;
+    $self->{opts}->{valid_commands}->{LOAD} = 1;
+    if ( $self->{opts}->{valid_commands}->{$com} )
     {
         my $rv = $self->$com($sql);
-        delete $self->{"struct"}->{"literals"};
+        delete $self->{struct}->{literals};
 
         #        return $self->do_err("No table names found!")
-        #               unless $self->{"struct"}->{"table_names"};
+        #               unless $self->{struct}->{table_names};
         return $self->do_err("No command found!")
-          unless $self->{"struct"}->{"command"};
-        if ( $self->{"struct"}->{join}
-             and scalar keys %{ $self->{"struct"}->{join} } == 0 )
+          unless $self->{struct}->{command};
+        if ( $self->{struct}->{join}
+             and scalar keys %{ $self->{struct}->{join} } == 0 )
         {
-            delete $self->{"struct"}->{join};
+            delete $self->{struct}->{join};
         }
         $self->replace_quoted_ids();
         for ( @{ $self->{struct}->{table_names} } )
@@ -212,8 +210,8 @@ sub replace_quoted_ids
     delete $self->{struct}->{quoted_ids};
 }
 
-sub structure { shift->{"struct"} }
-sub command { my $x = shift->{"struct"}->{command} || '' }
+sub structure { shift->{struct} }
+sub command { my $x = shift->{struct}->{command} || '' }
 
 sub feature
 {
@@ -232,18 +230,18 @@ sub feature
         {
 
             # patch from chromatic
-            $self->{"opts"}->{$opt_class}->{$opt_name} = $opt_value;
+            $self->{opts}->{$opt_class}->{$opt_name} = $opt_value;
 
             # $self->{$opt_class}->{$opt_name} = $opt_value;
         }
     }
     else
     {
-        return $self->{"opts"}->{$opt_class}->{$opt_name};
+        return $self->{opts}->{$opt_class}->{$opt_name};
     }
 }
 
-sub errstr { shift->{"struct"}->{"errstr"} }
+sub errstr { shift->{struct}->{errstr} }
 
 sub list
 {
@@ -255,9 +253,9 @@ sub list
     $com = 'valid_data_types'           if $com eq 'TYPES';
     $com = 'valid_options'              if $com eq 'OPTIONS';
     $com = 'reserved_words'             if $com eq 'RESERVED';
-    $self->dialect( $self->{"dialect"} ) unless $self->{"dialect_set"};
+    $self->dialect( $self->{dialect} ) unless $self->{dialect_set};
 
-    return sort keys %{ $self->{"opts"}->{$com} } unless $com eq 'DIALECTS';
+    return sort keys %{ $self->{opts}->{$com} } unless $com eq 'DIALECTS';
     my $dDir = "SQL/Dialects";
     my @dialects;
     for my $dir (@INC)
@@ -277,9 +275,9 @@ sub list
 sub dialect
 {
     my ( $self, $dialect ) = @_;
-    return $self->{"dialect"} unless $dialect;
-    return $self->{"dialect"} if $self->{dialect_set};
-    $self->{"opts"} = {};
+    return $self->{dialect} unless $dialect;
+    return $self->{dialect} if $self->{dialect_set};
+    $self->{opts} = {};
     my $mod = "SQL/Dialects/$dialect.pm";
     undef $@;
     eval { require "$mod"; };
@@ -303,11 +301,11 @@ sub dialect
         }
         my $newopt = uc $_;
         $newopt =~ s/\s+/ /g;
-        $self->{"opts"}->{$feature}->{$newopt} = 1;
+        $self->{opts}->{$feature}->{$newopt} = 1;
     }
     $self->create_op_regexen();
-    $self->{"dialect"} = $dialect;
-    $self->{"dialect_set"}++;
+    $self->{dialect} = $dialect;
+    $self->{dialect_set}++;
 }
 
 sub create_op_regexen
@@ -321,7 +319,7 @@ sub create_op_regexen
     #       dialect() and from CREATE_OPERATOR and DROP_OPERATOR
     #       since those also modify the available operators
     #
-    my @allops = keys %{ $self->{"opts"}->{"valid_comparison_operators"} };
+    my @allops = keys %{ $self->{opts}->{valid_comparison_operators} };
 
     #
     #	complement operators
@@ -332,7 +330,7 @@ sub create_op_regexen
         push( @notops, $_ )
           if /NOT/i;
     }
-    $self->{"opts"}->{"valid_comparison_NOT_ops_regex"} =
+    $self->{opts}->{valid_comparison_NOT_ops_regex} =
       '^\s*(.+)\s+(' . join( '|', @notops ) . ')\s+(.*)\s*$'
       if scalar @notops;
 
@@ -345,14 +343,14 @@ sub create_op_regexen
         push( @compops, $_ )
           if /<=|>=|<>/;
     }
-    $self->{"opts"}->{"valid_comparison_twochar_ops_regex"} =
+    $self->{opts}->{valid_comparison_twochar_ops_regex} =
       '^\s*(.+)\s+(' . join( '|', @compops ) . ')\s+(.*)\s*$'
       if scalar @compops;
 
     #
     #	everything
     #
-    $self->{"opts"}->{"valid_comparison_ops_regex"} =
+    $self->{opts}->{valid_comparison_ops_regex} =
       '^\s*(.+)\s+(' . join( '|', @allops ) . ')\s+(.*)\s*$'
       if scalar @allops;
 
@@ -380,11 +378,11 @@ sub DROP
         return $self->$sub($arg);
     }
     my $table_name;
-    $self->{"struct"}->{"command"} = 'DROP';
+    $self->{struct}->{command} = 'DROP';
     if ( $stmt =~ /^\s*DROP\s+TABLE\s+IF\s+EXISTS\s+(.*)$/si )
     {
         $stmt = "DROP TABLE $1";
-        $self->{"struct"}->{ignore_missing_table} = 1;
+        $self->{struct}->{ignore_missing_table} = 1;
     }
     if ( $stmt =~ /^\s*DROP\s+(\S+)\s+(.+)$/si )
     {
@@ -401,7 +399,7 @@ sub DROP
         if ( $table_name =~ /(\S+) (RESTRICT|CASCADE)/i )
         {
             $table_name = $1;
-            $self->{"struct"}->{"drop_behavior"} = uc $2;
+            $self->{struct}->{drop_behavior} = uc $2;
         }
     }
     else
@@ -411,8 +409,8 @@ sub DROP
     }
     return undef unless $self->TABLE_NAME($table_name);
     $table_name = $self->replace_quoted_ids($table_name);
-    $self->{"tmp"}->{"is_table_name"} = { $table_name => 1 };
-    $self->{"struct"}->{"table_names"} = [$table_name];
+    $self->{tmp}->{is_table_name} = { $table_name => 1 };
+    $self->{struct}->{table_names} = [$table_name];
     return 1;
 }
 
@@ -422,14 +420,14 @@ sub DROP
 sub DELETE
 {
     my ( $self, $str ) = @_;
-    $self->{"struct"}->{"command"} = 'DELETE';
+    $self->{struct}->{command} = 'DELETE';
     $str =~ s/^DELETE\s+FROM\s+/DELETE /i;    # Make FROM optional
     my ( $table_name, $where_clause ) = $str =~ /^DELETE (\S+)(.*)$/i;
     return $self->do_err('Incomplete DELETE statement!') if !$table_name;
     return undef unless $self->TABLE_NAME($table_name);
-    $self->{"tmp"}->{"is_table_name"}   = { $table_name => 1 };
-    $self->{"struct"}->{"table_names"}  = [$table_name];
-    $self->{"struct"}->{"column_names"} = ['*'];
+    $self->{tmp}->{is_table_name}   = { $table_name => 1 };
+    $self->{struct}->{table_names}  = [$table_name];
+    $self->{struct}->{column_names} = ['*'];
     $where_clause =~ s/^\s+//;
     $where_clause =~ s/\s+$//;
 
@@ -455,7 +453,7 @@ sub DELETE
 sub SELECT
 {
     my ( $self, $str ) = @_;
-    $self->{"struct"}->{"command"} = 'SELECT';
+    $self->{struct}->{command} = 'SELECT';
     my (
          $from_clause,    $where_clause, $order_clause,
          $groupby_clause, $limit_clause
@@ -493,11 +491,11 @@ sub SELECT
     }
     if (
          (
-               $self->{"struct"}->{join}->{"clause"}
-           and $self->{"struct"}->{join}->{"clause"} eq 'ON'
+               $self->{struct}->{join}->{clause}
+           and $self->{struct}->{join}->{clause} eq 'ON'
          )
-         or ( $self->{"struct"}->{"multiple_tables"}
-              and !( scalar keys %{ $self->{"struct"}->{join} } ) )
+         or ( $self->{struct}->{multiple_tables}
+              and !( scalar keys %{ $self->{struct}->{join} } ) )
        )
     {
         return undef unless $self->IMPLICIT_JOIN();
@@ -517,21 +515,21 @@ sub GROUPBY_LIST
 sub IMPLICIT_JOIN
 {
     my $self = shift;
-    delete $self->{"struct"}->{"multiple_tables"};
-    if (   !$self->{"struct"}->{join}->{"clause"}
-         or $self->{"struct"}->{join}->{"clause"} ne 'ON' )
+    delete $self->{struct}->{multiple_tables};
+    if (   !$self->{struct}->{join}->{clause}
+         or $self->{struct}->{join}->{clause} ne 'ON' )
     {
-        $self->{"struct"}->{join}->{"type"}   = 'INNER';
-        $self->{"struct"}->{join}->{"clause"} = 'IMPLICIT';
+        $self->{struct}->{join}->{type}   = 'INNER';
+        $self->{struct}->{join}->{clause} = 'IMPLICIT';
     }
-    if ( defined $self->{"struct"}->{"keycols"} )
+    if ( defined $self->{struct}->{keycols} )
     {
         my @keys;
-        my @keys2 = @keys = @{ $self->{"struct"}->{"keycols"} };
-        $self->{"struct"}->{join}->{"table_order"} =
+        my @keys2 = @keys = @{ $self->{struct}->{keycols} };
+        $self->{struct}->{join}->{table_order} =
           $self->order_joins( \@keys2 );
-        @{ $self->{"struct"}->{join}->{"keycols"} } = @keys;
-        delete $self->{"struct"}->{"keycols"};
+        @{ $self->{struct}->{join}->{keycols} } = @keys;
+        delete $self->{struct}->{keycols};
     }
     else
     {
@@ -558,32 +556,32 @@ sub EXPLICIT_JOIN
     }
     if ( $remainder =~ /^NATURAL (.+)/ )
     {
-        $self->{"struct"}->{join}->{"clause"} = 'NATURAL';
+        $self->{struct}->{join}->{clause} = 'NATURAL';
         $natural++;
         $remainder = $1;
     }
     if ( $remainder =~ /^(INNER|LEFT|RIGHT|FULL|UNION) JOIN (.+)/i )
     {
-        $jtype = $self->{"struct"}->{join}->{"clause"} = uc($1);
+        $jtype = $self->{struct}->{join}->{clause} = uc($1);
         $remainder = $2;
         $jtype = "$jtype OUTER" if $jtype !~ /INNER|UNION/i;
     }
     if ( $remainder =~ /^(LEFT|RIGHT|FULL) OUTER JOIN (.+)/i )
     {
-        $jtype = $self->{"struct"}->{join}->{"clause"} = uc($1) . " OUTER";
+        $jtype = $self->{struct}->{join}->{clause} = uc($1) . " OUTER";
         $remainder = $2;
     }
     if ( $remainder =~ /^JOIN (.+)/i )
     {
         $jtype                                = 'INNER';
-        $self->{"struct"}->{join}->{"clause"} = 'DEFAULT INNER';
+        $self->{struct}->{join}->{clause} = 'DEFAULT INNER';
         $remainder                            = $1;
     }
-    if ( $self->{"struct"}->{join} )
+    if ( $self->{struct}->{join} )
     {
         if ( $remainder && $remainder =~ /^(.+?) USING \(([^\)]+)\)(.*)/i )
         {
-            $self->{"struct"}->{join}->{"clause"} = 'USING';
+            $self->{struct}->{join}->{clause} = 'USING';
             $tableB = $1;
             my $keycolstr = $2;
             $remainder = $3;
@@ -591,7 +589,7 @@ sub EXPLICIT_JOIN
         }
         if ( $remainder && $remainder =~ /^(.+?) ON (.+)/i )
         {
-            $self->{"struct"}->{join}->{"clause"} = 'ON';
+            $self->{struct}->{join}->{clause} = 'ON';
             $tableB = $1;
             my $keycolstr = $2;
             $remainder = $3;
@@ -604,8 +602,8 @@ sub EXPLICIT_JOIN
             return undef
               unless $self->TABLE_NAME_LIST( $tableA . ',' . $tableB );
 
-            #              $self->{"tmp"}->{"is_table_name"}->{"$tableA"} = 1;
-            #              $self->{"tmp"}->{"is_table_name"}->{"$tableB"} = 1;
+            #              $self->{tmp}->{is_table_name}->{"$tableA"} = 1;
+            #              $self->{tmp}->{is_table_name}->{"$tableB"} = 1;
             for (@$keycols)
             {
                 my %is_done;
@@ -626,15 +624,15 @@ sub EXPLICIT_JOIN
                 {
                     return undef unless $arg1 = $self->ROW_VALUE($arg1);
                     return undef unless $arg2 = $self->ROW_VALUE($arg2);
-                    if (     $arg1->{"type"} eq 'column'
-                         and $arg2->{"type"} eq 'column' )
+                    if (     $arg1->{type} eq 'column'
+                         and $arg2->{type} eq 'column' )
                     {
-                        push @{ $self->{"struct"}->{"keycols"} },
-                          $arg1->{"value"};
-                        push @{ $self->{"struct"}->{"keycols"} },
-                          $arg2->{"value"};
+                        push @{ $self->{struct}->{keycols} },
+                          $arg1->{value};
+                        push @{ $self->{struct}->{keycols} },
+                          $arg2->{value};
 
-                        # delete $self->{"struct"}->{"where_clause"};
+                        # delete $self->{struct}->{where_clause};
                     }
                 }
             }
@@ -656,8 +654,8 @@ sub EXPLICIT_JOIN
                             qq~Can't use NATURAL with a USING or ON clause!~);
         }
         return undef unless $self->TABLE_NAME_LIST("$tableA,$tableB");
-        $self->{"struct"}->{join}->{"type"} = $jtype;
-        $self->{"struct"}->{join}->{"keycols"} = $keycols if $keycols;
+        $self->{struct}->{join}->{type} = $jtype;
+        $self->{struct}->{join}->{keycols} = $keycols if $keycols;
         return 1;
     }
     return $self->do_err("Couldn't parse explicit JOIN!");
@@ -669,7 +667,7 @@ sub SELECT_CLAUSE
     return undef unless $str;
     if ( $str =~ s/^(DISTINCT|ALL) (.+)$/$2/i )
     {
-        $self->{"struct"}->{"set_quantifier"} = uc $1;
+        $self->{struct}->{set_quantifier} = uc $1;
     }
     if ( $str =~ /[()]/ )
     {
@@ -713,15 +711,15 @@ sub INSERT
     return $self->do_err('No table name specified!') unless $table_name;
     return $self->do_err('Missing values list!') unless defined $val_str;
     return undef unless $self->TABLE_NAME($table_name);
-    $self->{"struct"}->{"command"}     = 'INSERT';
-    $self->{"struct"}->{"table_names"} = [$table_name];
+    $self->{struct}->{command}     = 'INSERT';
+    $self->{struct}->{table_names} = [$table_name];
     if ($col_str)
     {
         return undef unless $self->COLUMN_NAME_LIST($col_str);
     }
     else
     {
-        $self->{"struct"}->{"column_names"} = ['*'];
+        $self->{struct}->{column_names} = ['*'];
     }
     return undef unless $self->LITERAL_LIST($val_str);
     return 1;
@@ -736,14 +734,14 @@ sub INSERT
 sub UPDATE
 {
     my ( $self, $str ) = @_;
-    $self->{"struct"}->{"command"} = 'UPDATE';
+    $self->{struct}->{command} = 'UPDATE';
     my ( $table_name, $remainder ) = $str =~ /^UPDATE (.+?) SET (.+)$/i;
     return $self->do_err('Incomplete UPDATE clause')
       if !$table_name
           or !$remainder;
     return undef unless $self->TABLE_NAME($table_name);
-    $self->{"tmp"}->{"is_table_name"} = { $table_name => 1 };
-    $self->{"struct"}->{"table_names"} = [$table_name];
+    $self->{tmp}->{is_table_name} = { $table_name => 1 };
+    $self->{struct}->{table_names} = [$table_name];
     my ( $set_clause, $where_clause ) = $remainder =~ /(.*?) WHERE (.*)$/i;
     $set_clause = $remainder if !$set_clause;
     return undef unless $self->SET_CLAUSE_LIST($set_clause);
@@ -752,13 +750,13 @@ sub UPDATE
     {
         return undef unless $self->SEARCH_CONDITION($where_clause);
     }
-    my @vals                 = @{ $self->{"struct"}->{"values"} };
+    my @vals                 = @{ $self->{struct}->{values} };
     my $num_val_placeholders = 0;
     for my $v (@vals)
     {
-        $num_val_placeholders++ if $v->{"type"} eq 'placeholder';
+        $num_val_placeholders++ if $v->{type} eq 'placeholder';
     }
-    $self->{"struct"}->{"num_val_placeholders"} = $num_val_placeholders;
+    $self->{struct}->{num_val_placeholders} = $num_val_placeholders;
     return 1;
 }
 
@@ -768,11 +766,11 @@ sub UPDATE
 sub LOAD
 {
     my ( $self, $str ) = @_;
-    $self->{"struct"}->{"command"}    = 'LOAD';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'LOAD';
+    $self->{struct}->{no_execute} = 1;
     my ($package) = $str =~ /^LOAD\s+(.+)$/;
     $str = $package;
-    $package =~ s/\?(\d+)\?/$self->{"struct"}->{"literals"}->[$1]/g;
+    $package =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
     my $mod = $package . '.pm';
     $mod =~ s~::~/~g;
     eval { require $mod; };
@@ -796,8 +794,8 @@ sub CREATE_RAM_TABLE
 {
     my $self = shift;
     my $stmt = shift;
-    $self->{"struct"}->{"is_ram_table"} = 1;
-    $self->{"struct"}->{"command"}      = 'CREATE_RAM_TABLE';
+    $self->{struct}->{is_ram_table} = 1;
+    $self->{struct}->{command}      = 'CREATE_RAM_TABLE';
     my ( $table_name, $table_element_def, %is_col_name );
     if ( $stmt =~ /^(\S+)\s+LIKE\s*(.+)$/si )
     {
@@ -816,9 +814,9 @@ sub CREATE_RAM_TABLE
     return undef unless $self->TABLE_NAME($table_name);
     for my $col ( split ',', $table_element_def )
     {
-        push @{ $self->{"struct"}->{"column_names"} }, $self->ROW_VALUE($col);
+        push @{ $self->{struct}->{column_names} }, $self->ROW_VALUE($col);
     }
-    $self->{"struct"}->{"table_names"} = [$table_name];
+    $self->{struct}->{table_names} = [$table_name];
     return 1;
 }
 
@@ -826,8 +824,8 @@ sub CREATE_FUNCTION
 {
     my $self = shift;
     my $stmt = shift;
-    $self->{"struct"}->{"command"}    = 'CREATE_FUNCTION';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'CREATE_FUNCTION';
+    $self->{struct}->{no_execute} = 1;
     my ( $func, $subname );
     $stmt =~ s/\s*EXTERNAL//i;
     if ( $stmt =~ /^(\S+)\s+NAME\s+(.*)$/smi )
@@ -858,48 +856,48 @@ sub CALL
     my $self = shift;
     my $stmt = shift;
     $stmt =~ s/^CALL\s+(.*)/$1/i;
-    $self->{"struct"}->{"command"}   = 'CALL';
-    $self->{"struct"}->{"procedure"} = $self->ROW_VALUE($stmt);
+    $self->{struct}->{command}   = 'CALL';
+    $self->{struct}->{procedure} = $self->ROW_VALUE($stmt);
     return 1;
 }
 
 sub CREATE_TYPE
 {
     my ( $self, $type ) = @_;
-    $self->{"struct"}->{"command"}    = 'CREATE_TYPE';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'CREATE_TYPE';
+    $self->{struct}->{no_execute} = 1;
     $self->feature( 'valid_data_types', uc $type, 1 );
 }
 
 sub DROP_TYPE
 {
     my ( $self, $type ) = @_;
-    $self->{"struct"}->{"command"}    = 'DROP_TYPE';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'DROP_TYPE';
+    $self->{struct}->{no_execute} = 1;
     $self->feature( 'valid_data_types', uc $type, 0 );
 }
 
 sub CREATE_KEYWORD
 {
     my ( $self, $type ) = @_;
-    $self->{"struct"}->{"command"}    = 'CREATE_KEYWORD';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'CREATE_KEYWORD';
+    $self->{struct}->{no_execute} = 1;
     $self->feature( 'reserved_words', uc $type, 1 );
 }
 
 sub DROP_KEYWORD
 {
     my ( $self, $type ) = @_;
-    $self->{"struct"}->{"command"}    = 'DROP_KEYWORD';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'DROP_KEYWORD';
+    $self->{struct}->{no_execute} = 1;
     $self->feature( 'reserved_words', uc $type, 0 );
 }
 
 sub CREATE_OPERATOR
 {
     my ( $self, $stmt ) = @_;
-    $self->{"struct"}->{"command"}    = 'CREATE_OPERATOR';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'CREATE_OPERATOR';
+    $self->{struct}->{no_execute} = 1;
 
     my ( $func, $subname );
     $stmt =~ s/\s*EXTERNAL//i;
@@ -932,8 +930,8 @@ sub CREATE_OPERATOR
 sub DROP_OPERATOR
 {
     my ( $self, $type ) = @_;
-    $self->{"struct"}->{"command"}    = 'DROP_OPERATOR';
-    $self->{"struct"}->{"no_execute"} = 1;
+    $self->{struct}->{command}    = 'DROP_OPERATOR';
+    $self->{struct}->{no_execute} = 1;
     $self->feature( 'valid_comparison_operators', uc $type, 0 );
     $self->create_op_regexen();
 }
@@ -963,28 +961,28 @@ sub CREATE
     if ( $stmt =~ /^\s*CREATE\s+(TEMP|TEMPORARY)\s+TABLE\s+(.+)$/si )
     {
         $stmt = "CREATE TABLE $2";
-        $self->{"struct"}->{"is_ram_table"} = 1;
+        $self->{struct}->{is_ram_table} = 1;
 
-        #  $self->{"struct"}->{"command"} = 'CREATE_RAM_TABLE';
+        #  $self->{struct}->{command} = 'CREATE_RAM_TABLE';
         # return $self->CREATE_RAM_TABLE($1);
     }
-    $self->{"struct"}->{"command"} = 'CREATE';
+    $self->{struct}->{command} = 'CREATE';
     my ( $table_name, $table_element_def, %is_col_name );
 
     # if ($stmt =~ /^CREATE (LOCAL|GLOBAL) TEMPORARY TABLE(.*)$/si ) {
-    #    $self->{"struct"}->{"table_type"} = "$1 TEMPORARY";
+    #    $self->{struct}->{table_type} = "$1 TEMPORARY";
     #    $stmt = "CREATE TABLE$2";
     # }
     if ( $stmt =~ /^(.*) ON COMMIT (DELETE|PRESERVE) ROWS\s*$/si )
     {
         $stmt = $1;
-        $self->{"struct"}->{"commit_behaviour"} = $2;
+        $self->{struct}->{commit_behaviour} = $2;
 
         #        return $self->do_err(
         #           "Can't specify commit behaviour for permanent tables."
         #        )
-        #           if !defined $self->{"struct"}->{"table_type"}
-        #              or $self->{"struct"}->{"table_type"} !~ /TEMPORARY/;
+        #           if !defined $self->{struct}->{table_type}
+        #              or $self->{struct}->{table_type} !~ /TEMPORARY/;
     }
     if ( $stmt =~ /^CREATE TABLE (\S+) \((.*)\)$/si )
     {
@@ -996,8 +994,8 @@ sub CREATE
         $table_name = $1;
         my $subquery = $2;
         return undef unless $self->TABLE_NAME($table_name);
-        $self->{"struct"}->{"table_names"} = [$table_name];
-        $self->{"struct"}->{"subquery"}    = $subquery;
+        $self->{struct}->{table_names} = [$table_name];
+        $self->{struct}->{subquery}    = $subquery;
         return 1;
     }
     else
@@ -1045,8 +1043,8 @@ sub CREATE
                                  qq{Can't have two PRIMARY KEYs in a table!});
                     }
                     $constr =~ s/_/ /g;
-                    push @{ $self->{"struct"}->{"column_defs"}->{"$name"}
-                          ->{"constraints"} }, $constr;
+                    push @{ $self->{struct}->{column_defs}->{"$name"}
+                          ->{constraints} }, $constr;
 
                 }
                 else
@@ -1063,23 +1061,23 @@ sub CREATE
             $type   = $1;
             $length = $2;
         }
-        if ( !$self->{"opts"}->{"valid_data_types"}->{"$type"} )
+        if ( !$self->{opts}->{valid_data_types}->{"$type"} )
         {
             return $self->do_err("'$type' is not a recognized data type!");
         }
-        $self->{"struct"}->{"column_defs"}->{"$name"}->{"data_type"} = $type;
-        $self->{"struct"}->{"column_defs"}->{"$name"}->{"data_length"} =
+        $self->{struct}->{column_defs}->{"$name"}->{data_type} = $type;
+        $self->{struct}->{column_defs}->{"$name"}->{data_length} =
           $length;
-        push @{ $self->{"struct"}->{"column_names"} }, $name;
+        push @{ $self->{struct}->{column_names} }, $name;
 
-        #push @{$self->{"struct"}->{ORG_NAME}},$name;
+        #push @{$self->{struct}->{ORG_NAME}},$name;
         my $tmpname = $name;
         $tmpname = uc $tmpname unless $tmpname =~ /^"/;
         return $self->do_err("Duplicate column names!")
           if $is_col_name{$tmpname}++;
 
     }
-    $self->{"struct"}->{"table_names"} = [$table_name];
+    $self->{struct}->{table_names} = [$table_name];
     return 1;
 }
 
@@ -1112,7 +1110,7 @@ sub SET_QUANTIFIER
     my ( $self, $str ) = @_;
     if ( $str =~ /^(DISTINCT|ALL)\s+(.*)$/si )
     {
-        $self->{"struct"}->{"set_quantifier"} = uc $1;
+        $self->{struct}->{set_quantifier} = uc $1;
         $str = $2;
     }
     return $str;
@@ -1239,7 +1237,7 @@ sub SELECT_LIST
     my $col_str = shift;
     if ( $col_str =~ /^\s*\*\s*$/ )
     {
-        $self->{"struct"}->{"column_names"} = ['*'];
+        $self->{struct}->{column_names} = ['*'];
         return 1;
     }
     my @col_list = $self->extract_column_list($col_str);
@@ -1262,7 +1260,7 @@ sub SELECT_LIST
         if ( $col =~ /^(\S+)\.\*$/ )
         {
             my $table          = $1;
-            my %is_table_alias = %{ $self->{"tmp"}->{"is_table_alias"} };
+            my %is_table_alias = %{ $self->{tmp}->{is_table_alias} };
             $table = $is_table_alias{$table} if $is_table_alias{$table};
             $table = $is_table_alias{"\L$table"}
               if $is_table_alias{"\L$table"};
@@ -1335,8 +1333,8 @@ sub SELECT_LIST
             }
         }
     }
-    $self->{"struct"}->{"column_aliases"} = \%aliases;
-    $self->{"struct"}->{"column_names"}   = \@newcols;
+    $self->{struct}->{column_aliases} = \%aliases;
+    $self->{struct}->{column_names}   = \@newcols;
     return 1;
 }
 
@@ -1356,7 +1354,7 @@ sub SET_FUNCTION_SPEC
             if ( $set_function_arg =~ s/(DISTINCT|ALL) (.+)$/$2/i )
             {
                 $distinct = uc $1;
-                $self->{"struct"}->{"set_quantifier"} = $distinct;
+                $self->{struct}->{set_quantifier} = $distinct;
             }
             my $count_star = 1
               if $set_function_name eq 'COUNT'
@@ -1375,7 +1373,7 @@ sub SET_FUNCTION_SPEC
 
             $self->{struct}->{has_set_functions} = 1;
 
-            push @{ $self->{"struct"}->{'set_function'} },
+            push @{ $self->{struct}->{set_function} },
               {
                 name     => $set_function_name,
                 arg      => $set_function_arg,
@@ -1386,7 +1384,7 @@ sub SET_FUNCTION_SPEC
         }
         else
         {
-            push @{ $self->{"struct"}->{'set_function'} }, { name => $func };
+            push @{ $self->{struct}->{set_function} }, { name => $func };
             return undef;
 
             # return $self->do_err("Bad set function before FROM clause.");
@@ -1413,7 +1411,7 @@ sub LIMIT_CLAUSE
         $limit = $offset;
         undef $offset;
     }
-    $self->{"struct"}->{"limit_clause"} = {
+    $self->{struct}->{limit_clause} = {
                                             limit  => $limit,
                                             offset => $offset,
                                           };
@@ -1432,8 +1430,8 @@ sub SORT_SPEC_LIST
 {
     my ( $self, $order_clause ) = @_;
     return 1 if !$order_clause;
-    my %is_table_name  = %{ $self->{"tmp"}->{"is_table_name"} };
-    my %is_table_alias = %{ $self->{"tmp"}->{"is_table_alias"} };
+    my %is_table_name  = %{ $self->{tmp}->{is_table_name} };
+    my %is_table_alias = %{ $self->{tmp}->{is_table_alias} };
     my @ocols;
     my @order_columns = split ',', $order_clause;
     for my $col (@order_columns)
@@ -1476,7 +1474,7 @@ sub SORT_SPEC_LIST
         }
         push @ocols, { $newcol => $newarg };
     }
-    $self->{"struct"}->{"sort_spec_list"} = \@ocols;
+    $self->{struct}->{sort_spec_list} = \@ocols;
     return 1;
 }
 
@@ -1515,7 +1513,7 @@ sub SEARCH_CONDITION
       ? $self->parens_search( $str, [] )
       : $self->non_parens_search( $str, [] );
     return $self->do_err("Couldn't find predicate!") unless $pred;
-    $self->{"struct"}->{"where_clause"} = $pred;
+    $self->{struct}->{where_clause} = $pred;
     return 1;
 }
 
@@ -2035,7 +2033,7 @@ sub LITERAL_LIST
           unless $val;
         push @values, $val;
     }
-    $self->{"struct"}->{"values"} = \@values;
+    $self->{struct}->{values} = \@values;
     return 1;
 }
 
@@ -2137,11 +2135,11 @@ sub PREDICATE
         #        $arg2 = $self->ROW_VALUE($arg2);
     }
 
-    push( @{ $self->{"struct"}->{"keycols"} }, $arg1->{"value"} ),
-      push( @{ $self->{"struct"}->{"keycols"} }, $arg2->{"value"} )
+    push( @{ $self->{struct}->{keycols} }, $arg1->{value} ),
+      push( @{ $self->{struct}->{keycols} }, $arg2->{value} )
       if (     ref($arg1) eq 'HASH'
-           and ( $arg1->{"type"} || '' ) eq 'column'
-           and ( $arg2->{"type"} || '' ) eq 'column'
+           and ( $arg1->{type} || '' ) eq 'column'
+           and ( $arg2->{type} || '' ) eq 'column'
            and $op eq '=' );
     return {
              neg  => $negated,
@@ -2334,7 +2332,7 @@ sub ROW_VALUE
             #           my @args = split ',',$value;
 
             my @final_args = $self->extract_func_args($value);
-            my $usr_sub = $self->{opts}->{"function_defs"}->{$name}->{"sub"}
+            my $usr_sub = $self->{opts}->{function_defs}->{$name}->{sub}
               if $self->{opts}->{function_defs}
                   and $self->{opts}->{function_defs}->{$name};
             $self->{struct}->{procedure} = {};
@@ -2368,7 +2366,7 @@ sub ROW_VALUE
         for (@vals)
         {
             my $val = $self->ROW_VALUE($_);
-            if ( $val && $val->{"type"} !~ /number|column|placeholder/ )
+            if ( $val && $val->{type} !~ /number|column|placeholder/ )
             {
                 return $self->do_err(
                     qq[
@@ -2401,15 +2399,15 @@ sub ROW_VALUE
             $length = $self->ROW_VALUE($length);
         }
         $start = $self->ROW_VALUE($start);
-        $str =~ s/\?(\d+)\?/$self->{"struct"}->{"literals"}->[$1]/g;
+        $str =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         return $self->do_err(
                         "Can't use a string as a SUBSTRING position: '$str'!")
-          if $start->{"type"} eq 'string'
-              or (     $start->{"length"}
-                   and $start->{"length"}->{"type"} eq 'string' );
+          if $start->{type} eq 'string'
+              or (     $start->{length}
+                   and $start->{length}->{type} eq 'string' );
         return undef unless $value;
         return $self->do_err("Can't use a number in SUBSTRING: '$str'!")
-          if $value->{"type"} eq 'number';
+          if $value->{type} eq 'number';
         return {
                  "type"   => 'function',
                  "name"   => $name,
@@ -2446,10 +2444,10 @@ sub ROW_VALUE
             }
         }
         $trim_char ||= '';
-        $trim_char =~ s/\?(\d+)\?/$self->{"struct"}->{"literals"}->[$1]/g;
+        $trim_char =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         $value = $self->ROW_VALUE($value);
         return undef unless $value;
-        $str =~ s/\?(\d+)\?/$self->{"struct"}->{"literals"}->[$1]/g;
+        $str =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         my $value_type = $value->{type} if ref $value eq 'HASH';
         $value_type = $value->[0] if ref $value eq 'ARRAY';
         return $self->do_err("Can't use a number in TRIM: '$str'!")
@@ -2481,7 +2479,7 @@ sub ROW_VALUE
             return undef unless $newval;
             return $self->do_err(
                         "Can't use a number in string concatenation: '$str'!")
-              if $newval->{"type"} eq 'number';
+              if $newval->{type} eq 'number';
             push @newvals, $newval;
         }
         return {
@@ -2514,23 +2512,23 @@ sub ROW_VALUE
     {
         return {
                  type  => 'string',
-                 value => $self->{"struct"}->{"literals"}->[$1]
+                 value => $self->{struct}->{literals}->[$1]
                };
     }
 
     # COLUMN NAME
     #
     return undef unless $str = $self->COLUMN_NAME($str);
-    if ( $str =~ /^(.*)\./ && !$self->{"tmp"}->{"is_table_name"}->{"\L$1"}
-         and !$self->{"tmp"}->{"is_table_alias"}->{"\L$1"} )
+    if ( $str =~ /^(.*)\./ && !$self->{tmp}->{is_table_name}->{"\L$1"}
+         and !$self->{tmp}->{is_table_alias}->{"\L$1"} )
     {
         return $self->do_err(
                             "Table '$1' in WHERE clause not in FROM clause!");
     }
 
-    #    push @{ $self->{"struct"}->{"where_cols"}},$str
-    #       unless $self->{"tmp"}->{"where_cols"}->{"$str"};
-    $self->{"tmp"}->{"where_cols"}->{"$str"}++;
+    #    push @{ $self->{struct}->{where_cols}},$str
+    #       unless $self->{tmp}->{where_cols}->{"$str"};
+    $self->{tmp}->{where_cols}->{"$str"}++;
     return {
              type  => 'column',
              value => $str
@@ -2548,7 +2546,7 @@ sub COLUMN_NAME
     my ( $table_name, $col_name );
     if ( $str =~ /^\s*(\S+)\.(\S+)$/s )
     {
-        if ( !$self->{"opts"}->{"valid_options"}->{"SELECT_MULTIPLE_TABLES"} )
+        if ( !$self->{opts}->{valid_options}->{SELECT_MULTIPLE_TABLES} )
         {
             return $self->do_err('Dialect does not support multiple tables!');
         }
@@ -2560,8 +2558,8 @@ sub COLUMN_NAME
         if ( $table_name =~ /^"/ )
         {    #"
 
-            if (     !$self->{"tmp"}->{"is_table_name"}->{"$table_name"}
-                 and !$self->{"tmp"}->{"is_table_alias"}->{"$table_name"} )
+            if (     !$self->{tmp}->{is_table_name}->{"$table_name"}
+                 and !$self->{tmp}->{is_table_alias}->{"$table_name"} )
             {
                 $self->do_err(
                     "Table '$table_name' referenced but not found in FROM list!"
@@ -2569,8 +2567,8 @@ sub COLUMN_NAME
                 return undef;
             }
         }
-        elsif (     !$self->{"tmp"}->{"is_table_name"}->{"\L$table_name"}
-                and !$self->{"tmp"}->{"is_table_alias"}->{"\L$table_name"} )
+        elsif (     !$self->{tmp}->{is_table_name}->{"\L$table_name"}
+                and !$self->{tmp}->{is_table_alias}->{"\L$table_name"} )
         {
             $self->do_err(
                   "Table '$table_name' referenced but not found in FROM list!"
@@ -2662,7 +2660,7 @@ sub COLUMN_NAME_LIST
         return undef if !( $newcol = $self->COLUMN_NAME($col) );
         push @newcols, $newcol;
     }
-    $self->{"struct"}->{"column_names"} = \@newcols;
+    $self->{struct}->{column_names} = \@newcols;
     return 1;
 }
 
@@ -2678,7 +2676,7 @@ sub TABLE_NAME_LIST
     $table_name_str =~ s/(\?\d+\?),/$1:/g;    # fudge commas in functions
     my @table_names = split ',', $table_name_str;
     if ( scalar @table_names > 1
-         and !$self->{"opts"}->{"valid_options"}->{'SELECT_MULTIPLE_TABLES'} )
+         and !$self->{opts}->{valid_options}->{SELECT_MULTIPLE_TABLES} )
     {
         return $self->do_err('Dialect does not support multiple tables!');
     }
@@ -2715,8 +2713,8 @@ sub TABLE_NAME_LIST
             #            my $u_func = $self->ROW_VALUE($table);
             $u_args = " $u_args" if $u_args;
             my $u_func = $self->ROW_VALUE( $u_name . $u_args );
-            $self->{"struct"}->{"table_func"}->{$u_name} = $u_func;
-            $self->{"struct"}->{"temp_table"}            = 1;
+            $self->{struct}->{table_func}->{$u_name} = $u_func;
+            $self->{struct}->{temp_table}            = 1;
             $table                                       = $u_name;
         }
         else
@@ -2742,11 +2740,11 @@ sub TABLE_NAME_LIST
         }
     }
     my %is_table_name = map { lc $_ => 1 } @tables;
-    $self->{"tmp"}->{"is_table_alias"}     = \%is_table_alias;
-    $self->{"tmp"}->{"is_table_name"}      = \%is_table_name;
-    $self->{"struct"}->{"table_names"}     = \@tables;
-    $self->{"struct"}->{"table_alias"}     = \%aliases;
-    $self->{"struct"}->{"multiple_tables"} = 1 if @tables > 1;
+    $self->{tmp}->{is_table_alias}     = \%is_table_alias;
+    $self->{tmp}->{is_table_name}      = \%is_table_name;
+    $self->{struct}->{table_names}     = \@tables;
+    $self->{struct}->{table_alias}     = \%aliases;
+    $self->{struct}->{multiple_tables} = 1 if @tables > 1;
     return 1;
 }
 
@@ -2821,7 +2819,7 @@ sub IDENTIFIER
         return $self->do_err($err);
     }
     $id = uc $id;
-    if ( $self->{"opts"}->{"reserved_words"}->{$id} )
+    if ( $self->{opts}->{reserved_words}->{$id} )
     {                                               # BAD RESERVED WORDS
         $err .= "is a SQL reserved word!";
         return $self->do_err($err);
@@ -2897,19 +2895,19 @@ sub set_feature_flags
     my ( $self, $select, $create ) = @_;
     if ( defined $select )
     {
-        delete $self->{"select"};
-        $self->{"opts"}->{"valid_options"}->{"SELECT_MULTIPLE_TABLES"} =
-          $self->{"opts"}->{"select"}->{join} = $select->{join};
+        delete $self->{select};
+        $self->{opts}->{valid_options}->{SELECT_MULTIPLE_TABLES} =
+          $self->{opts}->{select}->{join} = $select->{join};
     }
     if ( defined $create )
     {
-        delete $self->{"create"};
+        delete $self->{create};
         for my $key ( keys %$create )
         {
             my $type = $key;
             $type =~ s/type_(.*)/\U$1/;
-            $self->{"opts"}->{"valid_data_types"}->{"$type"} =
-              $self->{"opts"}->{"create"}->{"$key"} = $create->{"$key"};
+            $self->{opts}->{valid_data_types}->{"$type"} =
+              $self->{opts}->{create}->{"$key"} = $create->{"$key"};
         }
     }
 }
@@ -2950,7 +2948,7 @@ sub clean_sql
     @$fields = map { s/([^\\])\\r/$1\r/g; $_ } @$fields;
     @$fields = map { s/([^\\])\\n/$1\n/g; $_ } @$fields;
 
-    $self->{"struct"}->{"literals"} = $fields;
+    $self->{struct}->{literals} = $fields;
 
     my $qids;
     $i = -1;
@@ -2960,27 +2958,27 @@ sub clean_sql
     $sql =~ s~"(([^"]|"")+)"~push(@$qids,$1);$i++;"?QI$i?"~ge;
 
     #@$qids = map { s/$e'/'/g; s/^'(.*)'$/$1/; $_} @$qids;
-    $self->{"struct"}->{"quoted_ids"} = $qids if $qids;
+    $self->{struct}->{quoted_ids} = $qids if $qids;
 
     #    $sql =~ s~'(([^'\\]|\\.)+)'~push(@$fields,$1);$i++;"?$i?"~ge;
     #    @$fields = map { s/\\'/'/g; s/^'(.*)'$/$1/; $_} @$fields;
     #print "$sql [@$fields]\n";# if $sql =~ /SELECT/;
 
 ## before line 1511
-    my $comment_re = $self->{"comment_re"};
+    my $comment_re = $self->{comment_re};
 
     #    if ( $sql =~ s/($comment_re)//gs) {
-    #       $self->{"comment"} = $1;
+    #       $self->{comment} = $1;
     #    }
     if ( $sql =~ /(.*)$comment_re$/s )
     {
         $sql = $1;
-        $self->{"comment"} = $2;
+        $self->{comment} = $2;
     }
     if ( $sql =~ /^(.*)--(.*)(\n|$)/ )
     {
         $sql = $1;
-        $self->{"comment"} = $2;
+        $self->{comment} = $2;
     }
 
     $sql =~ s/\n/ /g;
@@ -3029,11 +3027,11 @@ sub do_err
       $errtype
       ? "DIALECT ERROR: $err"
       : "SQL ERROR: $err";
-    $self->{"struct"}->{"errstr"} = $err;
+    $self->{struct}->{errstr} = $err;
 
-    #$self->{"errstr"} = $err;
-    warn $err if $self->{"PrintError"};
-    die $err  if $self->{"RaiseError"};
+    #$self->{errstr} = $err;
+    warn $err if $self->{PrintError};
+    die $err  if $self->{RaiseError};
     return undef;
 }
 
@@ -3085,11 +3083,11 @@ Create a new parser object
  use SQL::Parser;
  my $parser = SQL::Parser->new();
 
-The new() method creates a SQL::Parser object which can then be 
+The new() method creates a SQL::Parser object which can then be
 used to parse and validate the syntax of SQL strings. It takes two
 optional parameters - 1) the name of the SQL dialect that will define
-the syntax rules for the parser and 2) a reference to a hash which can 
-contain additional attributes of the parser.  If no dialect is specified, 
+the syntax rules for the parser and 2) a reference to a hash which can
+contain additional attributes of the parser.  If no dialect is specified,
 'AnyData' is the default.
 
  use SQL::Parser;
@@ -3177,7 +3175,7 @@ the feature() method with SQL::Statement 0.1x style parameters.
 
 =head1 Supported SQL syntax
 
-The SQL::Statement distribution can be used to either just parse SQL statements or to execute them against actual data.  A broader set of syntax is supported in the parser than in the executor.  For example the parser allows you to specify column constraints like PRIMARY KEY.  Currently, these are ignored by the execution engine.  Likewise syntax such as RESTRICT and CASCADE on DROP statements or LOCAL GLOBAL TEMPPORARY tables in CREATE are supported by the parser but ignored by the executor.  
+The SQL::Statement distribution can be used to either just parse SQL statements or to execute them against actual data.  A broader set of syntax is supported in the parser than in the executor.  For example the parser allows you to specify column constraints like PRIMARY KEY.  Currently, these are ignored by the execution engine.  Likewise syntax such as RESTRICT and CASCADE on DROP statements or LOCAL GLOBAL TEMPPORARY tables in CREATE are supported by the parser but ignored by the executor.
 
 To see the list of Supported SQL syntax formerly kept in this pod, see L<SQL::Statement>.
 
@@ -3198,7 +3196,7 @@ Processes the BETWEEN...AND... predicates; default converts to
 =item C<$self->E<gt>C<get_in($string)>
 
 Process the IN (...list...) predicates; default converts to
-a series of OR'd '=' predicate, or AND'd '<>' predicates for 
+a series of OR'd '=' predicate, or AND'd '<>' predicates for
 NOT IN.
 
 =item C<$self->E<gt>C<transform_syntax($string)>
