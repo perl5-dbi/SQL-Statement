@@ -27,21 +27,19 @@ queryresult_is("SELECT * FROM Prof NATURAL JOIN Subject",
  'NATURAL JOIN - with select list = *'
 );
 
-queryresult_is("
-    SELECT UPPER(pname)AS P,Prof.pid,pname,sname FROM Prof NATURAL JOIN Subject
-",
+queryresult_is("SELECT UPPER(pname) AS P,Prof.pid,pname,sname FROM Prof NATURAL JOIN Subject",
  'SUE~1~Sue~Chem^BOB~2~Bob~Bio^BOB~2~Bob~Math^',
     'NATURAL JOIN - with computed columns'
 );
 
 queryresult_is(
- "SELECT UPPER(pname)AS P,pid,pname,sname FROM Prof NATURAL JOIN Subject",
+ "SELECT UPPER(pname) AS P,pid,pname,sname FROM Prof NATURAL JOIN Subject",
  'SUE~1~Sue~Chem^BOB~2~Bob~Bio^BOB~2~Bob~Math^',
  'NATURAL JOIN - with no specifier on join column'
 );
 
 queryresult_is(
- "SELECT UPPER(pname)AS P,pid,pname,sname FROM Prof JOIN Subject using (pid)",
+ "SELECT UPPER(pname) AS P,pid,pname,sname FROM Prof JOIN Subject using (pid)",
  'SUE~1~Sue~Chem^BOB~2~Bob~Bio^BOB~2~Bob~Math^',
  'INNER JOIN - with no specifier on join column'
 );

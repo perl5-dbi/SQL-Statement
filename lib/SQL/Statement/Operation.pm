@@ -75,7 +75,7 @@ sub operate($)
     }
     else
     {
-        $expr = !defined($left);
+        $expr = !defined($left) || ($left eq ''); # FIXME I don't like that '' IS NULL
     }
 
     return $expr;

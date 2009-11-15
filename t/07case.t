@@ -76,7 +76,7 @@ for my $create_case(qw(lower upper mixed)) {
         is($col, 'COL',$msg) if $query_case eq 'upper';
         is($col, 'cOl',$msg) if $query_case eq 'mixed';
         if ($query_case eq 'asterisked') {
-            is($col, 'COL',$msg);
+            is($col, 'col',$msg);
 	}
         $sth->finish;
         $sth->{Active}=0;

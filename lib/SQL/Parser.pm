@@ -17,7 +17,7 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.21_1';
+$VERSION = '1.21_2';
 
 BEGIN
 {
@@ -115,22 +115,19 @@ sub parse
             push @{ $self->{struct}->{org_table_names} }, $_;
         }
 
-        #
-        # UPPER CASE TABLE NAMES
-        #
-        my @uTables = map { uc $_ } @{ $self->{struct}->{table_names} };
+        my @tables = @{ $self->{struct}->{table_names} };
 
         #
         # REMOVE schema.table infor if present
         #
-        @uTables = map { s/^.*\.([^\.]+)$/$1/; $_ } @uTables;
-        $self->{struct}->{table_names} = \@uTables unless $com eq 'CREATE';
+        @tables = map { s/^.*\.([^\.]+)$/$1/; $_ } @tables;
+        $self->{struct}->{table_names} = \@tables unless $com eq 'CREATE';
         if ( $self->{struct}->{column_names} )
         {
             for ( @{ $self->{struct}->{column_names} } )
             {
                 my $cn = $_;
-                $cn = uc $cn unless $cn =~ /^"/;
+                $cn = lc $cn unless $cn =~ m/^(?:\w+\.)?"/;
                 push @{ $self->{struct}->{org_col_names} }, $self->{struct}->{ORG_NAME}->{$cn};
             }
         }
@@ -138,15 +135,15 @@ sub parse
           if $self->{struct}->{join}->{table_order}
               and scalar( @{ $self->{struct}->{join}->{table_order} } ) == 0;
         @{ $self->{struct}->{join}->{keycols} } =
-          map { uc $_ } @{ $self->{struct}->{join}->{keycols} }
+          map { lc $_ } @{ $self->{struct}->{join}->{keycols} }
           if $self->{struct}->{join}->{keycols};
         @{ $self->{struct}->{join}->{shared_cols} } =
-          map { uc $_ } @{ $self->{struct}->{join}->{shared_cols} }
+          map { lc $_ } @{ $self->{struct}->{join}->{shared_cols} }
           if $self->{struct}->{join}->{shared_cols};
 ##
         #  For RR aliases, added quoted id protection from upper casing
         my @uCols =
-          map { ( $_ =~ /^"/ ) ? $_ : uc $_ } @{ $self->{struct}->{column_names} };
+          map { ( $_ =~ /^(\w+\.)?"/ ) ? $_ : lc $_ } @{ $self->{struct}->{column_names} };
 ##
         $self->{struct}->{column_names} = \@uCols unless $com eq 'CREATE';
         if ( $self->{original_string} =~ /Y\.\*/ )
@@ -1135,7 +1132,7 @@ sub CREATE
 
         #push @{$self->{struct}->{ORG_NAME}},$name;
         my $tmpname = $name;
-        $tmpname = uc $tmpname unless $tmpname =~ /^"/;
+        $tmpname = lc $tmpname unless $tmpname =~ /^(?:\w+\.)?"/;
         return $self->do_err("Duplicate column names!")
           if $is_col_name{$tmpname}++;
 
@@ -1356,7 +1353,7 @@ sub SELECT_LIST
                     #                    die "Functions in the SELECT LIST must have an alias!\n"
                     #                        unless defined $alias;
                     $alias ||= $func_obj->{name};
-                    $newcol   = uc $alias;
+                    $newcol   = lc $alias;
                     $newalias = $self->COLUMN_NAME($alias);
                     $self->{struct}->{col_obj}->{$newcol} = {
                                                               name    => $newcol,
@@ -1373,7 +1370,7 @@ sub SELECT_LIST
                     return undef unless $newcol = $self->COLUMN_NAME($col);
                 }
             }
-            if ( !$alias and uc($col) eq $newcol )
+            if ( !$alias and lc($col) eq $newcol )
             {
                 $newalias = $col;
             }
@@ -1382,7 +1379,7 @@ sub SELECT_LIST
                 $newalias = $self->COLUMN_NAME( $alias || $newcol );
             }
             $self->{struct}->{ORG_NAME}->{$newcol} = $newalias;
-            $aliases{ uc $newalias } = $newcol;
+            $aliases{ lc $newalias } = $newcol;
             push @newcols, $newcol;
             if ( !$alias )
             {
@@ -1391,8 +1388,8 @@ sub SELECT_LIST
             }
             if ( !$self->{struct}->{col_obj}->{$newcol} )
             {
-                $self->{struct}->{col_obj}->{ uc $newcol } = {
-                                                               name  => uc $newcol,
+                $self->{struct}->{col_obj}->{ lc $newcol } = {
+                                                               name  => lc $newcol,
                                                                alias => $newalias,
                                                              };
 
@@ -1432,9 +1429,9 @@ sub SET_FUNCTION_SPEC
             return undef
               if !$count_star and !$ok;
 
-            if ( $set_function_arg !~ /^"/ )
+            if ( $set_function_arg !~ /^(?:\w+\.)?"/ )
             {
-                $set_function_arg = uc $set_function_arg;
+                $set_function_arg = lc $set_function_arg;
             }
 
             $self->{struct}->{has_set_functions} = 1;
@@ -2316,14 +2313,14 @@ sub ROW_VALUE
     #    if ($str =~ /^(\S+)\s*(.*)\s*$/ ) {
     if ( $str =~ /^([^\s\(]+)\s*(.*)\s*$/ )
     {
-        $user_func_name = uc $1;
+        $user_func_name = $1;
         $user_func_args = $2;
 
         #
         #	convert operator-like function to
         #	parenthetical format
         #
-        if (     $self->{opts}->{function_names}->{$user_func_name}
+        if (     $self->is_func($user_func_name)
              and $user_func_args !~ /^\(.*\)$/ )
         {
             $str = "$user_func_name ($user_func_args)";
@@ -2334,16 +2331,16 @@ sub ROW_VALUE
         $user_func_name =~ s/^(\S+).*$/$1/;
     }
 
-    if (     $self->{opts}->{function_names}->{ uc $user_func_name }
+    if (     $self->is_func($user_func_name)
          and $user_func_name !~ /(TRIM|SUBSTRING)/i )
     {
         my ( $name, $value ) = ( $user_func_name, '' );
         if ( $str =~ /^(\S+)\s*\((.+)\)\s*$/i )
         {
-            $name  = uc $1;
+            $name  = $1;
             $value = $2;
         }
-        if ( $self->{opts}->{function_names}->{$name} )
+        if ( my $u_name = $self->is_func($name) )
         {
 
             #
@@ -2358,13 +2355,13 @@ sub ROW_VALUE
             #           my @args = split ',',$value;
 
             my @final_args = $self->extract_func_args($value);
-            my $usr_sub    = $self->{opts}->{function_names}->{$name};
+            my $usr_sub    = $self->{opts}->{function_names}->{$u_name};
             $self->{struct}->{procedure} = {};
             if ($usr_sub)
             {
                 $value = {
                            type    => 'function',
-                           name    => $name,
+                           name    => lc $name,
                            subname => $usr_sub,
                            value   => \@final_args,
                          };
@@ -2633,12 +2630,12 @@ sub COLUMN_NAME
     }
     else
     {
-        $col_name = uc $col_name unless $self->{struct}->{command} eq 'CREATE'
+        $col_name = lc $col_name unless $self->{struct}->{command} eq 'CREATE'
               ##############################################
               #
               # JZ addition to RR's alias patch
               #
-              or $col_name =~ /^"/;
+              or $col_name =~ /^(?:\w+\.)?"/;
 
     }
 
@@ -2653,7 +2650,7 @@ sub COLUMN_NAME
     {
         my $alias = $self->{tmp}->{is_table_alias}->{"\L$table_name"};
         $table_name = $alias if defined $alias;
-        $table_name = uc $table_name;
+        $table_name = lc $table_name unless( $table_name =~ m/^"/ );
         $col_name   = "$table_name.$col_name";
     }
     return $col_name;
@@ -2751,7 +2748,7 @@ sub TABLE_NAME_LIST
         {
             return undef unless ( $self->TABLE_NAME($alias) );
             $alias = $self->replace_quoted_ids($alias);
-            if ( $alias =~ /^"/ )
+            if ( $alias =~ m/^"/ )
             {
                 push( @{ $aliases{$table} }, $alias );
                 $is_table_alias{$alias} = $table;
@@ -2772,12 +2769,13 @@ sub TABLE_NAME_LIST
     return 1;
 }
 
-sub is_func()
+sub is_func($)
 {
     my ( $self, $name ) = @_;
     $name =~ s/^(\S+).*$/$1/;
     return $name if $self->{opts}->{function_names}->{$name};
     return uc $name if $self->{opts}->{function_names}->{ uc $name };
+    undef;
 }
 
 #############################
@@ -2822,7 +2820,7 @@ sub IDENTIFIER
     }
     if ( $id =~ /^(.+)\.([^\.]+)$/ )
     {
-        my $schema = $1;              # ignored
+        my $schema = $1;    # ignored
         $id = $2;
     }
     return 1 if $id =~ /^".+?"$/s;    # QUOTED IDENTIFIER

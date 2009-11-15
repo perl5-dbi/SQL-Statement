@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SQL-Statement
-version:            1.21_1
+version:            1.21_2
 abstract:           ~
 author:
     - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@web.de>

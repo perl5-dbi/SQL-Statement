@@ -2,5 +2,9 @@
 \.[Bb][Aa][Kk]$
 \.orig$
 \.old$
-\..*swp
+\..*sw[po]
+.*~
 Makefile$
+\.project
+\bblib\b
+pm_to_blib

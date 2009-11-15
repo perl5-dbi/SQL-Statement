@@ -17,7 +17,7 @@ for my $sql(<DATA>) {
     ok(!$@,'$stmt->new');
     ok('SELECT' eq $stmt->command,'$stmt->command');
     ok(1 == scalar $stmt->params,'$stmt->params');
-    ok('C' eq $stmt->tables(1)->name,'$stmt->tables');
+    ok('c' eq $stmt->tables(1)->name,'$stmt->tables');
     ok(defined(_INSTANCE($stmt->where(), 'SQL::Statement::Operation::And' )),'$stmt->where()->op');
     ok(defined(_INSTANCE($stmt->where()->{LEFT}, 'SQL::Statement::Operation::Equal' )),'$stmt->where()->left');
     ok(defined(_INSTANCE($stmt->where()->{LEFT}->{LEFT}, 'SQL::Statement::ColumnValue' )),'$stmt->where()->left->left');
@@ -51,11 +51,11 @@ for my $sql(split /\n/,
     $stmt = SQL::Statement->new($sql,$parser);
     eval { $stmt->execute($cache) };
     warn $@ if $@;
-    ok(!$@,'$stmt->execute '.$stmt->command);
+    ok(!$@,'$stmt->execute "'.$sql.'" ('.$stmt->command.')');
     next unless $stmt->command eq 'SELECT';
     ok( ref($stmt->where_hash) eq 'HASH','$stmt->where_hash');
-    ok('B' eq $stmt->columns(0)->name,'$stmt->columns');
-    ok('BC' eq join('',$stmt->column_names),'$stmt->column_names');
+    ok('b' eq $stmt->columns(0)->name,'$stmt->columns');
+    ok('bc' eq join('',$stmt->column_names),'$stmt->column_names');
     ok('DESC' eq $stmt->order(0)->{desc},'$stmt->order');
     while (my $row=$stmt->fetch) {
         ok(1==$row->[0],'$stmt->fetch');

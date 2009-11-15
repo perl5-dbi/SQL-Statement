@@ -32,7 +32,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.21_1';
+$VERSION = '1.21_2';
 
 sub new
 {
@@ -236,6 +236,10 @@ sub CREATE ($$$)
     my ($row) = [];
     my ($col);
     my ($table) = $eval->table( $self->tables(0)->name() );
+    if ( _ARRAY( $table->col_names() ) )
+    {
+        return $self->do_err( "Table '" . $self->tables(0)->name() . "' already exists." );
+    }
     foreach $col ( $self->columns() )
     {
         push( @$row, $col->name() );
@@ -1329,7 +1333,7 @@ sub group_by
         {
 
             #            printf "%s %s\n",$c1->{name}, $c2->{arg};
-            next unless uc $c1->{name} eq uc $c2->{arg};
+            next unless lc $c1->{name} eq lc $c2->{arg};
             $c1->{arg}  = $c2->{arg};
             $c1->{name} = $c2->{name};
             last;
@@ -1354,9 +1358,9 @@ sub group_by
             $arg = $set_cols->[$i];
 
             #            $arg =$columns_requested[$i];
-            push @keycols, $colnum{ uc $arg };
+            push @keycols, $colnum{ lc $arg };
         }
-        $self->{set_function}->[$i]->{sel_col_num} = $colnum{ uc $arg };
+        $self->{set_function}->[$i]->{sel_col_num} = $colnum{ lc $arg };
     }
 
     my $display_cols = $self->{set_function};
@@ -1425,27 +1429,27 @@ sub open_tables
     for (@tables)
     {
         ++$count;
-        my $name = $_->{name};
+        my $name = $_->name();
         if ( $name =~ m/^(.+)\.([^\.]+)$/ )
         {
             my $schema = $1;    # ignored
             $name = $_->{name} = $2;
         }
+
         if ( my $u_func = $self->{table_func}->{ uc $name } )
         {
             $t->{$name} = $self->get_user_func_table( $name, $u_func );
         }
-        elsif ( $data->{Database}->{sql_ram_tables}->{ uc $name } )
+        elsif ( $data->{Database}->{sql_ram_tables}->{$name} )
         {
-            $t->{$name} = $data->{Database}->{sql_ram_tables}->{ uc $name };
+            $t->{$name} = $data->{Database}->{sql_ram_tables}->{$name};
             $t->{$name}->{index} = 0;
             $t->{$name}->init_table( $data, $name, $createMode, $lockMode )
               if $t->{$name}->can('init_table');
         }
         elsif ( $self->{is_ram_table} or !( $self->can('open_table') ) )
         {
-            $t->{$name} = $data->{Database}->{sql_ram_tables}->{ uc $name } =
-              SQL::Statement::RAM->new( uc $name, [], [] );
+            $t->{$name} = $data->{Database}->{sql_ram_tables}->{$name} = SQL::Statement::RAM->new( $name, [], [] );
         }
         else
         {
@@ -1481,7 +1485,7 @@ sub open_tables
             }
             else
             {
-                $newc = uc $c;
+                $newc = lc $c;
             }
             push @cnames, $newc;
             $self->{ORG_NAME}->{$newc} = $c;
@@ -1639,7 +1643,7 @@ sub buildColumnObjects($)
                             my $tcols = $t->{$table}->{col_names};
                             return $self->do_err("Couldn't find column names for table '$table'!")
                               unless ( _ARRAY($tcols) );
-                            if ( grep { uc($_) eq uc($col) } @{$tcols} )
+                            if ( grep { lc($_) eq lc($col) } @{$tcols} )
                             {
                                 $tbl = $table;
                                 last;
@@ -1905,154 +1909,6 @@ sub row_values(;$)
     return $_[0]->{values}->[ $_[1] ] if ( defined $_[1] );
 
     return wantarray ? map { $_->{value} } @{ $_[0]->{values} } : scalar @{ $_[0]->{values} };
-}
-
-sub get_row_value_deprecated
-{
-    my ( $self, $structure, $eval, $rowhash ) = @_;
-
-    #    bug($structure);
-    $structure = '' unless defined $structure;
-    return $rowhash->{$structure} unless ref $structure;
-
-    my $type = $structure->{type} if ( _HASH0($structure) && !blessed($structure) );
-    $type ||= '';
-
-    # FIXME are functions case sensitive and why aren't the singletons stored
-    #       in upper case or lower case only?
-    if (     $type eq 'function'
-         and $structure->{name} =~ /[A-Z]/
-         and ( uc( $structure->{name} ) !~ m/(?:TRIM|SUBSTRING)/ ) )
-    {
-        $self->{loaded_function}->{ $structure->{name} } ||= SQL::Statement::Util::Function->new($structure);
-        $structure = $self->{loaded_function}->{ $structure->{name} };
-    }
-
-    #
-    # Add the arguments from the S::S::Func object to an argslist
-    # then call the function sending the cached sth, the current
-    # rowhash, and the arguments list
-    #
-    if ( _INSTANCE( $structure, 'SQL::Statement::Util::Function' ) )
-    {
-        my @argslist = ();
-        for my $arg ( @{ $structure->args } )
-        {
-
-            #            my $val = $arg unless ref $arg;
-            #            $val = $self->get_row_value($arg,$eval,$rowhash) unless defined $val;
-            my $val = $self->get_row_value( $arg, $eval, $rowhash );
-            push @argslist, $val;
-        }
-        return $structure->run( $self->{procedure}->{data}, $rowhash, @argslist );
-    }
-
-    # end of USER FUNCTIONS
-    #
-    #################################################################
-
-    return undef unless $type;
-    $type = $structure->{name} if $type eq 'function';    # needed for TRIM+SUBST
-
-    if ( ( $type eq 'string' ) || ( $type eq 'number' ) || ( $type eq 'null' ) )
-    {
-        return $structure->{value};
-    }
-    elsif ( $type eq 'column' )
-    {
-        my $val = $structure->{value};
-        my $tbl;
-        if ( $val =~ /^(.+)\.(.+)$/ )
-        {
-            ( $tbl, $val ) = ( $1, $2 );
-        }
-        if ( $self->{join} )
-        {
-
-            # $tbl = 'shared' if $eval->is_shared($val);
-            $tbl ||= $self->colname2table($val);
-            $val = $tbl . $self->{dlm} . $val;
-        }
-        return $rowhash->{$val};
-    }
-    elsif ( $type eq 'placeholder' )
-    {
-        my $val = (
-                         $self->{join}
-                      or !$eval
-                      or ref($eval) =~ /Statement$/
-                  ) ? $self->params( $self->{argnum} ) : $eval->param( $self->{argnum} );
-        ++$self->{argnum};
-        return $val;
-    }
-    elsif ( $type eq 'str_concat' )
-    {
-        my $valstr = '';
-        for ( @{ $structure->{value} } )
-        {
-            my $newval = $self->get_row_value( $_, $eval, $rowhash );
-            return undef unless defined $newval;
-            $valstr .= $newval;
-        }
-        return $valstr;
-    }
-    elsif ( $type eq 'numeric_exp' )
-    {
-        my @vals = @{ $structure->{vals} };
-        my $str  = $structure->{str};
-        for my $i ( 0 .. $#vals )
-        {
-            my $val = $self->get_row_value( $vals[$i], $eval, $rowhash );
-            return $self->do_err(qq~Bad numeric expression '$vals[$i]->{value}'!~)
-              unless defined $val and looks_like_number($val);
-            $str =~ s/\?$i\?/$val/;
-        }
-        $str =~ s/\s//g;
-        $str =~ s/^([\)\(+\-\*\/\%0-9]+)$/$1/;    # untaint
-        return eval $str;
-    }
-    else
-    {
-        my $vtype = $structure->{value}->{type};
-        my $value;
-
-### FOR USER-FUNCS
-        if ( $vtype eq 'function' )
-        {
-            $value = $self->get_row_value( $structure->{value}, $eval, $rowhash );
-        }
-        elsif ( _HASH0( $structure->{value} ) )
-        {
-            $value = $structure->{value}->{value};
-        }
-
-        if ( $type eq 'TRIM' )
-        {
-            my $trim_char = $structure->{trim_char} || ' ';
-            my $trim_spec = $structure->{trim_spec} || 'BOTH';
-            $trim_char = quotemeta($trim_char);
-            if ( $trim_spec =~ /LEADING|BOTH/ )
-            {
-                $value =~ s/^$trim_char+(.*)$/$1/;
-            }
-            if ( $trim_spec =~ /TRAILING|BOTH/ )
-            {
-                $value =~ s/^(.*[^$trim_char])$trim_char+$/$1/;
-            }
-            return $value;
-        }
-        elsif ( $type eq 'SUBSTRING' )
-        {
-            my $start  = $structure->{start}->{value}  || 1;
-            my $offset = $structure->{length}->{value} || length $value;
-            $value ||= '';
-            return substr( $value, $start - 1, $offset )
-              if length $value >= $start - 2 + $offset;
-        }
-    }
-
-    $self->do_err("Invalid type '$type'");
-    return;
 }
 
 #
@@ -2432,7 +2288,7 @@ sub new
     my $col_nums;
     for my $i ( 0 .. scalar @$col_names - 1 )
     {
-        $col_names->[$i] = uc $col_names->[$i];
+        $col_names->[$i] = $col_names->[$i];
         $col_nums->{ $col_names->[$i] } = $i;
     }
     my @display_order = map { $col_nums->{$_} } @$table_cols;
@@ -2458,7 +2314,8 @@ sub column_num($)
     if ( !defined $new_col )
     {
         my @tmp = split '~', $col;
-        $new_col = lc( $tmp[0] ) . '~' . uc( $tmp[1] );
+        return undef unless( 2 == scalar(@tmp) );
+        $new_col = lc( $tmp[0] ) . '~' . $tmp[1];
         $new_col = $s->{col_nums}->{$new_col};
     }
     return $new_col;
@@ -2512,7 +2369,14 @@ sub new
 {
     my $class      = shift;
     my $table_name = shift;
-    my $self       = { name => $table_name, };
+
+    if ( $table_name !~ m/"/ )
+    {
+        $table_name = lc $table_name;
+    }
+
+    my $self = { name => $table_name, };
+
     return bless $self, $class;
 }
 

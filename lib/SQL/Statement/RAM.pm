@@ -3,7 +3,7 @@ package SQL::Statement::RAM;
 ############################
 
 use vars qw($VERSION);
-$VERSION = '1.21_1';
+$VERSION = '1.21_2';
 
 sub new
 {
@@ -27,7 +27,7 @@ package SQL::Statement::RAM::Table;
 use vars qw(@ISA);
 @ISA = qw(SQL::Eval::Table);
 
-sub get_pos()     { return $_[0]->{CUR} = $_[0]->{index} }
+sub get_pos() { return $_[0]->{CUR} = $_[0]->{index} }
 
 ##################################
 # fetch_row()
@@ -83,7 +83,7 @@ sub drop
 {
     my ( $self, $data ) = @_;
     my $tname = $self->{NAME};
-    delete $data->{Database}->{sql_ram_tables}->{ uc $tname };
+    delete $data->{Database}->{sql_ram_tables}->{$tname};
     return 1;
 }
 #####################################

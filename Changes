@@ -1,6 +1,14 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.21_1, release July ..., 2009
+Version 1.21_2, release September 15th, 2009
+----------------------------------------------
+
+[Things that may break your code]
+* modify behaviour for unquoted identifiers - they're converted and
+  returned lower cased now (instead upper cased as in 1.21_1)
+  Fixes bug RT #48502
+
+Version 1.21_1, release July 30th, 2009
 ------------------------------------------
 
 [Things that may break your code]

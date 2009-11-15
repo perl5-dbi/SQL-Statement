@@ -25,7 +25,7 @@ $dbh->do(q{ INSERT INTO Tmp (id,phrase) VALUES (?,?) },{},3,'baz');
 ok($dbh->do(q{ DELETE FROM Tmp WHERE id=? or phrase=? },{},3,'baz'),'placeholder delete');
 ok($dbh->do(q{ UPDATE Tmp SET phrase=? WHERE id=?},{},'bar',2),'placeholder update');
 ok($dbh->do(q{ UPDATE Tmp SET phrase=?,id=? WHERE id=? and phrase=?},{},'foo',1,9,'yyy'),'placeholder update');
-$sth = $dbh->prepare("SELECT id,phrase FROM Tmp");
+$sth = $dbh->prepare('SELECT id,phrase FROM Tmp');
 $sth->execute;
 $str = '';
 while (my $r=$sth->fetch) { $str.="@$r^"; }
