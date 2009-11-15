@@ -1,6 +1,18 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.15, released 18 May, 2005
+Version 1.16_01, released 1 January, 2009
+------------------------------------------
+
+* With this release, I'd like to welcome Jens Rehsack as co-maintainer of
+  the SQL::Statement and SQL::Parser modules.  Jens has added in some
+  great improvements.
+  Thanks Jens! -- Jeff 
+
+* Adding a lot of join tests (once from Jeff, 48 from
+  PostgreSQL official handbook) - no error of them will be corrected in the
+  first run -- Jens
+
+Version 1.15, released 2 February, 2006
 ----------------------------------------
 * fixed placeholder bug in SQL::Statement::UPDATE
   thanks for bug report Tanktalus
