@@ -59,4 +59,4 @@ The original XS versions of the modules were written by Jochen
 Wiedmann.  The current, pure perl versions were rewritten
 (mostly from the ground up) by Jeff Zucker 
 <jzuckerATcpan.org>.  Both versions are currently maintained
-by Jeff.
+by Jens Rehsack <rehsack@cpan.org>.

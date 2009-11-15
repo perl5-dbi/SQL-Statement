@@ -1,5 +1,11 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21_6, release September 24th, 2009
+----------------------------------------------
+
+[Bug fixes]
+* Don't abort Makefile.PL when in automated smoke tests
+
 Version 1.21_5, release September 23th, 2009
 ----------------------------------------------
 

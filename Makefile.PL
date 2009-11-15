@@ -35,7 +35,9 @@ $ env SQL_STATEMENT_WARN_UPDATE=sure perl Makefile.PL
 to build and install anyway.
 
 END_OF_WARNING
-        if ( defined( $ENV{SQL_STATEMENT_WARN_UPDATE} ) )
+
+        my $cpan_smoker = grep { $_ =~ m/(?:CR_SMOKER|CPAN_REPORTER|AUTOMATED_TESTING)/ } keys %ENV;
+        if ( $cpan_smoker || defined( $ENV{SQL_STATEMENT_WARN_UPDATE} ) )
         {
             warn $warning;
         }
