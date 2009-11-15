@@ -1,5 +1,16 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.16_02, released 1 January, 2009
+------------------------------------------
+
+* Changing join_2_tables to reduce memory usage when joining a lot of tables
+
+* Fixed Bugs:
+  * 15688   Columns aliased with double quotes are a fatal error
+  * 16579   Speed optimizations
+  * 30590   Bug in SQL::Statement::is_number()
+  * 41875   Bug in synopsis example
+
 Version 1.16_01, released 1 January, 2009
 ------------------------------------------
 
@@ -10,7 +21,8 @@ Version 1.16_01, released 1 January, 2009
 
 * Adding a lot of join tests (once from Jeff, 48 from
   PostgreSQL official handbook) - no error of them will be corrected in the
-  first run -- Jens
+  first run
+  Thanks to Alexander Breibach <alexander.breibach@gmx.de> -- Jens
 
 Version 1.15, released 2 February, 2006
 ----------------------------------------

@@ -18,7 +18,7 @@ SQL::Statement::Structure - parse & examine structure of SQL queries
  printf "Command             %s\n",$stmt->command;
  printf "Num of Placeholders %s\n",scalar $stmt->params;
  printf "Columns             %s\n",join',',map{$_->name}$stmt->columns;
- printf "Tables              %s\n",join',',$stmt->tables;
+ printf "Tables              %s\n",join',',map{$_->name}$stmt->tables;
  printf "Where operator      %s\n",join',',$stmt->where->op;
  printf "Limit               %s\n",$stmt->limit;
  printf "Offset              %s\n",$stmt->offset;

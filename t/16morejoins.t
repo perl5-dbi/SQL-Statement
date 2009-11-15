@@ -1,10 +1,15 @@
 #!/usr/bin/perl
 use warnings;
 use strict;
-use Test::More tests => 48;
+use Test::More;
 
-use DBI;
-use Data::Dumper;
+eval { require DBI; require DBD::CSV; };
+if ($@) {
+    plan skip_all => "No DBD::CSV available";
+}
+else {
+    plan tests => 48;
+}
 
 my $dbh  = DBI->connect('dbi:CSV:',,,{RaiseError=>1,PrintError=>1});
 $dbh->do($_) for split(';',join('',<DATA>));

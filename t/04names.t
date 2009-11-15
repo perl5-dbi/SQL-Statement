@@ -11,7 +11,7 @@ elsif ($DBD::File::VERSION < '0.033' ) {
     plan skip_all => "Tests require DBD::File => 0.33";
 }
 else {
-    plan tests => 2;
+    plan tests => 5;
 }
 use SQL::Statement; printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
 use vars qw($dbh $sth $DEBUG);
@@ -20,10 +20,19 @@ $dbh = DBI->connect('dbi:File(RaiseError=1):');
 $dbh->do($_) for <DATA>;
 
 $sth = $dbh->prepare("SELECT * FROM Prof");
-ok( 'pid pname' eq (join' ',cols($sth)),'Column Names: select list = *');
+is( (join' ',cols($sth)),'pid pname','Column Names: select list = *');
 
 $sth = $dbh->prepare("SELECT pname,pID FROM Prof");
-ok( 'pname pID' eq (join' ',cols($sth)),'Column Names: select list = named');
+is( (join' ',cols($sth)), 'pname pID' ,'Column Names: select list = named');
+
+$sth = $dbh->prepare('SELECT pname "ProfName", pId "Magic#" from prof');
+is( (join' ',cols($sth)), 'ProfName Magic#' ,'Column Names: select list = aliased');
+
+$sth = $dbh->prepare(q{SELECT pid, concat(pname, ' is #', pId ) from prof});
+is( (join' ',cols($sth)), 'pid CONCAT' ,'Column Names: select list with function');
+
+$sth = $dbh->prepare(q{SELECT pid "ID", concat(pname, ' is #', pId ) "explanation"  from prof});
+is( (join' ',cols($sth)), 'ID explanation' ,'Column Names: select list with function = aliased');
 
 sub cols {
     my($sth)=@_;

@@ -52,10 +52,10 @@ if ($DEBUG) {
         $sth->execute;
         my $msg = sprintf "imported table : %s", $query_case;
         my $col = $sth->{NAME}->[0];
-        ok($col eq 'col',$msg) if $query_case eq 'lower';
-        ok($col eq 'COL',$msg) if $query_case eq 'upper';
-        ok($col eq 'cOl',$msg) if $query_case eq 'mixed';
-        ok($col eq 'col',$msg) if $query_case eq 'asterisked';
+        is($col, 'col',$msg) if $query_case eq 'lower';
+        is($col, 'COL',$msg) if $query_case eq 'upper';
+        is($col, 'cOl',$msg) if $query_case eq 'mixed';
+        is($col, 'col',$msg) if $query_case eq 'asterisked';
         $sth->finish;
         $sth->{Active}=0;
     }
@@ -72,13 +72,13 @@ for my $create_case(qw(lower upper mixed)) {
         $sth->execute;
         my $msg = sprintf "%s/%s", $create_case, $query_case;
         my $col = $sth->{NAME}->[0];
-        ok($col eq 'col',$msg) if $query_case eq 'lower';
-        ok($col eq 'COL',$msg) if $query_case eq 'upper';
-        ok($col eq 'cOl',$msg) if $query_case eq 'mixed';
+        is($col, 'col',$msg) if $query_case eq 'lower';
+        is($col, 'COL',$msg) if $query_case eq 'upper';
+        is($col, 'cOl',$msg) if $query_case eq 'mixed';
         if ($query_case eq 'asterisked') {
-            ok($col eq 'col',$msg) if $create_case eq 'lower';
-            ok($col eq 'COL',$msg) if $create_case eq 'upper';
-            ok($col eq 'cOl',$msg) if $create_case eq 'mixed';
+            is($col, 'col',$msg) if $create_case eq 'lower';
+            is($col, 'COL',$msg) if $create_case eq 'upper';
+            is($col, 'cOl',$msg) if $create_case eq 'mixed';
 	}
         $sth->finish;
         $sth->{Active}=0;
@@ -120,7 +120,7 @@ die in 0.1021
     (mu,ml,um,ul,lm,lu)
 
 
-        ok($col eq 'COL',$msg) if $query_case eq 'asterisked';
+        is($col, 'COL',$msg) if $query_case eq 'asterisked';
 exit;
 my $tbl = 'case';
 $dbh->do("CREATE TEMP TABLE $tbl (lower INT)");
@@ -147,18 +147,19 @@ $dbh->do($_) for <DATA>;
 $sth=$dbh->prepare("
     SELECT SUM(sales), MAX(sales) FROM biz
 ");
-ok('2700~1000^' eq query2str($sth),'AGGREGATE FUNCTIONS WITHOUT GROUP BY');
+is( query2str($sth), '2700~1000^', 'AGGREGATE FUNCTIONS WITHOUT GROUP BY');
 
 $sth=$dbh->prepare("
     SELECT region,SUM(sales), MAX(sales) FROM biz GROUP BY region
 ");
-ok('West~2000~1000^East~700~700^' eq query2str($sth),'GROUP BY one column');
+is( query2str($sth), 'West~2000~1000^East~700~700^' ,'GROUP BY one column');
 
 $sth=$dbh->prepare("
     SELECT region,store,SUM(sales), MAX(sales) FROM biz GROUP BY region,store
 ");
-ok('West~Los Angeles~1500~1000^West~San Diego~500~500^East~Boston~700~700^'
- eq query2str($sth),'GROUP BY several columns');
+is(query2str($sth),
+   'West~Los Angeles~1500~1000^West~San Diego~500~500^East~Boston~700~700^',
+   'GROUP BY several columns');
 
 
 sub query2str {
