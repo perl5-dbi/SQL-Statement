@@ -1,7 +1,7 @@
 package SQL::Dialects::CSV;
 
 use vars qw($VERSION);
-$VERSION = '1.21_1';
+$VERSION = '1.21_7';
 
 sub get_config {
 return <<EOC;
@@ -24,6 +24,10 @@ LIKE
 CLIKE
 IS
 IS NOT
+IN
+NOT IN
+BETWEEN
+NOT BETWEEN
 
 [VALID DATA TYPES]
 CHAR

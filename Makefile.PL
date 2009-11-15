@@ -4,17 +4,17 @@ use strict;
 require ExtUtils::MakeMaker;
 
 eval {
-    require SQL::Statement;
     require version;
+    require SQL::Statement;
 };
 
 unless($@)
 {
     if ( version->parse($SQL::Statement::VERSION) <= version->parse('1.20') )
     {
-        my $warning = <<'END_OF_WARNING';
+        my $warning = sprintf(<<'END_OF_WARNING', $SQL::Statement::VERSION);
 
-WARNING! You seem to have an older version of SQL::Statement already installed.
+WARNING! You seem to have an older version of SQL::Statement already installed (%s <= 1.20).
 This new version introduces a number of features that will impact operation of SQL::Statement and of DBD drivers for CSV, AnyData, and Excel.
 
 Changes include (1.003):
@@ -64,7 +64,7 @@ my %opts = (
                               'Scalar::Util' => '1.0',
                               'Test::Simple' => '0.86',
                             },
-             'CONFIGURE_REQUIRES' => { 'version' => '0', },
+             'CONFIGURE_REQUIRES' => { 'version' => '0.77', },
              LICENSE              => 'perl',
            );
 if ( $ExtUtils::MakeMaker::VERSION >= 5.43 )

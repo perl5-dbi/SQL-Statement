@@ -1,5 +1,21 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.21_8, release October 5th, 2009
+----------------------------------------------
+
+[Bug fixes]
+* Add additional test for bug-fix in 1.21_7 to t/18bigjoin.t
+
+[Misc]
+* Correct some typo's in POD
+
+Version 1.21_7, not public released
+----------------------------------------------
+
+[Bug fixes]
+* Don't fail for non-existent columns introduced by functions
+  in joins
+
 Version 1.21_6, release September 24th, 2009
 ----------------------------------------------
 

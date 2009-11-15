@@ -34,7 +34,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.21_6';
+$VERSION = '1.21_8';
 
 sub new
 {
@@ -592,7 +592,7 @@ sub JOIN
          and scalar @{ $self->{join}->{table_order} } == 0 )
     {
         $self->{join}->{table_order} = $self->order_joins( $self->{join}->{keycols} );
-        $self->{join}->{table_order} = $self->{table_names} unless( defined( $self->{join}->{table_order} ) );
+        $self->{join}->{table_order} = $self->{table_names} unless ( defined( $self->{join}->{table_order} ) );
     }
     my @tables = $self->tables;
 
@@ -1030,17 +1030,16 @@ sub SELECT($$)
             ++$i;
             ( $col, $tbl ) = ( $column->column(), $column->table() );
             my $pos;
+            $tbl ||= $self->colname2table($col);
+            $tbl ||= '';
             if ( $self->{join} )
             {
-                $tbl ||= $self->colname2table($col);
                 $pos = $table->column_num( $tbl . $self->{dlm} . $col );
                 if ( !defined $pos )
                 {
-                    $tbl = $self->colname2table($col);
                     $pos = $table->column_num( $tbl . '_' . $col );
                 }
             }
-            $tbl ||= $self->colname2table($col);
             next if exists( $columns{$tbl}->{$col} );
             $pos = $table->column_num($col) unless ( defined($pos) );
             push( @extraSortCols, $pos );
@@ -1100,9 +1099,8 @@ sub SELECT($$)
             if ( $self->{join} )
             {
                 $tbl = 'shared' if $table->is_shared($col);
-                $tbl ||= $self->colname2table($col);
             }
-            $tbl ||= $self->colname2table($col);
+            $tbl ||= $self->colname2table($col) || '';
             ( $columns{$tbl}->{$col}, $_->desc() )
         } @order_by;
 
@@ -1328,8 +1326,8 @@ sub group_by
     {
         for my $c2 (@$set_columns)
         {
-            next unless( defined($c2->{arg}) );
-            next if( lc( $c1->{name} ) ne lc( $c2->{arg} ) );
+            next unless ( defined( $c2->{arg} ) );
+            next if ( lc( $c1->{name} ) ne lc( $c2->{arg} ) );
             $c1->{arg}  = $c2->{arg};
             $c1->{name} = $c2->{name};
             last;
@@ -2099,13 +2097,13 @@ sub order_joins
             push @tables, $t if $visited{$t}++ < @all_tables;
         }
     }
-    if( @order < @all_tables )
+    if ( @order < @all_tables )
     {
         my @missing;
         my %in_order = map { $_ => 1 } @order;
         foreach my $tbl (@all_tables)
         {
-            next if( $in_order{$tbl} );
+            next if ( $in_order{$tbl} );
             push( @missing, $tbl );
         }
         return $self->do_err( sprintf( 'Unconnected tables (%s) in equijoin statement!', join( ', ', @missing ) ) );
@@ -2425,22 +2423,22 @@ SQL::Statement - SQL parsing and processing engine
 
 =head1 DESCRIPTION
 
-The SQL::Statement module implements a pure Perl SQL parsing and execution engine.  While it by no means implements full ANSI standard, it does support many features including column and table aliases, built-in and user-defined functions, implicit and explicit joins, complexly nested search conditions, and other features.
+The SQL::Statement module implements a pure Perl SQL parsing and execution engine. While it by no means implements full ANSI standard, it does support many features including column and table aliases, built-in and user-defined functions, implicit and explicit joins, complexly nested search conditions, and other features.
 
-SQL::Statement is a small embeddable Database Management System (DBMS),  This means that it provides all of the services of a simple DBMS except that instead of a persistant storage mechanism, it has two things: 1) an in-memory storage mechanism that allows you to prepare, execute, and fetch from SQL statements using temporary tables and 2) a set of software sockets where any author can plug in any storage mechanism.
+SQL::Statement is a small embeddable Database Management System (DBMS), this means that it provides all of the services of a simple DBMS except that instead of a persistant storage mechanism, it has two things: 1) an in-memory storage mechanism that allows you to prepare, execute, and fetch from SQL statements using temporary tables and 2) a set of software sockets where any author can plug in any storage mechanism.
 
 There are three main uses for SQL::Statement. One or another (hopefully not all) may be irrelevant for your needs: 1) to access and manipulate data in CSV, XML, and other formats 2) to build your own DBD for a new data source 3) to parse and examine the structure of SQL statements.
 
 =head1 INSTALLATION
 
-There are no prerequisites for using this as a standalone parser.  If you want to access persistant stored data, you either need to write a subclass or use one of the DBI DBD drivers.  You can install this module using CPAN.pm, CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can download the tar.gz file form CPAN and use the standard perl mantra
+There are no prerequisites for using this as a standalone parser. If you want to access persistant stored data, you either need to write a subclass or use one of the DBI DBD drivers.  You can install this module using CPAN.pm, CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can download the tar.gz file form CPAN and use the standard perl mantra:
 
  perl Makefile.PL
  make
  make test
  make install
 
-It works fine on all platforms it's been tested on.  On Windows, you can use ppm or with the mantra use nmake, dmake, or make depending on which is available.
+It works fine on all platforms it's been tested on. On Windows, you can use ppm or with the mantra use nmake, dmake, or make depending on which is available.
 
 =head1 USAGE
 
@@ -2450,7 +2448,7 @@ SQL::Statement provides the SQL engine for a number of existing DBI drivers incl
 
 These modules provide access to Comma Separated Values, Fixed Length, XML, HTML and many other kinds of text files, to Excel Spreadsheets, to BerkeleyDB and other DBM formats, and to non-traditional data sources like on-the-fly Amazon searches.
 
-If your interest is in actually accessing and manipulating persistent data, you don't really want to use SQL::Statement directly.  Instead, use L<DBI> along with one of the DBDs mentioned above.  You'll be using SQL::Statement, but under the hood of the DBD.   See L<http://dbi.perl.org> for help with DBI and see L<SQL::Statement::Syntax> for a description of the SQL syntax that SQL::Statement provides for these modules and see the documentation for whichever DBD you are using for additional details.
+If you're interested in accessing and manipulating persistent data, you may don't really want to use SQL::Statement directly, but use L<DBI> along with one of the DBDs mentioned above instead. You'll be using SQL::Statement, but under the hood of the DBD. See L<http://dbi.perl.org> for help with DBI and see L<SQL::Statement::Syntax> for a description of the SQL syntax that SQL::Statement provides for these modules and see the documentation for whichever DBD you are using for additional details.
 
 =head2 How can I use it to parse and examine the structure of SQL statements?
 

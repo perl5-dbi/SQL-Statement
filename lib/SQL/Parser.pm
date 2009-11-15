@@ -20,7 +20,7 @@ use constant
 
 use Params::Util qw(_ARRAY0);
 
-$VERSION = '1.21_5';
+$VERSION = '1.21_8';
 
 BEGIN
 {
@@ -2489,7 +2489,7 @@ sub COLUMN_NAME
         my $alias = $self->{tmp}->{is_table_alias}->{"\L$table_name"};
         $table_name = $alias if defined $alias;
         $table_name = lc $table_name unless ( $table_name =~ m/^"/ );
-        $col_name = "$table_name.$col_name";
+        $col_name = "$table_name.$col_name" if( -1 == index( $col_name, '.' ) );
     }
     return $col_name;
 }

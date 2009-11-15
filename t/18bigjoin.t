@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 87;
+use Test::More tests => 89;
 use Data::Dumper;
 
 # test 1
@@ -133,6 +133,7 @@ my %joins = (
   q{SELECT applname, appluniq, version, landscapename, nodename FROM APPL, PREC, NODE, LANDSCAPE, NM_LANDSCAPE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND NM_LANDSCAPE.obj_id=APPL.id AND NM_LANDSCAPE.obj_type=1 AND NM_LANDSCAPE.ls_id=LANDSCAPE.id} => 'ZQF^ZFQLIN^10.2.0.4^Logistic^ernie^ZQF^ZFQLIN^10.2.0.4^Logistic^bert^YRA^YRA-UX^10.2.0.2^Infrastructure^bert^YRA^YRA-UX^10.2.0.2^Infrastructure^ernie',
   q{SELECT applname, appluniq, version, surname, familyname, phone, nodename FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT WHERE appl_type='CUPS' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND APPL_CONTACT.appl_id=APPL.id AND APPL_CONTACT.contact_id=CONTACT.id AND PREC.PRECEDENCE=1} => 'PRN1^PRN1-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^piggy^PRN2^PRN2-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^kermit^PRN1^PRN1-4.B1^1.1.22^Helge^Brunft^+41-123-45678-09^samson',
   q{SELECT DISTINCT applname, appluniq, version, surname, familyname, phone, nodename FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT WHERE appl_type='CUPS' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND APPL_CONTACT.appl_id=APPL.id AND APPL_CONTACT.contact_id=CONTACT.id} => 'PRN1^PRN1-4.B1^1.1.22^Helge^Brunft^+41-123-45678-09^piggy^PRN1^PRN1-4.B1^1.1.22^Helge^Brunft^+41-123-45678-09^samson^PRN1^PRN1-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^piggy^PRN1^PRN1-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^samson^PRN2^PRN2-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^kermit^PRN2^PRN2-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^tiffy',
+  q{SELECT CONCAT('[% NOW %]') AS timestamp, applname, appluniq, version, nodename FROM APPL, PREC, NODE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id} => '[% NOW %]^ZQF^ZFQLIN^10.2.0.4^ernie^[% NOW %]^ZQF^ZFQLIN^10.2.0.4^bert^[% NOW %]^YRA^YRA-UX^10.2.0.2^bert^[% NOW %]^YRA^YRA-UX^10.2.0.2^ernie^[% NOW %]^cpan-mods^cpan-mods^8.4.1^statler^[% NOW %]^cpan-mods^cpan-mods^8.4.1^waldorf^[% NOW %]^cpan-authors^cpan-authors^8.4.1^waldorf^[% NOW %]^cpan-authors^cpan-authors^8.4.1^statler',
 );
 
 while( my ( $sql, $result ) = each(%joins) )

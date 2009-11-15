@@ -1,7 +1,8 @@
 Open to do actions for SQL::Statement 1.xx
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* None known
+* re-add support for case-sensitive column names, either as typed in query
+  or as known by the table
 
 Open to do actions for SQL::Statement 2.xx
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
