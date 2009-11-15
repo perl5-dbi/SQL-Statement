@@ -24,7 +24,7 @@ BEGIN
 
 #use locale;
 
-$VERSION  = '1.17';
+$VERSION  = '1.18_01';
 $dlm      = '~';
 $arg_num  = 0;
 $warg_num = 0;

@@ -33,6 +33,7 @@ my %opts =
          'Scalar::Util' => '1.0',
          'Params::Util' => '0.35',
          'Clone'        => '0.30',
+         'Test::Simple' => '0.86',
      },
      );
 if ($ExtUtils::MakeMaker::VERSION >= 5.43) {
