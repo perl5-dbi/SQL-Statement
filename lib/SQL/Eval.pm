@@ -7,88 +7,111 @@ require SQL::Statement;
 
 package SQL::Eval;
 
-sub new ($$) {
-    my($proto, $attr) = @_;
-    my($self) = { %$attr };
-    bless($self, (ref($proto) || $proto));
+sub new ($$)
+{
+    my ( $proto, $attr ) = @_;
+    my ($self) = {%$attr};
+    bless( $self, ( ref($proto) || $proto ) );
     $self;
 }
 
-sub param ($$;$) {
-    my($self, $paramNum, $param) = @_;
-    if (@_ == 3) {
-	$self->{'params'}->[$paramNum] = $param;
-    } else {
-	if ($paramNum < 0) {
-	    die "Illegal parameter number: $paramNum";
-	}
-	$self->{'params'}->[$paramNum];
+sub param ($$;$)
+{
+    my ( $self, $paramNum, $param ) = @_;
+    if ( @_ == 3 )
+    {
+        $self->{'params'}->[$paramNum] = $param;
+    }
+    else
+    {
+        if ( $paramNum < 0 )
+        {
+            die "Illegal parameter number: $paramNum";
+        }
+        $self->{'params'}->[$paramNum];
     }
 }
 
-sub params ($;$) {
-    my($self, $array) = @_;
-    if (@_ == 2) {
-	$self->{'params'} = $array;
-    } else {
-	$self->{'params'};
+sub params ($;$)
+{
+    my ( $self, $array ) = @_;
+    if ( @_ == 2 )
+    {
+        $self->{'params'} = $array;
+    }
+    else
+    {
+        $self->{'params'};
     }
 }
 
-
-sub table ($$) {
-    my($self, $table) = @_;
+sub table ($$)
+{
+    my ( $self, $table ) = @_;
     $self->{'tables'}->{$table};
 }
 
-sub column ($$$;$) {
-    my($self, $table, $column, $val) = @_;
-    if (@_ == 4) {
-	$self->table($table)->column($column, $val);
-    } else {
-	$self->table($table)->column($column);
+sub column ($$$;$)
+{
+    my ( $self, $table, $column, $val ) = @_;
+    if ( @_ == 4 )
+    {
+        $self->table($table)->column( $column, $val );
+    }
+    else
+    {
+        $self->table($table)->column($column);
     }
 }
-
 
 package SQL::Eval::Table;
 
-sub new ($$) {
-    my($proto, $attr) = @_;
-    my($self) = { %$attr };
-    bless($self, (ref($proto) || $proto));
+sub new ($$)
+{
+    my ( $proto, $attr ) = @_;
+    my ($self) = {%$attr};
+    bless( $self, ( ref($proto) || $proto ) );
     $self;
 }
 
-sub row ($;$) {
-    my($self, $row) = @_;
-    if (@_ == 2) {
-	$self->{'row'} = $row;
-    } else {
-	$self->{'row'};
+sub row ($;$)
+{
+    my ( $self, $row ) = @_;
+    if ( @_ == 2 )
+    {
+        $self->{'row'} = $row;
+    }
+    else
+    {
+        $self->{'row'};
     }
 }
 
-sub column ($$;$) {
-    my($self, $column, $val) = @_;
-    if (@_ == 3) {
-	$self->{'row'}->[$self->{'col_nums'}->{$column}] = $val;
-    } else {
-	$self->{'row'}->[$self->{'col_nums'}->{$column}];
+sub column ($$;$)
+{
+    my ( $self, $column, $val ) = @_;
+    if ( @_ == 3 )
+    {
+        $self->{'row'}->[ $self->{'col_nums'}->{$column} ] = $val;
+    }
+    else
+    {
+        $self->{'row'}->[ $self->{'col_nums'}->{$column} ];
     }
 }
 
-sub column_num ($$) {
-    my($self, $col) = @_;
+sub column_num ($$)
+{
+    my ( $self, $col ) = @_;
     $self->{'col_nums'}->{$col};
 }
 
-sub col_names ($) {
+sub col_names ($)
+{
     shift->{'col_names'};
 }
 
 1;
-
 
 __END__
 

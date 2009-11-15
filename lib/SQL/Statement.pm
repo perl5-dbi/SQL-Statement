@@ -13,7 +13,8 @@ use SQL::Eval;
 use SQL::Statement::RAM;
 use Scalar::Util qw(looks_like_number);
 use Params::Util qw(_INSTANCE _STRING);
-use vars qw($VERSION $new_execute $numexp $s2pops $arg_num $dlm $warg_num $DEBUG);
+use vars
+  qw($VERSION $new_execute $numexp $s2pops $arg_num $dlm $warg_num $DEBUG);
 
 BEGIN
 {
@@ -23,7 +24,7 @@ BEGIN
 
 #use locale;
 
-$VERSION  = '1.16_02';
+$VERSION  = '1.16_04';
 $dlm      = '~';
 $arg_num  = 0;
 $warg_num = 0;
@@ -566,13 +567,13 @@ sub find_join_columns
     my $self            = shift;
     my @all_cols        = @_;
     my $display_combine = 'NONE';
-    $display_combine = 'NATURAL' if $self->{"join"}->{"type"}   =~ /NATURAL/;
-    $display_combine = 'USING'   if $self->{"join"}->{"clause"} =~ /USING/;
+    $display_combine = 'NATURAL' if $self->{'join'}->{"type"}   =~ /NATURAL/;
+    $display_combine = 'USING'   if $self->{'join'}->{"clause"} =~ /USING/;
     $display_combine = 'NAMED' if !$self->{"asterisked_columns"};
     my @display_cols;
     my @keycols = ();
-    @keycols = @{ $self->{"join"}->{"keycols"} }
-      if $self->{"join"}->{"keycols"};
+    @keycols = @{ $self->{'join'}->{"keycols"} }
+      if $self->{'join'}->{"keycols"};
     @keycols = map { s/\./$dlm/; $_ } @keycols;
     my %is_key_col;
     %is_key_col = map { $_ => 1 } @keycols;
@@ -635,7 +636,7 @@ sub find_join_columns
     }
     my @shared = ();
     my %is_shared;
-    if ( $self->{"join"}->{"type"} =~ /NATURAL/ )
+    if ( $self->{'join'}->{"type"} =~ /NATURAL/ )
     {
         for my $full_col (@all_cols)
         {
@@ -650,14 +651,14 @@ sub find_join_columns
         # @shared = map {s/^[^_]*_(.+)$/$1/; $_} @keycols;
         # @shared = grep !$is_shared{$_}++, @shared
     }
-    $self->{"join"}->{"shared_cols"}  = \@shared;
-    $self->{"join"}->{"display_cols"} = \@display_cols;
+    $self->{'join'}->{"shared_cols"}  = \@shared;
+    $self->{'join'}->{"display_cols"} = \@display_cols;
 }
 
 sub JOIN
 {
     my ( $self, $data, $params ) = @_;
-    if ( $self->{"join"}->{"type"} =~ /RIGHT/ )
+    if ( $self->{'join'}->{"type"} =~ /RIGHT/ )
     {
         my @tables = $self->tables;
         $self->{"tables"}->[0] = $tables[1];
@@ -667,12 +668,12 @@ sub JOIN
     return undef unless $eval;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
-    if (     $self->{"join"}->{"keycols"}
-         and $self->{"join"}->{"table_order"}
-         and scalar @{ $self->{"join"}->{"table_order"} } == 0 )
+    if (     $self->{'join'}->{"keycols"}
+         and $self->{'join'}->{"table_order"}
+         and scalar @{ $self->{'join'}->{"table_order"} } == 0 )
     {
-        $self->{"join"}->{"table_order"} =
-          $self->order_joins( $self->{"join"}->{"keycols"} );
+        $self->{'join'}->{"table_order"} =
+          $self->order_joins( $self->{'join'}->{"keycols"} );
     }
     my @tables = $self->tables;
 
@@ -695,9 +696,9 @@ sub JOIN
     # JOIN THE TABLES
     # *IN ORDER *BY JOINS*
     #
-    @tables = @{ $self->{"join"}->{"table_order"} }
-      if $self->{"join"}->{"table_order"}
-          and $self->{"join"}->{"type"} !~ /RIGHT/;
+    @tables = @{ $self->{'join'}->{"table_order"} }
+      if $self->{'join'}->{"table_order"}
+          and $self->{'join'}->{"type"} !~ /RIGHT/;
     my $tableA;
     my $tableB;
     $tableA = shift @tables;
@@ -712,7 +713,7 @@ sub JOIN
 
     for my $next_table (@tables)
     {
-        $tableAobj = $self->{"join"}->{"table"};
+        $tableAobj = $self->{'join'}->{"table"};
         $tableBobj = $eval->table($next_table);
         $tableBobj->{"NAME"} ||= $next_table;
         $self->join_2_tables( $data, $params, $tableAobj, $tableBobj );
@@ -727,23 +728,23 @@ sub join_2_tables
     my $tableA     = $tableAobj->{"NAME"};
     my $tableB     = $tableBobj->{"NAME"};
     my $share_type = 'IMPLICIT';
-    $share_type = 'NATURAL' if $self->{"join"}->{"type"}   =~ /NATURAL/;
-    $share_type = 'USING'   if $self->{"join"}->{"clause"} =~ /USING/;
-    $share_type = 'ON'      if $self->{"join"}->{"clause"} =~ /ON/;
+    $share_type = 'NATURAL' if -1 != index( $self->{'join'}->{"type"}, 'NATURAL' );
+    $share_type = 'USING'   if -1 != index( $self->{'join'}->{"clause"}, 'USING' );
+    $share_type = 'ON'      if -1 != index( $self->{'join'}->{"clause"}, 'ON' );
     $share_type = 'USING'
       if $share_type eq 'ON'
-          and scalar @{ $self->{join}->{keycols} } == 1;
+          and scalar @{ $self->{'join'}->{keycols} } == 1;
     my $join_type = 'INNER';
-    $join_type = 'LEFT'  if $self->{"join"}->{"type"} =~ /LEFT/;
-    $join_type = 'RIGHT' if $self->{"join"}->{"type"} =~ /RIGHT/;
-    $join_type = 'FULL'  if $self->{"join"}->{"type"} =~ /FULL/;
+    $join_type = 'LEFT'  if -1 != index( $self->{'join'}->{"type"}, 'LEFT' );
+    $join_type = 'RIGHT' if -1 != index( $self->{'join'}->{"type"}, 'RIGHT' );
+    $join_type = 'FULL'  if -1 != index( $self->{'join'}->{"type"}, 'FULL' );
     my @colsA = @{ $tableAobj->col_names };
     my @colsB = @{ $tableBobj->col_names };
     my %isunqualA;
     my %isunqualB = map { $_ => 1 } @colsB;
     my @shared_cols;
     my %is_shared;
-    my @tmpshared = @{ $self->{"join"}->{"shared_cols"} };
+    my @tmpshared = @{ $self->{'join'}->{"shared_cols"} };
 
     if ( $share_type eq 'ON' )
     {
@@ -761,7 +762,11 @@ sub join_2_tables
     {
         for my $c (@colsA)
         {
-            $c =~ s/^[^$dlm]+$dlm(.+)$/$1/ if $tableA eq "${dlm}tmp";
+            if( $tableA eq "${dlm}tmp" )
+            {
+                # $c =~ s/^[^$dlm]+$dlm(.+)$/$1/;
+                substr( $c, 0, index( $c, $dlm ) + 1 ) = '';
+            }
             if ( $isunqualB{$c} )
             {
                 push @shared_cols, $tableA . $dlm . $c;
@@ -772,11 +777,12 @@ sub join_2_tables
     my @all_cols = map { $tableA . $dlm . $_ } @colsA;
     @all_cols = ( @all_cols, map { $tableB . $dlm . $_ } @colsB );
     @all_cols = map { s/${dlm}tmp$dlm//; $_; } @all_cols;
+    my $colrx = qr/^([^$dlm]+)$dlm(.+)$/;
     if ( $tableA eq "${dlm}tmp" )
     {
         %isunqualA =
           map { $_ => 1 }
-          map { my ( $t, $c ) = $_ =~ /^([^$dlm]+)$dlm(.+)$/; $c } @colsA;
+          map { my ( $t, $c ) = $_ =~ $colrx; $c } @colsA;
 
         #@colsA = map {s/^[^_]+_(.+)$/$1/; $_; } @colsA;
     }
@@ -794,12 +800,12 @@ sub join_2_tables
     my %iscolA = map { $_ => 1 } @colsA;
     my %iscolB = map { $_ => 1 } @colsB;
     my %whichqual =
-      map { my ( $t, $c ) = $_ =~ /^([^$dlm]+)$dlm(.+)$/; $c => $_ }
+      map { my ( $t, $c ) = $_ =~ $colrx; $c => $_ }
       ( @colsA, @colsB );
     my @blankA = map { undef } @colsA;
     my @blankB = map { undef } @colsB;
 
-    if ( $share_type =~ /^(ON|IMPLICIT)$/ )
+    if ( $share_type eq 'ON' || $share_type eq 'IMPLICIT' )
     {
         while (@tmpshared)
         {
@@ -842,7 +848,7 @@ sub join_2_tables
         push @$posB, $col_numsB->{$f} if $iscolB{$f};
     }
 
-    #use mylibs; zwarn $self->{join};
+    #use mylibs; zwarn $self->{'join'};
     # CYCLE THROUGH TABLE B, CREATING A HASH OF ITS VALUES
     #
     my $hashB = {};
@@ -885,8 +891,9 @@ sub join_2_tables
 
     # ADD THE LEFTOVER B ROWS IF NEEDED
     #
-    if ( $join_type =~ /(FULL|UNION)/ )
+    if ( $join_type eq 'FULL' || $join_type eq 'UNION' )
     {
+        my $st_is_NaturalOrUsing = $share_type eq 'NATURAL' || $share_type eq 'USING';
         while ( my ( $k, $v ) = each %$hashB )
         {
             next if $visited{$k};
@@ -898,12 +905,11 @@ sub join_2_tables
                 @{$rowhash}{@colsB} = @$rowB;
                 for my $c (@all_cols)
                 {
-                    my ( $table, $col ) = $c =~ /^([^$dlm]+)$dlm(.+)/;
+                    my ( $table, $col ) = split( $dlm, $c, 2);
                     push @arrayA, undef          if $table eq $tableA;
                     push @tmpB,   $rowhash->{$c} if $table eq $tableB;
                 }
-                @arrayA[@$posA] = @tmpB[@$posB]
-                  if $share_type =~ /(NATURAL|USING)/;
+                @arrayA[@$posA] = @tmpB[@$posB] if( $st_is_NaturalOrUsing );
                 my @newRow = ( @arrayA, @tmpB );
                 push @$joined_table, \@newRow;
             }
@@ -912,10 +918,10 @@ sub join_2_tables
     undef $hashB;
     undef $tableAobj;
     undef $tableBobj;
-    $self->{"join"}->{"table"} =
+    $self->{'join'}->{"table"} =
       SQL::Statement::TempTable->new( $dlm . 'tmp',
                                       \@all_cols,
-                                      $self->{"join"}->{"display_cols"},
+                                      $self->{'join'}->{"display_cols"},
                                       $joined_table );
 }
 
@@ -941,12 +947,12 @@ sub SELECT ($$)
     return $self->run_functions( $data, $params )
       if @{ $self->{table_names} } == 0;
     my ( $eval, $all_cols, $tableName, $table );
-    if ( defined $self->{"join"} )
+    if ( defined $self->{'join'} )
     {
         return $self->JOIN( $data, $params )
-          if !defined $self->{"join"}->{"table"};
+          if !defined $self->{'join'}->{'table'};
         $tableName = $dlm . 'tmp';
-        $table     = $self->{"join"}->{"table"};
+        $table     = $self->{'join'}->{'table'};
     }
     else
     {
@@ -955,7 +961,7 @@ sub SELECT ($$)
         $eval->params($params);
         $self->verify_columns( $data, $eval, $all_cols );
         $tableName = $self->tables(0)->name();
-        $table     = $eval->table($tableName);
+        $table     = $eval->table("$tableName");
     }
     my $rows = [];
 
@@ -972,7 +978,7 @@ sub SELECT ($$)
     #
     #	lets just disable this and see where it leads...
     #
-    #    if ($self->{"join"}) {
+    #    if ($self->{'join'}) {
     #          @names = @{ $table->col_names };
     #          for my $col(@names) {
     #             $columns{$tableName}->{"$col"} = $numFields++;
@@ -982,13 +988,13 @@ sub SELECT ($$)
     #    else {
     foreach my $column ( $self->columns() )
     {
-        if ( ref($column) eq 'SQL::Statement::Param' )
+        if ( _INSTANCE( $column, 'SQL::Statement::Param' ) )
         {
             my $val = $eval->param( $column->num() );
-            if ( $val =~ /(.*)\.(.*)/ )
+            if ( -1 != ( my $idx = index( $val, "." ) ) )
             {
-                $col = $1;
-                $tbl = $2;
+                $col = substr( $val, 0, $idx );
+                $tbl = substr( $val, $idx + 1 );
             }
             else
             {
@@ -1000,13 +1006,14 @@ sub SELECT ($$)
         {
             ( $col, $tbl ) = ( $column->name(), $column->table() );
         }
+
         if ( $col eq '*' )
         {
             $ar = $table->col_names();
             for ( $i = 0; $i < @$ar; $i++ )
             {
                 my $cName = $ar->[$i];
-                $columns{$tbl}->{"$cName"} = $numFields++;
+                $columns{"$tbl"}->{"$cName"} = $numFields++;
                 $c =
                   SQL::Statement::Column->new(
                                                {
@@ -1021,7 +1028,7 @@ sub SELECT ($$)
         else
         {
             $tbl ||= '';
-            $columns{$tbl}->{"$col"} = $numFields++;
+            $columns{$tbl}->{$col} = $numFields++;
 
             #
             # handle functions in select list
@@ -1037,7 +1044,7 @@ sub SELECT ($$)
               ? $table->column_num( $tbl . $dlm . $col )
               : $table->column_num($col);
 
-            if ( !defined $cnum )
+            if ( !defined $cnum || $column->{function} )
             {
                 $funcs{$col} = $column->{function};
                 $cnum = $col;
@@ -1052,7 +1059,7 @@ sub SELECT ($$)
     #    }
     $cList = [] unless defined $cList;
     $self->{'NAME'} = \@names;
-    if ( $self->{"join"} )
+    if ( $self->{'join'} )
     {
         @{ $self->{'NAME'} } = map { s/^[^$dlm]+$dlm//; $_ } @names;
     }
@@ -1070,15 +1077,15 @@ sub SELECT ($$)
         {
             ( $col, $tbl ) = ( $column->column(), $column->table() );
             $tbl ||= $self->colname2table($col);
-            $ordered_cols{$tbl}->{"$col"} = 1;
+            $ordered_cols{$tbl}->{$col} = 1;
         }
         while ( my ( $tbl, $cref ) = each %columns )
         {
             foreach my $col ( keys %$cref )
             {
-                if ( !$ordered_cols{$tbl}->{"$col"} )
+                if ( !$ordered_cols{$tbl}->{$col} )
                 {
-                    $ordered_cols{$tbl}->{"$col"} = 1;
+                    $ordered_cols{$tbl}->{$col} = 1;
                     push(
                           @order_by,
                           SQL::Statement::Order->new(
@@ -1107,31 +1114,32 @@ sub SELECT ($$)
         my $i = -1;
         foreach my $column (@order_by)
         {
-            $i++;
+            ++$i;
             ( $col, $tbl ) = ( $column->column(), $column->table() );
             my $pos;
-            if ( $self->{"join"} )
+            if ( $self->{'join'} )
             {
                 $tbl ||= $self->colname2table($col);
-                $pos = $table->column_num( $tbl . "$dlm$col" );
+                $pos = $table->column_num( "$tbl$dlm$col" );
                 if ( !defined $pos )
                 {
                     $tbl = $self->colname2table($col);
-                    $pos = $table->column_num( $tbl . "_$col" );
+                    $pos = $table->column_num( $tbl . '_' . $col );
                 }
             }
             $tbl ||= $self->colname2table($col);
-            next if exists( $columns{$tbl}->{"$col"} );
+            next if exists( $columns{$tbl}->{$col} );
             $pos = $table->column_num($col) unless defined $pos;
             push( @extraSortCols, $pos );
-            $columns{$tbl}->{"$col"} = $nFields++;
+            $columns{$tbl}->{$col} = $nFields++;
         }
     }
-    my $e = $eval;
-    if ( $self->{"join"} )
-    {
-        $e = $table;
-    }
+    my $e = $self->{'join'} ? $table : $eval;
+
+    #if ( $self->{'join'} )
+    #{
+    #    $e = $table;
+    #}
 
     # begin count for limiting if there's a limit clasue and no order clause
     #
@@ -1151,7 +1159,9 @@ sub SELECT ($$)
             @extraSortCols = () unless @extraSortCols;
             my @row =
               map {
-                ( defined $_ and /^\d+$/ and defined $array->[$_] )
+                (      defined($_)
+                   and looks_like_number($_)
+                   and defined( $array->[$_] ) )
                   ? $array->[$_]
                   : $self->{func_vals}->{$_};
               } ( @$cList, @extraSortCols );
@@ -1161,10 +1171,12 @@ sub SELECT ($$)
             # or if there's a limit clause without order clause
             # and the limit has been reached
             #
-            return ( scalar(@$rows), $numFields, $rows )
-              if $self->{fetched_from_key}
-                  or
-                  ( defined($limit_count) and $limit_count >= $self->limit );
+            if ( $self->{fetched_from_key}
+                 or ( defined($limit_count) and $limit_count >= $self->limit )
+               )
+            {
+                return ( scalar(@$rows), $numFields, $rows );
+            }
         }
     }
     if (@order_by)
@@ -1172,13 +1184,13 @@ sub SELECT ($$)
         my @sortCols = map {
             my $col = $_->column();
             my $tbl = $_->table();
-            if ( $self->{"join"} )
+            if ( $self->{'join'} )
             {
                 $tbl = 'shared' if $table->is_shared($col);
                 $tbl ||= $self->colname2table($col);
             }
             $tbl ||= $self->colname2table($col);
-            ( $columns{$tbl}->{"$col"}, $_->desc() )
+            ( $columns{$tbl}->{$col}, $_->desc() )
         } @order_by;
 
         #die "\n<@sortCols>@order_by\n";
@@ -1192,35 +1204,21 @@ sub SELECT ($$)
                 $desc   = $sortCols[ $i++ ];
                 $c      = $a->[$colNum];
                 $d      = $b->[$colNum];
-                if ( !defined($c) )
+                if ( !defined($c) || !defined($d) )
                 {
-                    $result = defined $d ? -1 : 0;
-                }
-                elsif ( !defined($d) )
-                {
-                    $result = 1;
+                    $result = defined($c) - defined($d);
                 }
                 elsif ( looks_like_number($c) && looks_like_number($d) )
                 {
-
-                    #	        } elsif ( $c =~ $numexp && $d =~ $numexp ) {
                     $result = ( $c <=> $d );
                 }
                 else
                 {
-                    if ( $self->{"case_fold"} )
-                    {
-                        $result = lc $c cmp lc $d || $c cmp $d;
-                    }
-                    else
-                    {
-                        $result = $c cmp $d;
-                    }
+                    $result = $self->{case_fold}
+                      ? lc($c) cmp lc($d) || $c cmp $d
+                      : $c cmp $d;
                 }
-                if ($desc)
-                {
-                    $result = -$result;
-                }
+                $result = -$result if ($desc);
             } while ( !$result && $i < @sortCols );
             $result;
         };
@@ -1280,11 +1278,11 @@ sub SELECT ($$)
     #
     my $has_computed_columns = scalar keys %{ $self->{computed_column} }
       if $self->{computed_column};
-    if (     $self->{"join"}
+    if (     $self->{'join'}
          and $self->{asterisked_columns}
          and !$has_computed_columns )
     {
-        my @final_cols = @{ $self->{"join"}->{"display_cols"} };
+        my @final_cols = @{ $self->{'join'}->{"display_cols"} };
         @final_cols = map { $table->column_num($_) } @final_cols;
         my @names = map { $self->{"NAME"}->[$_] } @final_cols;
         $numFields = scalar @names;
@@ -1296,15 +1294,15 @@ sub SELECT ($$)
             @{ $rows->[$i] } = @$row[@final_cols];
         }
     }
-    elsif ( $self->{"join"} and $has_computed_columns )
+    elsif ( $self->{'join'} and $has_computed_columns )
     {
         my @final_cols =
           map { $table->column_num($_) }
-          @{ $self->{"join"}->{"display_cols"} };
+          @{ $self->{'join'}->{'display_cols'} };
         my %col_map = ();
 
-        $col_map{ $self->{NAME}[$_] } = $_
-          foreach ( 0 .. $#{ $self->{NAME} } );
+        $col_map{ $self->{'NAME'}[$_] } = $_
+          foreach ( 0 .. $#{ $self->{'NAME'} } );
 
         foreach ( 0 .. $#final_cols )
         {
@@ -1314,7 +1312,7 @@ sub SELECT ($$)
             #    must be computed column, lookup its position in
             #    row
             #
-            my $col = $self->{join}{display_cols}[$_];
+            my $col = $self->{'join'}{'display_cols'}[$_];
             $col = substr( $col, 1 )
               if ( substr( $col, 0, 1 ) eq $dlm );
             $final_cols[$_] = $col_map{$col};
@@ -1367,12 +1365,9 @@ sub SELECT ($$)
                     my $final = $final_row[$sf_index];
                     $final++ if $name =~ /COUNT/;
 
-                    #                $final += $v  if $name =~ /SUM|AVG/;
                     if ( $name =~ /SUM|AVG/ )
                     {
                         return $self->do_err("Can't use $name on a string!")
-
-                          #                      unless $v =~ $numexp;
                           unless looks_like_number($v);
                         $final += $v;
                     }
@@ -1505,7 +1500,7 @@ sub eval_where
     my ( $self, $eval, $tname, $rowary ) = @_;
     my $funcs = $_[4] || ();
     my $col_nums;
-    if( $self->{join} )
+    if ( $self->{'join'} )
     {
         $col_nums = $eval->{col_nums};
     }
@@ -1518,23 +1513,23 @@ sub eval_where
     ####################################
     # Dan Wright
     ####################################
-    my $rowhash;
+    my %rowhash;
     while ( my ( $name, $number ) = each %$col_nums )
     {
-        $rowhash->{$name} = $rowary->[$number];
+        $rowhash{$name} = $rowary->[$number];
     }
     ####################################
     #my($f,$fval);
     while ( my ( $f, $fval ) = each %$funcs )
     {
-        $rowhash->{$f} = $self->{func_vals}->{$f} =
-          $self->get_row_value( $fval, $eval, $rowhash );
+        $rowhash{$f} = $self->{func_vals}->{$f} =
+          $self->get_row_value( $fval, $eval, \%rowhash );
     }
 
     #my @truths;
     $arg_num = 0;    # set placeholder start
     my $where = $self->{"where_clause"} || return 1;
-    my $match = $self->process_predicate( $where, $eval, $rowhash );
+    my $match = $self->process_predicate( $where, $eval, \%rowhash );
 
     # we set the $new_execute flag to 0 to allow reuse;
     # it's set to 1 at the start of execute()
@@ -1651,7 +1646,6 @@ sub process_predicate
               ? $s2pops->{$op}->{'n'}
               : $s2pops->{$op}->{'s'};
         }
-
 
         # if (ref $eval !~ /TempTable/) {
         my $table_type = ref($eval);
@@ -1926,6 +1920,22 @@ sub verify_columns
     @duplicates = map { s/[^.]*\.(.*)/$1/; $_ } @$all_cols;
     @duplicates = grep( $is_member{$_}++, @duplicates );
     %is_duplicate = map { $_ => 1 } @duplicates;
+    if ( my $join = $self->{'join'} )
+    {
+        if ( $join->{type} =~ /NATURAL/i )
+        {
+            %is_duplicate = ();
+        }
+
+        # the following should be probably conditioned on an option,
+        # but I don't know which --BW
+        elsif ( 'USING' eq $join->{clause} )
+        {
+            my @keys = @{ $join->{keycols} };
+            delete @is_duplicate{@keys};
+            @short_exists{@keys} = ( ( $self->tables )[0]->{name} ) x @keys;
+        }
+    }
     my $is_fully;
     my $i          = -1;
     my $num_tables = $self->tables;
@@ -2163,9 +2173,12 @@ sub get_row_value
     # we use the existing S::S::Func object
     #
     use SQL::Statement::Util;
+
     # FIXME are functions case sensitive and why aren't the singletons stored
     #       in upper case or lower case only?
-    if ( $type eq 'function' and ( uc($structure->{name}) !~ m/(?:TRIM|SUBSTRING)/ ) )
+    if (     $type eq 'function'
+         and $structure->{name} =~ /[A-Z]/
+         and ( uc( $structure->{name} ) !~ m/(?:TRIM|SUBSTRING)/ ) )
     {
         $self->{loaded_function}->{ $structure->{name} } ||=
           SQL::Statement::Util::Function->new($structure);
@@ -2216,7 +2229,7 @@ sub get_row_value
             {
                 ( $tbl, $val ) = ( $1, $2 );
             }
-            if ( $self->{"join"} )
+            if ( $self->{'join'} )
             {
 
                 # $tbl = 'shared' if $eval->is_shared($val);
@@ -2228,7 +2241,7 @@ sub get_row_value
         /placeholder/ && do
         {
             my $val;
-            if ( $self->{"join"} or !$eval or ref($eval) =~ /Statement$/ )
+            if ( $self->{'join'} or !$eval or ref($eval) =~ /Statement$/ )
             {
                 $val = $self->params($arg_num);
             }
@@ -2258,7 +2271,7 @@ sub get_row_value
             {
                 my $val = $self->get_row_value( $vals[$i], $eval, $rowhash );
                 return $self->do_err(
-                           qq{Bad numeric expression '$vals[$i]->{"value"}'!})
+                           qq~Bad numeric expression '$vals[$i]->{"value"}'!~)
                   unless defined $val and looks_like_number($val);
                 $str =~ s/\?$i\?/$val/;
             }
@@ -2344,13 +2357,12 @@ sub columns
 
 sub colname2colnum
 {
-    my $self    = shift;
-    my $colname = shift;
-    if ( !$self->{"columns"} ) { return undef; }
-    for my $i ( 0 .. $#{ $self->{"columns"} } )
+    if ( !$_[0]->{"columns"} ) { return undef; }
+    for my $i ( 0 .. $#{ $_[0]->{"columns"} } )
     {
-        return $i if $self->{columns}->[$i]->name eq $colname;
+        return $i if $_[0]->{columns}->[$i]->name eq $_[1];
     }
+    return undef;
 }
 
 sub colname2table
@@ -2401,48 +2413,28 @@ sub verify_order_cols
     #use mylibs; zwarn $self->{"sort_spec_list"}; exit;
 }
 
-sub limit ($)  { shift->{limit_clause}->{limit}; }
-sub offset ($) { shift->{limit_clause}->{'offset'}; }
+sub limit ($)  { $_[0]->{'limit_clause'}->{'limit'}; }
+sub offset ($) { $_[0]->{'limit_clause'}->{'offset'}; }
 
 sub order
 {
-    my $self  = shift;
-    my $o_num = shift;
-    if ( !defined $self->{"sort_spec_list"} ) { return (); }
-    if ( defined $o_num )
+    if ( !defined $_[0]->{'sort_spec_list'} ) { return (); }
+    if ( looks_like_number( $_[1] ) )
     {
-        return $self->{"sort_spec_list"}->[$o_num];
-    }
-    if (wantarray)
-    {
-        return @{ $self->{"sort_spec_list"} };
-    }
-    else
-    {
-        return scalar @{ $self->{"sort_spec_list"} };
+        return $_[0]->{'sort_spec_list'}->[$_[1]];
     }
 
+    return wantarray ? @{ $_[0]->{'sort_spec_list'} } : scalar @{ $_[0]->{'sort_spec_list'} };
 }
 
 sub tables
 {
-    my $self      = shift;
-    my $table_num = shift;
-    if ( defined $table_num )
+    if ( looks_like_number( $_[1] ) )
     {
-        return $self->{"tables"}->[$table_num];
-    }
-    if (wantarray)
-    {
-        return @{ $self->{"tables"} };
-    }
-    else
-    {
-
-        #        return scalar @{ $self->{"table_names"} };
-        return scalar @{ $self->{"tables"} };
+        return $_[0]->{'tables'}->[$_[1]];
     }
 
+    return wantarray ? @{ $_[0]->{'tables'} } : scalar @{ $_[0]->{'tables'} };
 }
 
 sub order_joins
@@ -2456,7 +2448,7 @@ sub order_joins
     }
     my @tmp = @new_keycols;
     @tmp = map { s/\./$dlm/g; $_ } @tmp;
-    $self->{"join"}->{"keycols"} = \@tmp;
+    $self->{'join'}->{"keycols"} = \@tmp;
     @$links = map { s/^(.+)\..*$/$1/; $_; } @new_keycols;
     my @all_tables;
     my %relations;
@@ -2494,7 +2486,7 @@ sub order_joins
     }
     return $self->do_err("Unconnected tables in equijoin statement!")
       if @order < @all_tables;
-    $self->{"join"}->{"table_order"} = \@order;
+    $self->{'join'}->{"table_order"} = \@order;
     return \@order;
 }
 
@@ -2957,6 +2949,10 @@ If you're interested in helping develop SQL::Statement or want to use it with yo
 =item *
 
 currently we treat NULL and '' as the same - eventually fix
+
+=item *
+
+No nested C-style comments allowed as SQL99 says
 
 =back
 

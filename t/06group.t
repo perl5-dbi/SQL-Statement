@@ -4,7 +4,7 @@ use strict;
 use Test::More;
 use lib  qw( ../lib );
 use vars qw($DEBUG);
-eval { require DBI; require DBD::File; require IO::File; };
+eval { require DBI; require DBD::File; };
 if ($@) {
         plan skip_all => "No DBI or DBD::File available";
 }
@@ -30,7 +30,6 @@ $sth=$dbh->prepare("
 ");
 ok('West~Los Angeles~1500~1000^West~San Diego~500~500^East~Boston~700~700^'
  eq query2str($sth),'GROUP BY several columns');
-
 
 sub query2str {
     my($sth)=@_;

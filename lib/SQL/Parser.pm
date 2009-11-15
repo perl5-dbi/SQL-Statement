@@ -17,7 +17,7 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-$VERSION = '1.14_01';
+$VERSION = '1.14_02';
 
 BEGIN
 {
@@ -83,10 +83,9 @@ sub parse
 
     # SQL STYLE
     #
-    if ( $sql =~ /^\s*--(.*)(\n|$)/ )
+    if ( $sql =~ s/(--.*)(\n|$)/$2/ )
     {
         $self->{"comment"} = $1;
-        return 1;
     }
     ################################################################
 
@@ -426,7 +425,7 @@ sub DELETE
     $self->{"struct"}->{"command"} = 'DELETE';
     $str =~ s/^DELETE\s+FROM\s+/DELETE /i;    # Make FROM optional
     my ( $table_name, $where_clause ) = $str =~ /^DELETE (\S+)(.*)$/i;
-    return $self->do_err( 'Incomplete DELETE statement!' ) if !$table_name;
+    return $self->do_err('Incomplete DELETE statement!') if !$table_name;
     return undef unless $self->TABLE_NAME($table_name);
     $self->{"tmp"}->{"is_table_name"}   = { $table_name => 1 };
     $self->{"struct"}->{"table_names"}  = [$table_name];
@@ -548,14 +547,14 @@ sub EXPLICIT_JOIN
     return undef unless $remainder;
     my ( $tableA, $tableB, $keycols, $jtype, $natural );
     if ( $remainder =~
-         /^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|UNION|JOIN)(.+)$/s )
+         /^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|UNION|JOIN)(.+)$/is )
     {
         $tableA    = $1;
         $remainder = $2 . $3;
     }
     else
     {
-        ( $tableA, $remainder ) = $remainder =~ /^(\S+) (.*)/;
+        ( $tableA, $remainder ) = $remainder =~ /^(\S+) (.*)/i;
     }
     if ( $remainder =~ /^NATURAL (.+)/ )
     {
@@ -563,18 +562,18 @@ sub EXPLICIT_JOIN
         $natural++;
         $remainder = $1;
     }
-    if ( $remainder =~ /^(INNER|LEFT|RIGHT|FULL|UNION) JOIN (.+)/ )
+    if ( $remainder =~ /^(INNER|LEFT|RIGHT|FULL|UNION) JOIN (.+)/i )
     {
-        $jtype = $self->{"struct"}->{join}->{"clause"} = $1;
+        $jtype = $self->{"struct"}->{join}->{"clause"} = uc($1);
         $remainder = $2;
-        $jtype = "$jtype OUTER" if $jtype !~ /INNER|UNION/;
+        $jtype = "$jtype OUTER" if $jtype !~ /INNER|UNION/i;
     }
-    if ( $remainder =~ /^(LEFT|RIGHT|FULL) OUTER JOIN (.+)/ )
+    if ( $remainder =~ /^(LEFT|RIGHT|FULL) OUTER JOIN (.+)/i )
     {
-        $jtype = $self->{"struct"}->{join}->{"clause"} = $1 . " OUTER";
+        $jtype = $self->{"struct"}->{join}->{"clause"} = uc($1) . " OUTER";
         $remainder = $2;
     }
-    if ( $remainder =~ /^JOIN (.+)/ )
+    if ( $remainder =~ /^JOIN (.+)/i )
     {
         $jtype                                = 'INNER';
         $self->{"struct"}->{join}->{"clause"} = 'DEFAULT INNER';
@@ -582,7 +581,7 @@ sub EXPLICIT_JOIN
     }
     if ( $self->{"struct"}->{join} )
     {
-        if ( $remainder && $remainder =~ /^(.+?) USING \(([^\)]+)\)(.*)/ )
+        if ( $remainder && $remainder =~ /^(.+?) USING \(([^\)]+)\)(.*)/i )
         {
             $self->{"struct"}->{join}->{"clause"} = 'USING';
             $tableB = $1;
@@ -590,7 +589,7 @@ sub EXPLICIT_JOIN
             $remainder = $3;
             @$keycols = split /,/, $keycolstr;
         }
-        if ( $remainder && $remainder =~ /^(.+?) ON (.+)/ )
+        if ( $remainder && $remainder =~ /^(.+?) ON (.+)/i )
         {
             $self->{"struct"}->{join}->{"clause"} = 'ON';
             $tableB = $1;
@@ -598,7 +597,7 @@ sub EXPLICIT_JOIN
             $remainder = $3;
             if ( $keycolstr =~ / OR /i )
             {
-                return $self->do_err( qq~Can't use OR in an ON clause!~, 1 );
+                return $self->do_err( qq{Can't use OR in an ON clause!}, 1 );
             }
             @$keycols = split / AND /i, $keycolstr;
 
@@ -654,7 +653,7 @@ sub EXPLICIT_JOIN
         if ( $natural and $keycols )
         {
             return $self->do_err(
-                           qq~Can't use NATURAL with a USING or ON clause!~ );
+                            qq~Can't use NATURAL with a USING or ON clause!~);
         }
         return undef unless $self->TABLE_NAME_LIST("$tableA,$tableB");
         $self->{"struct"}->{join}->{"type"} = $jtype;
@@ -739,7 +738,7 @@ sub UPDATE
     my ( $self, $str ) = @_;
     $self->{"struct"}->{"command"} = 'UPDATE';
     my ( $table_name, $remainder ) = $str =~ /^UPDATE (.+?) SET (.+)$/i;
-    return $self->do_err( 'Incomplete UPDATE clause' )
+    return $self->do_err('Incomplete UPDATE clause')
       if !$table_name
           or !$remainder;
     return undef unless $self->TABLE_NAME($table_name);
@@ -1038,7 +1037,7 @@ sub CREATE
                     if ( $has_c{$cur_c}++ )
                     {
                         return $self->do_err(
-                                qq~Duplicate column constraint: '$constr'!~ );
+                                 qq~Duplicate column constraint: '$constr'!~);
                     }
                     if ( $cur_c eq 'PRIMARY_KEY' and $primary_defined++ )
                     {
@@ -1255,7 +1254,7 @@ sub SELECT_LIST
         #	keyword that might be used in a function
         #
         my ( $fld, $alias ) =
-            ( $col=~/^(.+?)\s+(?:AS\s+)?([A-Z]\w*|\?QI\d+\?)$/i )
+            ( $col =~ /^(.+?)\s+(?:AS\s+)?([A-Z]\w*|\?QI\d+\?)$/i )
           ? ( $1, $2 )
           : ( $col, undef );
         $col = $fld;
@@ -1311,10 +1310,13 @@ sub SELECT_LIST
                     return undef unless $newcol = $self->COLUMN_NAME($col);
                 }
             }
-            if (!$alias and uc($col) eq $newcol) {
+            if ( !$alias and uc($col) eq $newcol )
+            {
                 $newalias = $col;
-            } elsif(!$newalias) {
-                $newalias = $self->COLUMN_NAME($alias||$newcol);
+            }
+            elsif ( !$newalias )
+            {
+                $newalias = $self->COLUMN_NAME( $alias || $newcol );
             }
             $self->{struct}->{ORG_NAME}->{$newcol} = $newalias;
             $aliases{ uc $newalias } = $newcol;
@@ -1327,7 +1329,8 @@ sub SELECT_LIST
             if ( !$self->{struct}->{col_obj}->{$newcol} )
             {
                 $self->{struct}->{col_obj}->{ uc $newcol } =
-                  SQL::Statement::Util::Column->new( uc $newcol, [], $newalias );
+                  SQL::Statement::Util::Column->new( uc $newcol, [],
+                                                     $newalias );
 
             }
         }
@@ -1449,7 +1452,7 @@ sub SORT_SPEC_LIST
         else
         {
             return $self->do_err(
-                               'Junk after column name in ORDER BY clause!' );
+                                'Junk after column name in ORDER BY clause!');
         }
         return undef if !( $newcol = $self->COLUMN_NAME($newcol) );
         if ( $newcol =~ /^(.+)\..+$/s )
@@ -2028,7 +2031,7 @@ sub LITERAL_LIST
     {
         my $val = $self->ROW_VALUE($tok);
         return $self->do_err(
-                           qq('$tok' is not a valid value or is not quoted!) )
+                            qq('$tok' is not a valid value or is not quoted!))
           unless $val;
         push @values, $val;
     }
@@ -2522,7 +2525,7 @@ sub ROW_VALUE
          and !$self->{"tmp"}->{"is_table_alias"}->{"\L$1"} )
     {
         return $self->do_err(
-                           "Table '$1' in WHERE clause not in FROM clause!" );
+                            "Table '$1' in WHERE clause not in FROM clause!");
     }
 
     #    push @{ $self->{"struct"}->{"where_cols"}},$str
@@ -2874,7 +2877,7 @@ sub order_joins
             push @tables, $t if $visited{$t}++ < @all_tables;
         }
     }
-    return $self->do_err( "Unconnected tables in equijoin statement!" )
+    return $self->do_err("Unconnected tables in equijoin statement!")
       if @order < @all_tables;
     return \@order;
 }

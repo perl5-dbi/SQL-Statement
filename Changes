@@ -1,5 +1,24 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.16_04, released 4 January, 2009
+------------------------------------------
+
+* added tests to prove valid quoting (most of them fail)
+* Reformat the source
+* add some (profiled) tweaks as removing useless regex to speed up SELECT
+* Fixed Bugs:
+  * 14217	Does not correctly handle SQL statements with comments
+  * 15686	Join syntax is case-sensitive, and common columns in natural
+            joins are "ambiguous" [patch]
+  * 13080	Cannot update a field based on its previous value
+  * 26058	functions on computed columns aliased to the underlying column
+            name are not called
+
+Version 1.16_03, released 1 January, 2009
+------------------------------------------
+
+* removed *.orig and *.rej relicts
+
 Version 1.16_02, released 1 January, 2009
 ------------------------------------------
 
