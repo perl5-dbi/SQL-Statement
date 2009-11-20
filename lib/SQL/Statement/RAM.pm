@@ -3,7 +3,7 @@ package SQL::Statement::RAM;
 ############################
 
 use vars qw($VERSION);
-$VERSION = '1.22';
+$VERSION = '1.23';
 
 sub new
 {
@@ -118,3 +118,26 @@ sub seek
 }
 ############################################################################
 1;
+
+=pod
+
+=head1 NAME
+
+SQL::Statement::RAM
+
+=head1 SYNOPSIS
+
+  SQL::Statement::RAM
+
+=head1 DESCRIPTION
+
+This package contains support for the internally used SQL::Statement::RAM::Table.
+
+=head1 INHERITABCE
+
+  SQL::Statement::RAM
+
+  SQL::Statement::RAM::Table
+  ISA SQL::Eval::Table
+
+=cut

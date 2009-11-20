@@ -7,5 +7,5 @@
 Makefile$
 \.project
 \bblib\b
-\bbugsql\b
 pm_to_blib
+sqlbug

@@ -1,6 +1,30 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.21, release October 10th, 2009
+Version 1.23, release November 20th, 2009
+----------------------------------------------
+
+[Misc]
+* Applied patch from Marc Espie which fixes several orthographic
+  errors in SQL::Statement::Syntax documentation.
+* Added a fixed version of test reported via RT #34121
+
+[Bug fixes]
+* Fix an issue in UPDATE command which 'shift's the values from
+  the list of parameters which causes there're no more parameters
+  left after first row get's updated (Fixes RT #50788)
+* Fix aggregate function handling of new code since 1.21_01
+* Correct handling of DISTINCT in aggregate functions
+
+[Improvements]
+* Add support for tables/columns starting with '_' for CSV and AnyData,
+  which is usually forbidden by ANSI SQL
+* Add support for inserting multiple lines with one statement
+  (fixes RT #31730)
+
+[Things that may break your code]
+* row_value now expects up to two arguments
+
+Version 1.22, release October 10th, 2009
 ----------------------------------------------
 
 [Misc]

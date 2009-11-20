@@ -18,9 +18,10 @@ use constant
   FUNCTION_NAMES => join '|',
   qw( TRIM SUBSTRING );
 
-use Params::Util qw(_ARRAY0);
+use Params::Util qw(_ARRAY0 _ARRAY);
+use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.22';
+$VERSION = '1.23';
 
 BEGIN
 {
@@ -458,25 +459,25 @@ sub SELECT
     #        return $self->do_err("Couldn't find FROM clause in SELECT!");
     #    }
     #    return undef unless $self->FROM_CLAUSE($from_clause);
-    my $has_from_clause = $self->FROM_CLAUSE($from_clause) if $from_clause;
+    my $has_from_clause = $self->FROM_CLAUSE($from_clause) if ($from_clause);
 
-    return undef unless $self->SELECT_CLAUSE($str);
+    return undef unless ( $self->SELECT_CLAUSE($str) );
 
     if ($where_clause)
     {
-        return undef unless $self->SEARCH_CONDITION($where_clause);
+        return undef unless ( $self->SEARCH_CONDITION($where_clause) );
     }
     if ($groupby_clause)
     {
-        return undef unless $self->GROUPBY_LIST($groupby_clause);
+        return undef unless ( $self->GROUPBY_LIST($groupby_clause) );
     }
     if ($order_clause)
     {
-        return undef unless $self->SORT_SPEC_LIST($order_clause);
+        return undef unless ( $self->SORT_SPEC_LIST($order_clause) );
     }
     if ($limit_clause)
     {
-        return undef unless $self->LIMIT_CLAUSE($limit_clause);
+        return undef unless ( $self->LIMIT_CLAUSE($limit_clause) );
     }
     if (
          ( $self->{struct}->{join}->{clause} and $self->{struct}->{join}->{clause} eq 'ON' )
@@ -484,16 +485,23 @@ sub SELECT
               and !( scalar keys %{ $self->{struct}->{join} } ) )
        )
     {
-        return undef unless $self->IMPLICIT_JOIN();
+        return undef unless ( $self->IMPLICIT_JOIN() );
     }
+
+    if( $self->{struct}->{set_quantifier} && ('DISTINCT' eq $self->{struct}->{set_quantifier}) && _ARRAY( $self->{struct}->{set_function} ) )
+    {
+        delete $self->{struct}->{set_quantifier};
+        warn "Specifying DISTINCT when using aggregate functions isn't reasonable - ignored." if ( $self->{PrintError} );
+    }
+
     return 1;
 }
 
 sub GROUPBY_LIST
 {
     my ( $self, $gclause ) = @_;
-    return 1 if !$gclause;
-    my @cols = split /,/, $gclause;
+    return 1 unless ($gclause);
+    my @cols = split( /,/, $gclause );
     $self->{struct}->{group_by} = \@cols;
     return 1;
 }
@@ -631,9 +639,9 @@ sub EXPLICIT_JOIN
         $jtype = "NATURAL $jtype" if $natural;
         if ( $natural and $keycols )
         {
-            return $self->do_err(qq~Can't use NATURAL with a USING or ON clause!~);
+            return $self->do_err(qq{Can't use NATURAL with a USING or ON clause!});
         }
-        return undef unless $self->TABLE_NAME_LIST("$tableA,$tableB");
+        return undef unless ( $self->TABLE_NAME_LIST("$tableA,$tableB") );
         $self->{struct}->{join}->{type} = $jtype;
         $self->{struct}->{join}->{keycols} = $keycols if $keycols;
         return 1;
@@ -644,7 +652,7 @@ sub EXPLICIT_JOIN
 sub SELECT_CLAUSE
 {
     my ( $self, $str ) = @_;
-    return undef unless $str;
+    return undef unless ($str);
     if ( $str =~ s/^(DISTINCT|ALL) (.+)$/$2/i )
     {
         $self->{struct}->{set_quantifier} = uc $1;
@@ -657,7 +665,7 @@ sub SELECT_CLAUSE
     }
 
     #    else {
-    return undef unless $self->SELECT_LIST($str);
+    return undef unless ( $self->SELECT_LIST($str) );
 
     #    }
 }
@@ -681,10 +689,10 @@ sub INSERT
     my ( $self, $str ) = @_;
     my $col_str;
     $str =~ s/^INSERT\s+INTO\s+/INSERT /i;    # allow INTO to be optional
-    my ( $table_name, $val_str ) = $str =~ /^INSERT\s+(.+?)\s+VALUES\s+\((.+?)\)$/i;
+    my ( $table_name, $val_str ) = $str =~ /^INSERT\s+(.+?)\s+VALUES\s+(\(.+?\))$/i;
     if ( $table_name and $table_name =~ /[()]/ )
     {
-        ( $table_name, $col_str, $val_str ) = $str =~ /^INSERT\s+(.+?)\s+\((.+?)\)\s+VALUES\s+\((.+?)\)$/i;
+        ( $table_name, $col_str, $val_str ) = $str =~ /^INSERT\s+(.+?)\s+\((.+?)\)\s+VALUES\s+(\(.+?\))$/i;
     }
     return $self->do_err('No table name specified!') unless $table_name;
     return $self->do_err('Missing values list!')     unless defined $val_str;
@@ -699,7 +707,12 @@ sub INSERT
     {
         $self->{struct}->{column_names} = ['*'];
     }
-    return undef unless $self->LITERAL_LIST($val_str);
+    $self->{struct}->{values} = [];
+    while ( $val_str =~ m/\((.+?)\)(?:,|$)/g )
+    {
+        my $line_str = $1;
+        return undef unless $self->LITERAL_LIST($line_str);
+    }
     return 1;
 }
 
@@ -728,7 +741,7 @@ sub UPDATE
     {
         return undef unless $self->SEARCH_CONDITION($where_clause);
     }
-    my @vals                 = @{ $self->{struct}->{values} };
+    my @vals                 = @{ $self->{struct}->{values}->[0] };
     my $num_val_placeholders = 0;
     for my $v (@vals)
     {
@@ -1139,19 +1152,18 @@ sub CREATE
 sub SET_CLAUSE_LIST
 {
     my ( $self, $set_string ) = @_;
-    my @sets = split /,/, $set_string;
+    my @sets = split( /,/, $set_string );
     my ( @cols, @vals );
-    for (@sets)
+    for my $set (@sets)
     {
-        my ( $col, $val ) = split / = /, $_;
+        my ( $col, $val ) = split( m/ = /, $set );
         return $self->do_err('Incomplete SET clause!')
-          if !defined $col
-              or !defined $val;
-        push @cols, $col;
-        push @vals, $val;
+          unless ( defined($col) && defined($val) );
+        push( @cols, $col );
+        push( @vals, $val );
     }
-    return undef unless $self->COLUMN_NAME_LIST( join ',', @cols );
-    return undef unless $self->LITERAL_LIST( join ',', @vals );
+    return undef unless ( $self->COLUMN_NAME_LIST( join ',', @cols ) );
+    return undef unless ( $self->LITERAL_LIST( join ',', @vals ) );
     return 1;
 }
 
@@ -1324,6 +1336,7 @@ sub SELECT_LIST
             # SELECT_LIST COLUMN IS A COMPUTED COLUMN WITH A SET FUNCTION
             #
             $newcol = $self->SET_FUNCTION_SPEC($col);
+            return undef if ( $self->{struct}->{errstr} );
 
             #
             # SELECT_LIST COLUMN IS A COMPUTED COLUMN WITH A NON-SET FUNCTION
@@ -1406,17 +1419,17 @@ sub SET_FUNCTION_SPEC
             if ( $set_function_arg =~ s/(DISTINCT|ALL) (.+)$/$2/i )
             {
                 $distinct = uc $1;
-                $self->{struct}->{set_quantifier} = $distinct;
             }
             my $count_star = 1
-              if $set_function_name eq 'COUNT'
-                  and $set_function_arg eq '*';
+              if (     ( $set_function_name eq 'COUNT' )
+                   and ( $set_function_arg eq '*' ) );
+            return $self->do_err("Keyword DISTINCT is not allowed for COUNT(*)") if ( $distinct && $count_star );
 
             my $ok = $self->COLUMN_NAME($set_function_arg)
-              if !$count_star;
+              if ( !$count_star );
 
             return undef
-              if !$count_star and !$ok;
+              if ( !$count_star and !$ok );
 
             if ( $set_function_arg !~ /^(?:\w+\.)?"/ )
             {
@@ -1436,7 +1449,7 @@ sub SET_FUNCTION_SPEC
         }
         else
         {
-            push @{ $self->{struct}->{set_function} }, { name => $func };
+            push( @{ $self->{struct}->{set_function} }, { name => $func } );
             return undef;
 
             # return $self->do_err("Bad set function before FROM clause.");
@@ -1872,7 +1885,7 @@ sub LITERAL_LIST
           unless $val;
         push @values, $val;
     }
-    $self->{struct}->{values} = \@values;
+    push( @{ $self->{struct}->{values} }, \@values );
     return 1;
 }
 
@@ -2280,9 +2293,9 @@ sub ROW_VALUE
         return undef unless $value;
         $str =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         my $value_type = $value->{type} if ref $value eq 'HASH';
-        $value_type = $value->[0] if ref $value eq 'ARRAY';
+        $value_type = $value->[0] if( defined( _ARRAY( $value ) ) );
         return $self->do_err("Can't use a number in TRIM: '$str'!")
-          if $value_type and $value_type eq 'number';
+          if( $value_type and $value_type eq 'number' );
         return {
                  type      => 'function',
                  name      => $name,
@@ -2664,7 +2677,16 @@ sub IDENTIFIER
         $err .= "has chars not alphanumeric or underscore!";
         return $self->do_err($err);
     }
-    if ( $id =~ /^_/ or $id =~ /^\d/ )
+    my $badStartRx;
+    if ( uc( $self->{dialect} ) eq 'ANYDATA' )
+    {
+        $badStartRx = qr/^\d/;                       # CSV requires optional start with _
+    }
+    else
+    {
+        $badStartRx = qr/^[_\d]/;
+    }
+    if ( $id =~ $badStartRx )
     {                                                # BAD START
         $err .= "starts with non-alphabetic character!";
         return $self->do_err($err);
@@ -2800,10 +2822,10 @@ sub clean_sql
     $e = q/""/;
 
     #    $sql =~ s~"(([^"$e]|$e.)+)"~push(@$qids,$1);$i++;"?QI$i?"~ge;
-    $sql =~ s~"(([^"]|"")+)"~push(@$qids,$1);$i++;"?QI$i?"~ge;
+    $sql =~ s/"(([^"]|"")+)"/push(@$qids,$1);$i++;"?QI$i?"/ge;
 
     #@$qids = map { s/$e'/'/g; s/^'(.*)'$/$1/; $_} @$qids;
-    $self->{struct}->{quoted_ids} = $qids if $qids;
+    $self->{struct}->{quoted_ids} = $qids if ($qids);
 
     #    $sql =~ s~'(([^'\\]|\\.)+)'~push(@$fields,$1);$i++;"?$i?"~ge;
     #    @$fields = map { s/\\'/'/g; s/^'(.*)'$/$1/; $_} @$fields;
@@ -2860,23 +2882,13 @@ sub trim
 
 sub do_err
 {
-    my $self    = shift;
-    my $err     = shift;
-    my $errtype = shift;
-    my @c       = caller 4;
-    $err = "$err\n\n";
+    my ( $self, $err, $errstr ) = @_;
 
-    #    $err = $errtype ? "DIALECT ERROR: $err in $c[3]"
-    #                    : "SQL ERROR: $err in $c[3]";
-    $err =
-      $errtype
-      ? "DIALECT ERROR: $err"
-      : "SQL ERROR: $err";
+    # $err = $errtype ? "DIALECT ERROR: $err" : "SQL ERROR: $err";
     $self->{struct}->{errstr} = $err;
 
-    #$self->{errstr} = $err;
-    warn $err if $self->{PrintError};
-    die $err  if $self->{RaiseError};
+    warn $err if ( $self->{PrintError} );
+    die $err  if ( $self->{RaiseError} );
     return undef;
 }
 
@@ -3029,12 +3041,75 @@ status of any feature.
 See the section below on "Backwards Compatibility" for use of
 the feature() method with SQL::Statement 0.1x style parameters.
 
+=begin undocumented
+
+=head2 clean_sql
+
+=head2 command
+
+=head2 create_op_regexen
+
+=head2 do_err
+
+=head2 errstr
+
+=head2 extract_column_list
+
+=head2 extract_func_args
+
+=head2 group_ands
+
+=head2 is_func
+
+=head2 list
+
+=head2 non_parens_search
+
+=head2 nongroup_numeric
+
+=head2 nongroup_string
+
+=head2 order_joins
+
+=head2 parens_search
+
+=head2 parse
+
+=head2 repl_btwin
+
+=head2 replace_quoted
+
+=head2 replace_quoted_commas
+
+=head2 replace_quoted_ids
+
+=head2 set_feature_flags
+
+=head2 structure
+
+=head2 transform_concat
+
+=head2 trim
+
+=head2 transform_syntax
+
+=head2 undo_math_funcs
+
+=head2 undo_string_funcs
+
+=end undocumented
+
 =head1 Supported SQL syntax
 
-The SQL::Statement distribution can be used to either just parse SQL statements or to execute them against actual data.  A broader set of syntax is supported in the parser than in the executor.  For example the parser allows you to specify column constraints like PRIMARY KEY.  Currently, these are ignored by the execution engine.  Likewise syntax such as RESTRICT and CASCADE on DROP statements or LOCAL GLOBAL TEMPPORARY tables in CREATE are supported by the parser but ignored by the executor.
+The SQL::Statement distribution can be used to either just parse SQL
+statements or to execute them against actual data.  A broader set of
+syntax is supported in the parser than in the executor.  For example
+the parser allows you to specify column constraints like PRIMARY KEY.
+Currently, these are ignored by the execution engine.  Likewise syntax
+such as RESTRICT and CASCADE on DROP statements or LOCAL GLOBAL TEMPPORARY
+tables in CREATE are supported by the parser but ignored by the executor.
 
 To see the list of Supported SQL syntax formerly kept in this pod, see L<SQL::Statement>.
-
 
 =head1 Subclassing SQL::Parser
 

@@ -1,7 +1,7 @@
 package SQL::Statement::Util;
 
 use vars qw($VERSION);
-$VERSION = '1.22';
+$VERSION = '1.23';
 
 sub type
 {
@@ -11,17 +11,16 @@ sub type
 }
 
 package SQL::Statement::Util::Column;
-use base 'SQL::Statement::Util';
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Statement::Util);
 
 use Params::Util qw(_ARRAY _HASH0 _STRING);
 
 sub new
 {
-    my $class        = shift;
-    my $col_name     = shift;
-    my $table_name   = shift;
-    my $term         = shift;
-    my $display_name = shift || $col_name;
+    my ( $class, $col_name, $table_name, $term, $display_name ) = @_;
+    $display_name ||= $col_name;
 
     # print " $col_name !\n";
     if ( $col_name && ( ( $col_name =~ m/^(".+")\.(.*)$/ ) || ( $col_name =~ m/^([^.]*)\.(.*)$/ ) ) )
@@ -46,14 +45,28 @@ sub new
     return $self;
 }
 
-sub value($)     { $_[0]->{term}->value( $_[1] ); }
-sub term()       { $_[0]->{term} }
-sub display_name { $_[0]->{display_name} }
-sub name         { $_[0]->{name} }
-sub table        { $_[0]->{table} }
+sub value($)       { $_[0]->{term}->value( $_[1] ); }
+sub term()         { $_[0]->{term} }
+sub display_name() { $_[0]->{display_name} }
+sub name()         { $_[0]->{name} }
+sub table()        { $_[0]->{table} }
+
+package SQL::Statement::Util::AggregatedColumns;
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Statement::Util::Column);
+
+sub value($)
+{
+    my ( $self, $row ) = @_;
+    my @vals = map { $_->value($row) } @{ $self->{term} };
+    return join( "\0", @vals );
+}
 
 package SQL::Statement::Util::Function;
-use base 'SQL::Statement::Util';
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Statement::Util);
 
 sub new
 {
@@ -106,3 +119,43 @@ sub run
 }
 
 1;
+
+=pod
+
+=head1 NAME
+
+SQL::Statement::Util
+
+=head1 SYNOPSIS
+
+  SQL::Statement::Util::Column->new($col_name, $table_name, $term, $display_name)
+  SQL::Statement::Util::AggregatedColumns($col_name, $table_name, $term, $display_name)
+  SQL::Statement::Util::Function($name, $sub_name, $args)
+
+=head1 DESCRIPTION
+
+This package contains three utility classes to handle deliverable columns.
+
+=head1 INHERITABCE
+
+  SQL::Statement::Util::Column
+  ISA SQL::Statement::Util
+
+  SQL::Statement::Util::AggregatedColumns
+  ISA SQL::Statement::Util::Column
+    ISA SQL::Statement::Util
+
+  SQL::Statement::Util::Function
+  ISA SQL::Statement::Util
+
+=begin undocumented
+
+=head1 METHODS
+
+=head2 type
+
+Returns the type of the SQL::Statement::Util instance.
+
+=end undocumented
+
+=cut

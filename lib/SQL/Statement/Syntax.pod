@@ -10,7 +10,7 @@ See L<SQL::Statement> for usage.
 
 =head1 DESCRIPTION
 
-The SQL::Statement module can be used either from a DBI drive like DBD::CSV or directly.  The syntax below applies to both situations.  In the case of DBDs, each DBD can implement its own sub-dialect so be sure to check the DBD documentations also.
+The SQL::Statement module can be used either from a DBI driver like DBD::CSV or directly.  The syntax below applies to both situations.  In the case of DBDs, each DBD can implement its own sub-dialect so be sure to check the DBD documentations also.
 
 SQL::Statement is meant primarly as a base class for DBD drivers
 and as such concentrates on a small but useful subset of SQL.
@@ -49,7 +49,7 @@ B<SQL Statements>
           [ LIMIT [start,] length ]
    UPDATE <table> SET <set_clause> [<where_clause>]
 
-B<Explict Join Qualifiers>
+B<Explicit Join Qualifiers>
 
    NATURAL, INNER, OUTER, LEFT, RIGHT, FULL
 
@@ -96,7 +96,7 @@ See below for further details.
 
 =head3 CREATE TABLE
 
-Creates permanenet and in-memory tables.
+Creates permanent and in-memory tables.
 
  CREATE [TEMP] TABLE <table_name> ( <column_definitions> )
  CREATE [TEMP] TABLE <table_name> AS <select statement>
@@ -144,7 +144,7 @@ Tables, both temporary and permanent may also be created directly from perl arra
        "valid_data_types" section of the dialect file for the
        current dialect
 
-     * col_constriaints may be "PRIMARY KEY" or one or both of
+     * col_constraints may be "PRIMARY KEY" or one or both of
        "UNIQUE" and/or "NOT NULL"
 
      * IMPORTANT NOTE: temporary tables, data types and column
@@ -154,7 +154,7 @@ Tables, both temporary and permanent may also be created directly from perl arra
 
      * The following valid ANSI SQL92 options are not currently
        supported: table constraints, named constraints, check
-       constriants, reference constraints, constraint
+       constraints, reference constraints, constraint
        attributes, collations, default clauses, domain names as
        data types
 
@@ -221,7 +221,7 @@ Tables, both temporary and permanent may also be created directly from perl arra
       * ON clauses may only contain equal comparisons and AND combiners
       * self-joins are not currently supported
       * if implicit joins are used, the WHERE clause must contain
-        and equijoin condition for each table
+        an equijoin condition for each table
 
 =head3 SEARCH CONDITION
 
@@ -369,7 +369,7 @@ Prepare(). Parameters are represented by question marks (?).
 Identifiers are table or column names. Syntactically they consist of
 alphabetic characters, followed by an arbitrary number of alphanumeric
 characters. Identifiers like SELECT, INSERT, INTO, ORDER, BY, WHERE,
-... are forbidden and reserved for other tokens.  Identifiers are always compared case-insenitively, i.e. "select foo from bar" will be evaluated the same as "SELECT FOO FROM BAR".  One exception is that if the module is used in conjunction with a file storage system, the names of tables are case sensitive.
+... are forbidden and reserved for other tokens.  Identifiers are always compared case-insensitively, i.e. "select foo from bar" will be evaluated the same as "SELECT FOO FROM BAR".  One exception is that if the module is used in conjunction with a file storage system, the names of tables are case sensitive.
 
 =back
 
@@ -430,7 +430,7 @@ The operator could just as well have been written as a function:
   CREATE FUNCTION reverse_of
   SELECT * FROM x WHERE c1=7 AND REVERSE_OF(c3,'foo')
 
-Like functions, if you want to actually execute a user-defined operator as didistinct form just parsing it, you need to assign the operator to a perl subroutine.  This is done exactly like assignin functions:
+Like functions, if you want to actually execute a user-defined operator as distinct form just parsing it, you need to assign the operator to a perl subroutine.  This is done exactly like assigning functions:
 
   CREATE OPERATOR reverse_of AS perl_subroutine_name
 

@@ -30,8 +30,7 @@ my %oplist = (
 
 sub new
 {
-    my $class = shift;
-    my $owner = shift;
+    my ($class, $owner) = @_;
     my $self  = bless( { OWNER => $owner, }, $class );
 
     weaken( $self->{OWNER} );
@@ -169,6 +168,13 @@ the where clause or returning column data.
 The concept of a factory can be studied in I<Design Patterns> by the Gang of
 Four. The concept of using polymophism instead of conditions is suggested by
 Martin Fowler in his book I<Refactoring>.
+
+=head1 METHODS
+
+=head2 buildCondition
+
+Builds a condition object from a given (part of a) where clause. This method
+calls itself recursively for I<predicates>.
 
 =head1 AUTHOR AND COPYRIGHT
 

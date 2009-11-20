@@ -1,3 +1,10 @@
+bugtests/buggy-parse.pl
+bugtests/deep_recusion.pl
+bugtests/infinite_recursion.sh
+bugtests/no-groupby.pl
+bugtests/semi-panic.pl
+bugtests/sqlbug-bazik.pl
+bugtests/xx.pl
 Changes
 lib/SQL/Dialects/ANSI.pm
 lib/SQL/Dialects/AnyData.pm
@@ -18,10 +25,22 @@ lib/SQL/Statement/Term.pm
 lib/SQL/Statement/TermFactory.pm
 lib/SQL/Statement/Util.pm
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 MANIFEST.SKIP
 META.yml
 README
+SQL-Statement-1.23/bugtests/no-groupby.pl
+SQL-Statement-1.23/Changes
+SQL-Statement-1.23/lib/SQL/Dialects/ANSI.pm
+SQL-Statement-1.23/lib/SQL/Statement/GetInfo.pm
+SQL-Statement-1.23/lib/SQL/Statement/Structure.pod
+SQL-Statement-1.23/lib/SQL/Statement/Syntax.pod
+SQL-Statement-1.23/lib/SQL/Statement/Term.pm
+SQL-Statement-1.23/lib/SQL/Statement/TermFactory.pm
+SQL-Statement-1.23/MANIFEST
+SQL-Statement-1.23/t/06group.t
+SQL-Statement-1.23/t/11functions.t
+SQL-Statement-1.23/t/14allcols.t
 t/00error.t
 t/01prepare.t
 t/02executeDirect.t

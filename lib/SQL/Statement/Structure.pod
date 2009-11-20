@@ -140,15 +140,16 @@ usefull ... :-)
 =head2 B<row_values>
 
     my $rowValueNum = $stmt->row_values(); # Scalar context
-    my @rowValues = $stmt->row_values();   # Array context
-    my($rval1, $rval2) = ($stmt->row_values(0),
-                          $stmt->row_values(1));
+    my @rowValues = $stmt->row_values(0);  # Array context
+    my($rval1, $rval2) = ($stmt->row_values(0,0),
+                          $stmt->row_values(0,1));
 
 This method is used for statements like
 
     UPDATE $table SET $col1 = $val1, $col2 = $val2, ...
         $colN = $valN WHERE ...
-    INSERT INTO $table (...) VALUES ($val1, $val2, ..., $valN)
+    INSERT INTO $table (...) VALUES ($val1, $val2, ..., $valN),
+                                    ($val1, $val2, ..., $valN)
 
 to read the values $val1, $val2, ... $valN. It returns scalar values
 or SQL::Statement::Param instances.

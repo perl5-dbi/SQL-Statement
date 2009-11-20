@@ -34,7 +34,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.22';
+$VERSION = '1.23';
 
 sub new
 {
@@ -69,7 +69,7 @@ sub new
 
         $parser = SQL::Parser->new( $parser_dialect, $flags );
     }
-
+    $self->{termFactory} = SQL::Statement::TermFactory->new($self);
     $self->prepare( $sql, $parser );
     return $self;
 }
@@ -106,8 +106,7 @@ sub prepare
 
         if ( $self->{where_clause} )
         {
-            my $termFactory = SQL::Statement::TermFactory->new($self);
-            $self->{where_terms} = $termFactory->buildCondition( $self->{where_clause} );
+            $self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
             if ( $self->{where_clause}->{combiners} )
             {
                 $self->{has_OR} = 1 if ( first { -1 != index( $_, 'OR' ) } @{ $self->{where_clause}->{combiners} } );
@@ -253,8 +252,7 @@ sub CALL
     # my $dbh = $data->{Database};
     # $self->{procedure}->{data} = $data;
 
-    my $termFactory = SQL::Statement::TermFactory->new($self);
-    my $procTerm    = $termFactory->buildCondition( $self->{procedure} );
+    my $procTerm = $self->{termFactory}->buildCondition( $self->{procedure} );
 
     ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) = $procTerm->value($data);
 }
@@ -292,51 +290,52 @@ sub INSERT ($$$)
     $self->verify_columns( $data, $eval, $all_cols ) if scalar( $self->columns() );
     my ($table) = $eval->table( $self->tables(0)->name() );
     $table->seek( $data, 0, 2 );
-    my ($array) = [];
-    my ( $val, $col, $i );
+    my ( $val, $col, $i, $k );
     my ($cNum) = scalar( $self->columns() );
     my $param_num = 0;
 
     if ($cNum)
     {
-        my $termFactory;
 
-        # INSERT INTO $table (row, ...) VALUES (value, ...)
-        for ( $i = 0; $i < $cNum; $i++ )
+        # INSERT INTO $table (row, ...) VALUES (value, ...), (...)
+        for ( $k = 0; $k < scalar( @{ $self->{values} } ); ++$k )
         {
-            $col = $self->columns($i);
-            $val = $self->row_values($i);
-            if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
+            my ($array) = [];
+            for ( $i = 0; $i < $cNum; $i++ )
             {
-                $val = $eval->param( $val->num() );
+                $col = $self->columns($i);
+                $val = $self->row_values( $k, $i );
+                if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
+                {
+                    $val = $eval->param( $val->num() );
+                }
+                elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
+                {
+                    $val = $val->value($eval);
+                }
+                elsif ( $val and $val->{type} eq 'placeholder' )
+                {
+                    $val = $eval->param( $param_num++ );
+                }
+                elsif ( defined( _HASH($val) ) )
+                {
+                    $val = $self->{termFactory}->buildCondition($val);
+                    $val = $val->value($eval);
+                }
+                else
+                {
+                    return $self->do_err('Internal error: Unexpected column type');
+                }
+                $array->[ $table->column_num( $col->name() ) ] = $val;
             }
-            elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
-            {
-                $val = $val->value($eval);
-            }
-            elsif ( $val and $val->{type} eq 'placeholder' )
-            {
-                $val = $eval->param( $param_num++ );
-            }
-            elsif ( defined( _HASH($val) ) )
-            {
-                $termFactory = SQL::Statement::TermFactory->new($self) unless ( blessed($termFactory) );
-                $val         = $termFactory->buildCondition($val);
-                $val         = $val->value($eval);
-            }
-            else
-            {
-                return $self->do_err('Internal error: Unexpected column type');
-            }
-            $array->[ $table->column_num( $col->name() ) ] = $val;
+            $table->push_row( $data, $array );
         }
     }
     else
     {
         return $self->do_err("Bad col names in INSERT");
     }
-    $table->push_row( $data, $array );
-    ( 1, 0 );
+    ( $k, 0 );
 }
 
 sub DELETE ($$$)
@@ -387,24 +386,26 @@ sub DELETE ($$$)
 sub UPDATE ($$$)
 {
     my ( $self, $data, $params ) = @_;
-    my $valnum = $self->{num_val_placeholders};
-    my @val_params = splice @$params, 0, $valnum if ($valnum);
 
     my ( $eval, $all_cols ) = $self->open_tables( $data, 0, 1 );
     return undef unless $eval;
 
+    my $valnum = $self->{num_val_placeholders};
+    my @val_params = splice( @{$params}, 0, $valnum ) if ($valnum);
+    $self->{params} ||= $params;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
+
     my $tname      = $self->tables(0)->name();
     my ($table)    = $eval->table($tname);
     my ($affected) = 0;
     my @rows;
-    my $termFactory;
 
     while ( my $array = $table->fetch_row($data) )
     {
         if ( $self->eval_where( $eval, $tname, $array ) )
         {
+            my $valpos = 0;
             my $originalValues;
             if ( not( $self->{fetched_from_key} )
                  and $table->can('update_specific_row') )
@@ -412,22 +413,14 @@ sub UPDATE ($$$)
                 $originalValues = clone($array);
                 $array          = $self->{fetched_value};
             }
-            my $param_num = $self->{argnum};
-            my $col_nums  = $eval->{tables}->{$tname}->{col_nums};
-            my $rowhash;
-            while ( my ( $name, $number ) = each %$col_nums )
-            {
-                $rowhash->{$name} = $array->[$number];
-            }
-            ####################################
 
             for ( my $i = 0; $i < $self->columns(); $i++ )
             {
                 my $col = $self->columns($i);
-                my $val = $self->row_values($i);
+                my $val = $self->row_values( 0, $i );
                 if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
                 {
-                    $val = shift @val_params;
+                    $val = $val_params[ $valpos++ ];
                 }
                 elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
                 {
@@ -435,13 +428,12 @@ sub UPDATE ($$$)
                 }
                 elsif ( $val and $val->{type} eq 'placeholder' )
                 {
-                    $val = shift @val_params;
+                    $val = $val_params[ $valpos++ ];
                 }
                 elsif ( defined( _HASH($val) ) )
                 {
-                    $termFactory = SQL::Statement::TermFactory->new($self) unless ( blessed($termFactory) );
-                    $val         = $termFactory->buildCondition($val);
-                    $val         = $val->value($eval);
+                    $val = $self->{termFactory}->buildCondition($val);
+                    $val = $val->value($eval);
                 }
                 else
                 {
@@ -451,6 +443,8 @@ sub UPDATE ($$$)
                 $array->[ $table->column_num( $col->name() ) ] = $val;
             }
 
+            ++$affected;
+
             # Martin Fabiani <martin@fabiani.net>:
             # the following block is the most important enhancement to SQL::Statement::UPDATE
             if ( not( $self->{fetched_from_key} )
@@ -459,7 +453,6 @@ sub UPDATE ($$$)
                 $table->update_specific_row( $data, $array, $originalValues );
                 next;
             }
-            ++$affected;
         }
         if ( $self->{fetched_from_key} )
         {
@@ -1322,9 +1315,9 @@ sub group_by
 
     my @all_cols    = ();
     my $set_columns = $self->{set_function};
-    for my $c1 (@$columns_requested)
+    for my $c1 ( @{$columns_requested} )
     {
-        for my $c2 (@$set_columns)
+        for my $c2 ( @{$set_columns} )
         {
             next unless ( defined( $c2->{arg} ) );
             next if ( lc( $c1->{name} ) ne lc( $c2->{arg} ) );
@@ -1339,7 +1332,7 @@ sub group_by
 
     for ( @{ $self->{set_function} } )
     {
-        push @$set_cols, $_->{name};
+        push( @{$set_cols}, $_->{name} );
     }
     my @keycols = ();
     for my $i ( 0 .. $numcols - 1 )
@@ -1352,7 +1345,7 @@ sub group_by
             $arg = $set_cols->[$i];
 
             #            $arg =$columns_requested[$i];
-            push @keycols, $colnum{ lc $arg };
+            push( @keycols, $colnum{ lc $arg } );
         }
         $self->{set_function}->[$i]->{sel_col_num} = $colnum{ lc $arg };
     }
@@ -1367,14 +1360,14 @@ sub group_by
     #printf "%s.%s,%s\n",$i,$display_cols->[$i]->{name},$keyfield;
     #    }
     my $g = SQL::Statement::Group->new( \@keycols, $display_cols, $rows );
-    $rows = $g->calc;
-    my $x = [ map { $_->{name} } @$display_cols ];
-    $self->{NAME} = [ map { $_->{name} } @$display_cols ];
+    $rows = $g->calc();
+    my $x = [ map { $_->{name} } @{$display_cols} ];
+    $self->{NAME} = [ map { $_->{name} } @{$display_cols} ];
     %{ $self->{ORG_NAME} } = map {
         my $n = $_->{name};
         $n .= '_' . $_->{arg} if ( $_->{arg} );
         $_->{name} => $n;
-    } @$display_cols;
+    } @{$display_cols};
     return ( scalar(@$rows), $numFields, $rows );
 }
 
@@ -1510,6 +1503,7 @@ sub open_tables
     }
 
     $self->buildColumnObjects($t);
+    return $self->do_err( $self->{errstr} ) if ( $self->{errstr} );
 
     ##################################################
     # Patch from Cosimo Streppone <cosimoATcpan.org>
@@ -1534,6 +1528,112 @@ sub open_tables
     return SQL::Eval->new( { 'tables' => $t } ), \@c;
 }
 
+sub getColumnObject($)
+{
+    my ( $self, $newcol, $t ) = @_;
+    my @columns;
+
+    my ( $tbl, $col );
+    if ( $newcol =~ m/^(.+)\.(.+)$/ )
+    {
+        ( $tbl, $col ) = ( $1, $2 );
+    }
+    else
+    {
+        ( $tbl, $col ) = ( undef, $newcol );
+    }
+
+    unless ( defined( _STRING($col) ) )
+    {
+        return $self->do_err("Invalid column: '$newcol'");
+    }
+
+    my @tables = defined( _STRING($tbl) ) ? ($tbl) : map { $_->name() } $self->tables();
+
+    if ( $col eq '*' )
+    {
+        my $join = 0;
+        my %shared_cols;
+        if (
+             defined( _HASH( $self->{join} ) )
+             && (    ( -1 != index( $self->{join}->{type}, 'NATURAL' ) )
+                  || ( -1 != index( $self->{join}->{clause}, 'USING' ) ) )
+           )
+        {
+            ++$join;
+        }
+
+        foreach my $table (@tables)
+        {
+            return $self->do_err("Can't find table '$table'") unless ( defined( $t->{$table} ) );
+            my $tcols = $t->{$table}->{col_names};
+            return $self->do_err("Couldn't find column names for table '$table'!") unless ( _ARRAY($tcols) );
+            foreach my $colName ( @{$tcols} )
+            {
+                next if ( $join && $shared_cols{$colName}++ );
+                my $expcol = [
+                    $colName,    # column name
+                    $table,      # table name
+                    SQL::Statement::ColumnValue->new( $self, $table . '.' . $colName ),    # term
+                    undef,                                                                 # display name
+                             ];
+                push( @columns, $expcol );
+            }
+        }
+    }
+    elsif ( ( 'CREATE' eq $self->command() ) || ( 'DROP' eq $self->command() ) )
+    {
+        my $expcol = [
+                       $newcol,                                                                       # column name
+                       undef,                                                                         # table name
+                       undef,                                                                         # term
+                       undef,                                                                         # display name
+                     ];
+        push( @columns, $expcol );
+    }
+    else
+    {
+        unless ( defined($tbl) )
+        {
+            foreach my $table (@tables)
+            {
+                return $self->do_err("Can't find table '$table'") unless defined( $t->{$table} );
+                my $tcols = $t->{$table}->{col_names};
+                return $self->do_err("Couldn't find column names for table '$table'!")
+                  unless ( _ARRAY($tcols) );
+                if ( grep { lc($_) eq lc($col) } @{$tcols} )
+                {
+                    $tbl = $table;
+                    last;
+                }
+            }
+        }
+
+        if ( defined( _STRING($tbl) ) )
+        {
+            my $alias;
+            if ( defined( $self->{col_obj}->{$newcol} ) && _HASH( $self->{col_obj}->{$newcol} ) )
+            {
+                $alias = $self->{col_obj}->{$newcol}->{alias}
+                  if ( defined( $self->{col_obj}->{$newcol}->{alias} ) );
+            }
+            my $expcol = [
+                $col,    # column name
+                $tbl,    # table name
+                SQL::Statement::ColumnValue->new( $self, $tbl . '.' . $col ),    # term
+                $alias                                                           # display name
+                         ];
+            push( @columns, $expcol );
+        }
+        else
+        {
+            return $self->do_err("Column '$newcol' not known in any table");
+        }
+    }
+
+    return @columns;
+}
+
 sub buildColumnObjects($)
 {
     my ( $self, $t ) = @_;
@@ -1541,16 +1641,16 @@ sub buildColumnObjects($)
     return if ( defined( _ARRAY0( $self->{columns} ) ) );
     $self->{columns} = [];
 
-    my $termFactory;
+    my $column_names = defined( $self->{set_function} ) ? $self->{set_function} : $self->{column_names};
 
-    foreach my $newcol ( @{ $self->{column_names} } )
+    foreach my $colentry ( @{$column_names} )
     {
+        my $newcol = _HASH0($colentry) ? $colentry->{name} : $colentry;
         if (    defined( $self->{col_obj}->{$newcol} )
              && _HASH( $self->{col_obj}->{$newcol} )
              && defined( $self->{col_obj}->{$newcol}->{content} ) )
         {
-            $termFactory = SQL::Statement::TermFactory->new($self) unless ( blessed($termFactory) );
-            my $col = $termFactory->buildCondition( $self->{col_obj}->{$newcol}->{content} );
+            my $col = $self->{termFactory}->buildCondition( $self->{col_obj}->{$newcol}->{content} );
 
             my $expcol = SQL::Statement::Util::Column->new(
                                                             $self->{col_obj}->{$newcol}->{name},    # column name
@@ -1562,115 +1662,51 @@ sub buildColumnObjects($)
 
             push( @{ $self->{columns} }, $expcol );
         }
-        else
+        elsif ( _HASH0($colentry) )
         {
-            my ( $tbl, $col );
-            if ( $newcol =~ m/^(.+)\.(.+)$/ )
+            my $col = defined( $colentry->{arg} ) ? $colentry->{arg} : $colentry->{name};
+            return
+              $self->do_err(
+                             sprintf( 'Internal Error: Invalid aggregation function definition {%s}',
+                                      join( ', ', map { "'$_' => '" . $colentry->{$_} . "'" } keys( %{$colentry} ) ) )
+                           ) unless ( defined($col) );
+            my @columns = $self->getColumnObject( $col, $t );
+            return $self->do_err( $self->{errstr} ) if ( $self->{errstr} );
+
+            # is it a function? than we have an argument.
+            if ( defined( $colentry->{arg} ) )
             {
-                ( $tbl, $col ) = ( $1, $2 );
+                my $alias = $newcol . '(' . $col . ')';
+                if (    defined( $self->{col_obj}->{$col} )
+                     && _HASH( $self->{col_obj}->{$col} )
+                     && defined( $self->{col_obj}->{$col}->{alias} )
+                     && ( $self->{col_obj}->{$col}->{alias} ne $col )
+                     && ( $self->{col_obj}->{$col}->{alias} ne '*' ) )
+                {
+                    $alias = $self->{col_obj}->{$col}->{alias};
+                }
+                my @colTerms = map { $_->[2] } @columns;
+                my $expcol = SQL::Statement::Util::AggregatedColumns->new( $col, undef, \@colTerms, $alias, );
+                push( @{ $self->{columns} }, $expcol );
             }
             else
             {
-                ( $tbl, $col ) = ( undef, $newcol );
-            }
-
-            if ( defined( _STRING($col) ) )
-            {
-                my @tables;
-                if ( defined( _STRING($tbl) ) )
+                foreach my $expcol (@columns)
                 {
-                    @tables = ($tbl);
-                }
-                else
-                {
-                    @tables = map { $_->name() } $self->tables();
-                }
-
-                if ( $col eq '*' )
-                {
-                    my $join = 0;
-                    my %shared_cols;
-                    ++$join
-                      if (
-                           defined( $self->{join} )
-                           && (    ( -1 != index( $self->{join}->{type}, 'NATURAL' ) )
-                                || ( -1 != index( $self->{join}->{clause}, 'USING' ) ) )
-                         );
-
-                    foreach my $table (@tables)
-                    {
-                        return $self->do_err("Can't find table '$table'") unless defined( $t->{$table} );
-                        my $tcols = $t->{$table}->{col_names};
-                        return $self->do_err("Couldn't find column names for table '$table'!")
-                          unless ( _ARRAY($tcols) );
-                        foreach my $colName ( @{$tcols} )
-                        {
-                            next if ( $join && $shared_cols{$colName}++ );
-                            my $expcol = SQL::Statement::Util::Column->new(
-                                $colName,    # column name
-                                $table,      # table name
-                                SQL::Statement::ColumnValue->new( $self, $table . '.' . $colName ),    # term
-                                                                                                       # display name
-                                                                          );
-                            push( @{ $self->{columns} }, $expcol );
-                        }
-                    }
-                }
-                elsif ( ( 'CREATE' eq $self->command() ) || ( 'DROP' eq $self->command() ) )
-                {
-                    my $expcol = SQL::Statement::Util::Column->new(
-                           $newcol,                                                                       # column name
-                           undef,                                                                         # table name
-                           undef,                                                                         # term
-                           undef,                                                                         # display name
-                                                                  );
+                    $expcol = SQL::Statement::Util::Column->new( @{$expcol} );
                     push( @{ $self->{columns} }, $expcol );
                 }
-                else
-                {
-                    unless ( defined($tbl) )
-                    {
-                        foreach my $table (@tables)
-                        {
-                            return $self->do_err("Can't find table '$table'") unless defined( $t->{$table} );
-                            my $tcols = $t->{$table}->{col_names};
-                            return $self->do_err("Couldn't find column names for table '$table'!")
-                              unless ( _ARRAY($tcols) );
-                            if ( grep { lc($_) eq lc($col) } @{$tcols} )
-                            {
-                                $tbl = $table;
-                                last;
-                            }
-                        }
-                    }
-
-                    if ( defined( _STRING($tbl) ) )
-                    {
-                        my $alias;
-                        if ( defined( $self->{col_obj}->{$newcol} ) && _HASH( $self->{col_obj}->{$newcol} ) )
-                        {
-                            $alias = $self->{col_obj}->{$newcol}->{alias}
-                              if ( defined( $self->{col_obj}->{$newcol}->{alias} ) );
-                        }
-                        my $expcol = SQL::Statement::Util::Column->new(
-                            $col,    # column name
-                            $tbl,    # table name
-                            SQL::Statement::ColumnValue->new( $self, $tbl . '.' . $col ),    # term
-                            $alias                                                           # display name
-                                                                      );
-                        push( @{ $self->{columns} }, $expcol );
-                    }
-                    else
-                    {
-                        return $self->do_err("Column '$newcol' not known in any table");
-                    }
-                }
             }
-            else
+        }
+        else
+        {
+            my @columns = $self->getColumnObject( $newcol, $t );
+            return $self->do_err( $self->{errstr} ) if ( $self->{errstr} );
+            foreach my $expcol (@columns)
             {
-                return $self->do_err("Invalid column: '$newcol'");
+                $expcol = SQL::Statement::Util::Column->new( @{$expcol} );
+                push( @{ $self->{columns} }, $expcol );
             }
-
         }
     }
 
@@ -1702,6 +1738,46 @@ sub buildSortSpecList()
     }
 
     return;
+}
+
+sub verify_expand_column
+{
+    my ( $self, $c, $i, $usr_cols, $is_duplicate, $col_exists ) = @_;
+
+    my ( $table, $col );
+    if ( $c =~ m/(\S+)\.(\S+)/ )
+    {
+        $table = $1;
+        $col   = $2;
+    }
+    else
+    {
+        ++${$i};
+        ( $table, $col ) = ( $usr_cols->[ ${$i} ]->{table}, $usr_cols->[ ${$i} ]->{name} ) if ( $i >= 0 );
+    }
+    return unless $col;
+
+    if ( defined( _INSTANCE( $table, 'SQL::Statement::Table' ) ) )
+    {
+        $table = $table->name();
+    }
+
+    my $col_obj = $self->{computed_column}->{$c};
+    if ( !$table and !$col_obj )
+    {
+        return $self->do_err("Ambiguous column name '$c'") if $is_duplicate->{$c};
+        $col = $c;
+    }
+    elsif ( !$col_obj )
+    {
+        my $is_user_def = 1 if ( $self->{opts}->{function_defs}->{$col} );
+        return $self->do_err("No such column '$table.$col'")
+          unless (    $col_exists->{"$table.$col"}
+                   or $col_exists->{ "\L$table." . $col }
+                   or $is_user_def );
+
+    }
+    return ( $table, $col );
 }
 
 sub verify_columns
@@ -1742,142 +1818,66 @@ sub verify_columns
             delete @is_duplicate{@keys};
         }
     }
-    my $is_fully;
+    my %set_func_nofunc = map { $_->{name} => 1 } grep { !defined( $_->{arg} ) } @{ $self->{set_function} || [] };
+    my ( $is_fully, $set_fully );
     my $i          = -1;
     my $num_tables = $self->tables();
     for my $c (@tmpcols)
     {
-        my ( $table, $col );
-        if ( $c =~ m/(\S+)\.(\S+)/ )
+        my ( $table, $col ) = $self->verify_expand_column( $c, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+        return if ( $self->{errstr} );
+        next unless ( $table && $col );
+
+        my $ftc = "$table.$col";
+        next if ( $table and $col and $is_fully->{$ftc} );
+
+        $self->{columns}->[$i]->{name}  = $col;
+        $self->{columns}->[$i]->{table} = $table;
+
+        if ( $table and $col )
         {
-            $table = $1;
-            $col   = $2;
+            push( @$fully_qualified_cols, $ftc );
+            ++$is_fully->{$ftc};
+            ++$set_fully->{$ftc} if ( $set_func_nofunc{$c} );
         }
-        else
-        {
-            $i++;
-            ( $table, $col ) = ( $usr_cols[$i]->{table}, $usr_cols[$i]->{name} );
-        }
-        next unless $col;
-
-        if ( defined( _INSTANCE( $table, 'SQL::Statement::Table' ) ) )
-        {
-            $table = $table->name();
-        }
-
-        #print "Content-type: text/html\n\n"; print $self->command; print "$col!!!<p>";
-        #if ( $col eq '*' and $num_tables == 1 )
-        #{
-        #    # $table ||= $self->tables->[0]->{name};
-        #    $table ||= $self->tables(0)->{name};
-        #    if ( ref $table eq 'SQL::Statement::Table' )
-        #    {
-        #        $table = $table->name;
-        #    }
-        #    my @table_names = $self->tables;
-        #    my $tcols       = $eval->{tables}->{$table}->col_names;
-
-        #    # @$tcols = map{lc $_} @$tcols ;
-        #    return $self->do_err("Couldn't find column names!") unless ( _ARRAY($tcols) );
-        #    for (@$tcols)
-        #    {
-        #        push @{ $self->{columns} }, SQL::Statement::Column->new( $_, \@table_names );
-        #    }
-        #    $fully_qualified_cols = $tcols;
-        #    my @newcols;
-        #    for ( @{ $self->{columns} } )
-        #    {
-        #        push @newcols, $_ unless $_->{name} eq '*';
-        #    }
-        #    $self->{columns} = \@newcols;
-        #}
-        #elsif ( $col eq '*' and defined $table )
-        #{
-        #    $table = $table->name if ref $table eq 'SQL::Statement::Table';
-        #    my $tcols = $eval->{tables}->{$table}->col_names;
-
-        #    # @$tcols = map{lc $_} @$tcols ;
-        #    return $self->do_err("Couldn't find column names!") unless ( _ARRAY($tcols) );
-        #    for (@$tcols)
-        #    {
-        #        push @{ $self->{columns} }, SQL::Statement::Column->new( $_, [$table] );
-        #    }
-        #    @{$fully_qualified_cols} = ( @{$fully_qualified_cols}, @$tcols );
-        #}
-        #elsif ( $col eq '*' and $num_tables > 1 )
-        #{
-        #    my @table_names = $self->tables;
-        #    for my $table (@table_names)
-        #    {
-        #        $table = $table->name
-        #          if ref $table eq 'SQL::Statement::Table';
-        #        my $tcols = $eval->{tables}->{$table}->col_names;
-
-        #        # @$tcols = map{lc $_} @$tcols ;
-        #        return $self->do_err("Couldn't find column names!") unless ( _ARRAY($tcols) );
-        #        for (@$tcols)
-        #        {
-        #            push @{ $self->{columns} }, SQL::Statement::Column->new( $_, [$table] );
-        #        }
-        #        @{$fully_qualified_cols} = ( @{$fully_qualified_cols}, @$tcols );
-        #        my @newcols;
-        #        for ( @{ $self->{columns} } )
-        #        {
-        #            push @newcols, $_ unless $_->{name} eq '*';
-        #        }
-        #        $self->{columns} = \@newcols;
-        #    }
-        #}
-        #else
-        {
-            my $col_obj = $self->{computed_column}->{$c};
-            if ( !$table and !$col_obj )
-            {
-                return $self->do_err("Ambiguous column name '$c'")
-                  if $is_duplicate{$c};
-                $col = $c;
-            }
-            elsif ( !$col_obj )
-            {
-                my $is_user_def = 1 if $self->{opts}->{function_defs}->{$col};
-                return $self->do_err("No such column '$table.$col'")
-                  unless $col_exists{"$table.$col"}
-                      or $col_exists{ "\L$table." . $col }
-                      or $is_user_def;
-
-            }
-            next if $table and $col and $is_fully->{"$table.$col"};
-
-            $self->{columns}->[$i]->{name} = $col;
-
-            $self->{columns}->[$i]->{table} = $table;
-            push( @$fully_qualified_cols, "$table.$col" ) if ( $table and $col );
-            $is_fully->{"$table.$col"}++ if $table and $col;
-        }
-
-        #if ( $col eq '*' and defined $table )
-        #{
-        #    my @newcols;
-        #    for ( @{ $self->{columns} } )
-        #    {
-        #        push @newcols, $_ unless $_->{name} eq '*';
-        #    }
-        #    $self->{columns} = \@newcols;
-        #}
     }
 
-    #
-    # CLEAN parser's {strcut} - no, maybe needed by second execute?
-    #
-    # delete $self->{opts};  # need $opts->{function_defs}
-    # delete $self->{select_procedure};
+    if ( defined( $self->{set_function} ) )
+    {
+        if ( defined( _ARRAY( $self->{group_by} ) ) )
+        {
+            foreach my $grpby ( @{ $self->{group_by} } )
+            {
+                $i = -2;
+                my ( $table, $col ) = $self->verify_expand_column( $self->{column_aliases}->{$grpby} || $grpby,
+                                                                   \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+                return if ( $self->{errstr} );
+                ( $table, $col ) = $self->full_qualified_column_name( $col ) if( defined($col) && !defined($table) );
+                next unless ( defined($table) && defined($col) );
+                delete $set_fully->{"$table.$col"};
+            }
+        }
+
+        if ( defined( _HASH($set_fully) ) )
+        {
+            return
+              $self->do_err(
+                        sprintf(
+                                 "Column%s '%s' must appear in the GROUP BY clause or be used in an aggregate function",
+                                 scalar( keys( %{$set_fully} ) ) > 1 ? 's' : '',
+                                 join( "', '", keys( %{$set_fully} ) )
+                               )
+                           );
+        }
+    }
+
     return $fully_qualified_cols;
 }
 
 sub distinct()
 {
     my $q = _STRING( $_[0]->{set_quantifier} );
-    return defined($q) && ( 'DISTINCT' eq $q ) ? 1 : 0;
+    return defined($q) && ( 'DISTINCT' eq $q );
 }
 
 sub column_names()
@@ -1890,18 +1890,36 @@ sub command() { return $_[0]->{command} }
 
 sub params(;$)
 {
-    return 0 if ( !$_[0]->{params} );
+    if ( !$_[0]->{params} )
+    {
+        return wantarray ? () : 0;
+    }
     return $_[0]->{params}->[ $_[1] ] if ( defined $_[1] );
 
     return wantarray ? @{ $_[0]->{params} } : scalar @{ $_[0]->{params} };
 }
 
-sub row_values(;$)
+sub row_values(;$$)
 {
-    return 0 if ( !$_[0]->{values} );
-    return $_[0]->{values}->[ $_[1] ] if ( defined $_[1] );
+    unless ( defined( _ARRAY( $_[0]->{values} ) ) )
+    {
+        return wantarray ? () : 0;
+    }
+    if ( defined( $_[1] ) )
+    {
+        return 0 unless ( defined( $_[0]->{values}->[ $_[1] ] ) );
+        return $_[0]->{values}->[ $_[1] ]->[ $_[2] ] if ( defined $_[2] );
 
-    return wantarray ? map { $_->{value} } @{ $_[0]->{values} } : scalar @{ $_[0]->{values} };
+        return wantarray ? map { $_->{value} } @{ $_[0]->{values}->[ $_[1] ] } : scalar @{ $_[0]->{values}->[ $_[1] ] };
+    }
+    else
+    {
+        return wantarray
+          ? map {
+            [ map { $_->{value} } @{$_} ]
+          } @{ $_[0]->{values} }
+          : scalar( @{ $_[0]->{values} } );
+    }
 }
 
 #
@@ -1913,7 +1931,10 @@ sub row_values(;$)
 sub columns
 {
     my ( $self, $col ) = @_;
-    return 0 if ( !$self->{columns} );
+    if ( !$self->{columns} )
+    {
+        return wantarray ? () : 0;
+    }
 
     if ( defined $col and $col =~ m/^\d+$/ )
     {    # arg1 = a number
@@ -2146,8 +2167,7 @@ sub where()
 sub get_user_func_table
 {
     my ( $self, $name, $u_func ) = @_;
-    my $termFactory = SQL::Statement::TermFactory->new($self);
-    my $term        = $termFactory->buildCondition($u_func);
+    my $term = $self->{termFactory}->buildCondition($u_func);
 
     my ($data_aryref) = $term->value(undef);
     my $col_names = shift @$data_aryref;
@@ -2210,7 +2230,7 @@ sub new
                  display_cols => $display_cols,
                  records      => $ary,
                };
-    return bless $self, $class;
+    return bless( $self, $class );
 }
 
 sub calc
@@ -2230,26 +2250,17 @@ sub calc
             {
                 my $selkey = $col->{sel_col_num};
                 $selkey ||= 0;
-                if ( !defined $selkey )
-                {
-
-                    #use mylibs; zwarn $col;
-                    #exit;
-                }
                 $func[$selkey] = $self->calc_cols( $key, $selkey )
-                  unless defined $func[$selkey];
-                push @$newrow, $func[$selkey]->{ $col->{name} };
+                  unless ( defined( $func[$selkey] ) );
+                push( @$newrow, $func[$selkey]->{ $col->{name} } );
             }
             else
             {
-                push @$newrow, $self->{records}->{$key}->[-1]->[ $col->{sel_col_num} ];
-
-                #use mylibs; zwarn $newrow;
-                #exit;
+                push( @$newrow, $self->{records}->{$key}->[-1]->[ $col->{sel_col_num} ] );
             }
-            $colnum++;
+            ++$colnum;
         }
-        push @{ $self->{final} }, $newrow;
+        push( @{ $self->{final} }, $newrow );
     }
     return $self->{final};
 }
@@ -2259,11 +2270,21 @@ sub calc_cols
     my ( $self, $key, $selcolnum ) = @_;
 
     # $self->{counter}++;
-    my ( $sum, $count, $min, $max, $avg );
+    my ( $sum, $count, $min, $max, $avg, $distinct );
     my $ary = $self->{records}->{$key};
+    if ( defined( $self->{display_cols}->[$selcolnum]->{distinct} )
+         && ( 'DISTINCT' eq $self->{display_cols}->[$selcolnum]->{distinct} ) )
+    {
+        $distinct = 1;
+    }
     for my $row (@$ary)
     {
         my $val = $row->[$selcolnum];
+        if ($distinct)
+        {
+            next if ( defined( $self->{distinct}->{$key}->{$val} ) && $self->{distinct}->{$key}->{$val} );
+            $self->{distinct}->{$key}->{$val} = 1;
+        }
         $max = $val
           if !( defined $max )
               or SQL::Statement::anycmp( $val, $max ) > 0;
@@ -2385,7 +2406,7 @@ sub new
 {
     my ( $class, $num ) = @_;
     my $self = { 'num' => $num };
-    return bless $self, $class;
+    return bless( $self, $class );
 }
 
 sub num ($) { $_[0]->{num}; }
@@ -2403,7 +2424,7 @@ sub new
 
     my $self = { name => $table_name, };
 
-    return bless $self, $class;
+    return bless( $self, $class );
 }
 
 sub name { $_[0]->{name} }
@@ -2423,62 +2444,195 @@ SQL::Statement - SQL parsing and processing engine
 
 =head1 DESCRIPTION
 
-The SQL::Statement module implements a pure Perl SQL parsing and execution engine. While it by no means implements full ANSI standard, it does support many features including column and table aliases, built-in and user-defined functions, implicit and explicit joins, complexly nested search conditions, and other features.
+The SQL::Statement module implements a pure Perl SQL parsing and execution
+engine. While it by no means implements full ANSI standard, it does support
+many features including column and table aliases, built-in and user-defined
+functions, implicit and explicit joins, complexly nested search conditions,
+and other features.
 
-SQL::Statement is a small embeddable Database Management System (DBMS), this means that it provides all of the services of a simple DBMS except that instead of a persistant storage mechanism, it has two things: 1) an in-memory storage mechanism that allows you to prepare, execute, and fetch from SQL statements using temporary tables and 2) a set of software sockets where any author can plug in any storage mechanism.
+SQL::Statement is a small embeddable Database Management System (DBMS), this
+means that it provides all of the services of a simple DBMS except that
+instead of a persistant storage mechanism, it has two things: 1) an in-memory
+storage mechanism that allows you to prepare, execute, and fetch from SQL
+statements using temporary tables and 2) a set of software sockets where
+any author can plug in any storage mechanism.
 
-There are three main uses for SQL::Statement. One or another (hopefully not all) may be irrelevant for your needs: 1) to access and manipulate data in CSV, XML, and other formats 2) to build your own DBD for a new data source 3) to parse and examine the structure of SQL statements.
+There are three main uses for SQL::Statement. One or another (hopefully not
+all) may be irrelevant for your needs: 1) to access and manipulate data in
+CSV, XML, and other formats 2) to build your own DBD for a new data source
+3) to parse and examine the structure of SQL statements.
 
 =head1 INSTALLATION
 
-There are no prerequisites for using this as a standalone parser. If you want to access persistant stored data, you either need to write a subclass or use one of the DBI DBD drivers.  You can install this module using CPAN.pm, CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can download the tar.gz file form CPAN and use the standard perl mantra:
+There are no prerequisites for using this as a standalone parser. If you want
+to access persistant stored data, you either need to write a subclass or use
+one of the DBI DBD drivers.  You can install this module using CPAN.pm,
+CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can download the
+tar.gz file form CPAN and use the standard perl mantra:
 
- perl Makefile.PL
- make
- make test
- make install
+  perl Makefile.PL
+  make
+  make test
+  make install
 
-It works fine on all platforms it's been tested on. On Windows, you can use ppm or with the mantra use nmake, dmake, or make depending on which is available.
+It works fine on all platforms it's been tested on. On Windows, you can use
+ppm or with the mantra use nmake, dmake, or make depending on which is available.
 
 =head1 USAGE
 
 =head2 How can I use SQL::Statement to access and modify data?
 
-SQL::Statement provides the SQL engine for a number of existing DBI drivers including L<DBD::CSV>, L<DBD::DBM>, L<DBD::AnyData>, L<DBD::Excel>, L<DBD::Amazon>, and others.
+SQL::Statement provides the SQL engine for a number of existing DBI drivers
+including L<DBD::CSV>, L<DBD::DBM>, L<DBD::AnyData>, L<DBD::Excel>,
+L<DBD::Amazon>, and others.
 
-These modules provide access to Comma Separated Values, Fixed Length, XML, HTML and many other kinds of text files, to Excel Spreadsheets, to BerkeleyDB and other DBM formats, and to non-traditional data sources like on-the-fly Amazon searches.
+These modules provide access to Comma Separated Values, Fixed Length, XML,
+HTML and many other kinds of text files, to Excel Spreadsheets, to BerkeleyDB
+and other DBM formats, and to non-traditional data sources like on-the-fly
+Amazon searches.
 
-If you're interested in accessing and manipulating persistent data, you may don't really want to use SQL::Statement directly, but use L<DBI> along with one of the DBDs mentioned above instead. You'll be using SQL::Statement, but under the hood of the DBD. See L<http://dbi.perl.org> for help with DBI and see L<SQL::Statement::Syntax> for a description of the SQL syntax that SQL::Statement provides for these modules and see the documentation for whichever DBD you are using for additional details.
+If you're interested in accessing and manipulating persistent data, you may
+don't really want to use SQL::Statement directly, but use L<DBI> along with
+one of the DBDs mentioned above instead. You'll be using SQL::Statement, but
+under the hood of the DBD. See L<http://dbi.perl.org> for help with DBI and
+see L<SQL::Statement::Syntax> for a description of the SQL syntax that
+SQL::Statement provides for these modules and see the documentation for
+whichever DBD you are using for additional details.
 
 =head2 How can I use it to parse and examine the structure of SQL statements?
 
-SQL::Statement can be used stand-alone (without a subclass, without DBI) to parse and examine the structure of SQL statements.  See L<SQL::Statement::Structure> for details.
+SQL::Statement can be used stand-alone (without a subclass, without DBI) to
+parse and examine the structure of SQL statements.
+See L<SQL::Statement::Structure> for details.
 
 =head2 How can I use it to embed a SQL engine in a DBD or other module?
 
-SQL::Statement is designed to be easily embedded in other modules and is especially suited for developing new DBI drivers (DBDs).  See L<SQL::Statement::Embed>.
+SQL::Statement is designed to be easily embedded in other modules and is
+especially suited for developing new DBI drivers (DBDs).
+See L<SQL::Statement::Embed>.
 
 =head2 What SQL Syntax is supported?
 
-SQL::Statement supports a small but powerful subset of SQL commands. See L<SQL::Statement::Syntax>.
+SQL::Statement supports a small but powerful subset of SQL commands.
+See L<SQL::Statement::Syntax>.
 
 =head2 How can I extend the supported SQL syntax?
 
-You can modify and extend the SQL syntax either by issuing SQL commands or by subclassing SQL::Statement.  See L<SQL::Statement::Syntax>.
+You can modify and extend the SQL syntax either by issuing SQL commands or
+by subclassing SQL::Statement.  See L<SQL::Statement::Syntax>.
 
 =head1 How can I participate in ongoing development?
 
-SQL::Statement is a large module with many potential future directions.  You are invited to help plan, code, test, document, or kibbitz about these directions.  A sourceforge site will be available soon.  If you want to join the development team, or just hear more about the development, write Jeff a note (<jzuckerATcpan.org>.
+SQL::Statement is a large module with many potential future directions.
+You are invited to help plan, code, test, document, or kibbitz about these
+directions. If you want to join the development team, or just hear more
+about the development, write Jeff (<jzuckerATcpan.org>) or Jens
+(<rehsackATcpan.org>) a note.
+
+=begin undocumented
+
+=head1 METHODS
+
+=head2 anycmp
+
+=head2 bug
+
+=head2 buildColumnObjects
+
+=head2 buildSortSpecList
+
+=head2 colname2colnum
+
+=head2 colname2table
+
+=head2 column_names
+
+=head2 columns
+
+=head2 command
+
+=head2 distinct
+
+=head2 do_err
+
+=head2 errstr
+
+=head2 eval_where
+
+=head2 execute
+
+=head2 fetch
+
+=head2 find_join_columns
+
+=head2 full_qualified_column_name
+
+=head2 getColumnObject
+
+=head2 get_user_func_table
+
+=head2 group_by
+
+=head2 join_2_tables
+
+=head2 limit
+
+=head2 offset
+
+=head2 open_tables
+
+=head2 order
+
+=head2 order_joins
+
+=head2 params
+
+=head2 prepare
+
+=head2 row_values
+
+=head2 run_functions
+
+=head2 tables
+
+=head2 verify_columns
+
+=head2 verify_expand_column
+
+=head2 verify_order_cols
+
+=head2 where
+
+=head2 where_hash
+
+=end undocumented
 
 =head1 Where can I go for more help?
 
-For questions about installation or usage, please ask on the dbi-users@perl.org mailing list or post a question on PerlMonks (L<http://www.perlmonks.org/>, where Jeff is known as jZed).  If you have a bug report, a patch, a suggestion, write Jeff at the email shown below.
+For questions about installation or usage, please ask on the
+dbi-users@perl.org mailing list or post a question on PerlMonks
+(L<http://www.perlmonks.org/>, where Jeff is known as jZed).
+If you have a bug report, a patch, a suggestion, write Jeff at
+the email shown below.
 
 =head1 ACKNOWLEDGEMENTS
 
-Jochen Wiedmann created the original module as an XS (C) extension in 1998. Jeff Zucker took over the maintenance in 2001 and rewrote all of the C portions in perl and began extending the SQL support.  More recently Ilya Sterin provided help with SQL::Parser, Tim Bunce provided both general and specific support, Dan Wright and Dean Arnold have contributed extensively to the code, and dozens of people from around the world have submitted patches, bug reports, and suggestions.  Thanks to all!
+Jochen Wiedmann created the original module as an XS (C) extension in 1998.
+Jeff Zucker took over the maintenance in 2001 and rewrote all of the C
+portions in perl and began extending the SQL support.  More recently Ilya
+Sterin provided help with SQL::Parser, Tim Bunce provided both general and
+specific support, Dan Wright and Dean Arnold have contributed extensively
+to the code, and dozens of people from around the world have submitted
+patches, bug reports, and suggestions.
+In 2008 Jens Rehsack took over maintenance the extended module from Jeff.
+Together with H.Merijn Brand (who has taken DBD::CSV), Detlef Wartke and
+Volker Schubbert and all submitters of bug reports via RT a lot of issues
+became fixed.
 
-If you're interested in helping develop SQL::Statement or want to use it with your own modules, feel free to contact Jeff or Jens.
+Thanks to all!
+
+If you're interested in helping develop SQL::Statement or want to use it
+with your own modules, feel free to contact Jeff or Jens.
 
 =head1 BUGS AND LIMITATIONS
 

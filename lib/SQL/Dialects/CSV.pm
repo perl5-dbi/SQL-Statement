@@ -79,3 +79,42 @@ TEXT
 EOC
 }
 1;
+
+=pod
+
+=head1 NAME
+
+SQL::Dialects::CSV
+
+=head1 SYNOPSIS
+
+  use SQL::Dialects::CSV;
+  $config = SQL::Dialects::ANSI->get_config();
+
+=head1 DESCRIPTION
+
+This package provides the necessary configuration for CSV SQL.
+
+=head1 FUNCTIONS
+
+=head2 get_config
+
+Returns the configuration for CSV SQL. The configuration is delivered in
+ini-style:
+
+  [VALID COMMANDS]
+  ...
+
+  [VALID OPTIONS]
+  ...
+
+  [VALID COMPARISON OPERATORS]
+  ...
+
+  [VALID DATA TYPES]
+  ...
+
+  [RESERVED WORDS]
+  ...
+
+=cut

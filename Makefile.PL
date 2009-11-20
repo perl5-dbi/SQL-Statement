@@ -51,7 +51,7 @@ END_OF_WORKAROUND
 
 my %opts = (
 	    'NAME'         => 'SQL::Statement',
-	    'VERSION_FROM' => './lib/SQL/Statement.pm',
+	    'VERSION_FROM' => 'lib/SQL/Statement.pm',
 	    'dist'         => {
 			'SUFFIX'       => ".gz",
 			'DIST_DEFAULT' => 'manifest tardist',

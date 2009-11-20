@@ -293,3 +293,43 @@ ZONE
 EOC
 }
 1;
+
+=pod
+
+=head1 NAME
+
+SQL::Dialects::ANSI
+
+=head1 SYNOPSIS
+
+  use SQL::Dialects::ANSI;
+  $config = SQL::Dialects::ANSI->get_config();
+
+=head1 DESCRIPTION
+
+This package provides the necessary configuration for ANSI SQL, as far it's
+supported.
+
+=head1 FUNCTIONS
+
+=head2 get_config
+
+Returns the configuration for ANSI SQL. The configuration is delivered in
+ini-style:
+
+  [VALID COMMANDS]
+  ...
+
+  [VALID OPTIONS]
+  ...
+
+  [VALID COMPARISON OPERATORS]
+  ...
+
+  [VALID DATA TYPES]
+  ...
+
+  [RESERVED WORDS]
+  ...
+
+=cut

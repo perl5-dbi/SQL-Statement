@@ -1,7 +1,7 @@
 package SQL::Statement::GetInfo;
 
 use vars qw($VERSION);
-$VERSION = '1.22';
+$VERSION = '1.23';
 
 use SQL::Statement();
 use vars qw(%info);
@@ -459,4 +459,32 @@ sub sql_user_name {
     return $dbh->{"CURRENT_USER"};
 }
 
+=pod
 
+=head1 NAME
+
+SQL::Statement::GetInfo
+
+=head1 SYNOPSIS
+
+  # see L<DBI>
+
+=head1 DESCRIPTION
+
+This package contains support for C<$dbh->get_info()>.
+
+=head1 INHERITABCE
+
+  SQL::Statement::GetInfo
+
+=begin undocumented
+
+=head1 METHODS
+
+=head2 sql_keywords
+
+Returns the list of keywords
+
+=end undocumented
+
+=cut

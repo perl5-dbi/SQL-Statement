@@ -13,7 +13,7 @@ if ($@) {
         plan skip_all => "Requires DBI and DBD::File";
 }
 else {
-    plan tests => 22;
+    plan tests => 26;
 }
 my($sth,$str);
 my $dbh = DBI->connect('dbi:File(RaiseError=1):');
@@ -25,12 +25,15 @@ $dbh->do(q{ INSERT INTO Tmp (id,phrase) VALUES (?,?) },{},3,'baz');
 ok($dbh->do(q{ DELETE FROM Tmp WHERE id=? or phrase=? },{},3,'baz'),'placeholder delete');
 ok($dbh->do(q{ UPDATE Tmp SET phrase=? WHERE id=?},{},'bar',2),'placeholder update');
 ok($dbh->do(q{ UPDATE Tmp SET phrase=?,id=? WHERE id=? and phrase=?},{},'foo',1,9,'yyy'),'placeholder update');
-$sth = $dbh->prepare('SELECT id,phrase FROM Tmp');
-$sth->execute;
+ok( $dbh->do( q{INSERT INTO Tmp VALUES (3, 'baz'), (4, 'fob'),
+(5, 'zab')} ), 'multiline insert' );
+$sth = $dbh->prepare('SELECT id,phrase FROM Tmp ORDER BY id');
+$sth->execute();
 $str = '';
 while (my $r=$sth->fetch) { $str.="@$r^"; }
-ok($str eq '1 foo^2 bar^','Placeholders');
-$dbh->do(q{ DROP TABLE IF EXISTS Tmp } );
+cmp_ok($str, 'eq', '1 foo^2 bar^3 baz^4 fob^5 zab^','verify table contents');
+ok( $dbh->do(q{ DROP TABLE IF EXISTS Tmp } ), 'DROP TABLE' );
+
 
 ########################################
 # CREATE, INSERT, UPDATE, DELETE, SELECT
@@ -52,7 +55,7 @@ $sth->execute;
 $str = '';
 while (my $r=$sth->fetch) { $str.="@$r^"; }
 ok($str eq 'A FOO^A BAR^','SELECT');
-ok(2==$dbh->selectrow_array("SELECT COUNT(*) FROM phrase"),'COUNT *');
+cmp_ok(scalar $dbh->selectrow_array("SELECT COUNT(*) FROM phrase"),'==', 2, 'COUNT *');
 
 #################################
 # COMPUTED COLUMNS IN SELECT LIST
@@ -156,5 +159,26 @@ sub external_sth {
 
 ok( $dbh->do("DROP TABLE phrase"), 'DROP TEMP TABLE');
 
+my $pauli = [
+    [ 'H', 19 ],
+    [ 'H', 21 ],
+    [ 'KK', 1 ],
+    [ 'KK', 2 ],
+    [ 'KK', 13 ],
+    [ 'MMM', 25 ],
+];
+$dbh->do( q{CREATE TEMP TABLE pauli (column1 TEXT, column2 INTEGER)} );
+foreach my $line (@{$pauli})
+{
+    $dbh->do( sprintf( "INSERT INTO pauli VALUES ('%s', %d)", @{$line} ) );
+}
+$sth = $dbh->prepare ("UPDATE pauli SET column1 = ? WHERE column1 = ?");
+my $cnt = $sth->execute ("XXXX", "KK");
+cmp_ok( $cnt, '==', 3, 'UPDATE with placeholders' );
+$sth->finish();
 
+$sth = $dbh->prepare( "SELECT column1, COUNT(column1) FROM pauli GROUP BY column1" );
+$sth->execute();
+my $hres = $sth->fetchall_hashref('column1');
+cmp_ok( $hres->{XXXX}->{'COUNT(column1)'}, '==', 3, 'UPDATE with placeholder updates correct' );
 __END__
