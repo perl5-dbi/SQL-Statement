@@ -8,4 +8,5 @@ Makefile$
 \.project
 \bblib\b
 pm_to_blib
-sqlbug
+bugsql
+.*\.csv
