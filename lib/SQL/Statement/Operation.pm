@@ -5,7 +5,7 @@ require Carp;
 
 require SQL::Statement::Term;
 
-our $VERSION = '1.22';
+our $VERSION = '1.23';
 
 @ISA = qw(SQL::Statement::Term);
 
@@ -266,6 +266,66 @@ sub operate($)
     else
     {
         $expr = !defined($left) || ( $left eq '' );      # FIXME I don't like that '' IS NULL
+    }
+
+    return $expr;
+}
+
+package SQL::Statement::Operation::ANSI::Is;
+
+use vars qw(@ISA);
+@ISA = qw(SQL::Statement::Operation);
+
+=pod
+
+=head1 NAME
+
+SQL::Statement::Operation::ANSI::Is - is operation
+
+=head1 SYNOPSIS
+
+  # create an C<is> operation with an SQL::Statement object as owner,
+  # specifying the operation name, the left and the right operand
+  my $term = SQL::Statement::Is->new( $owner, $op, $left, $right );
+  # access the result of that operation
+  $term->value( $eval );
+
+=head1 DESCRIPTION
+
+SQL::Statement::Operation::ANSI::Is supports: C<IS NULL>, C<IS TRUE> and C<IS FALSE>.
+The right operand is always evaluated in boolean contect in case of C<IS TRUE>
+and C<IS FALSE>. C<IS NULL> returns I<true> if the right term is not defined,
+I<false> otherwise.
+
+=head1 INHERITANCE
+
+  SQL::Statement::Operation::Is
+  ISA SQL::Statement::Operation
+    ISA SQL::Statement::Term
+
+=head1 METHODS
+
+=head2 operate
+
+Returns true when the left term is null, true or false - based on the
+requested right value.
+
+=cut
+
+sub operate($)
+{
+    my $self  = $_[0];
+    my $left  = $self->{LEFT}->value( $_[1] );
+    my $right = $self->{RIGHT}->value( $_[1] );
+    my $expr;
+
+    if ( defined($right) )
+    {
+        $expr = defined($left) ? $left && $right : 0;    # is true / is false
+    }
+    else
+    {
+        $expr = !defined($left);
     }
 
     return $expr;

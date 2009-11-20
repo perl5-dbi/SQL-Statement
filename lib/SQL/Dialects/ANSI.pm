@@ -1,10 +1,11 @@
 package SQL::Dialects::ANSI;
 
 use vars qw($VERSION);
-$VERSION = '1.22';
+$VERSION = '1.23';
 
-sub get_config {
-return <<EOC;
+sub get_config
+{
+    return <<EOC;
 [VALID COMMANDS]
 CREATE
 DROP

@@ -53,7 +53,7 @@ sub new
     $flags->{PrintError}    = 1 unless defined $flags->{PrintError};
     $flags->{text_numbers}  = 1 unless defined $flags->{text_numbers};
     $flags->{alpha_compare} = 1 unless defined $flags->{alpha_compare};
-    for ( keys %$flags )
+    for ( keys %{$flags} )
     {
         $self->{$_} = $flags->{$_};
     }
@@ -65,7 +65,7 @@ sub new
     unless ( _INSTANCE( $parser, 'SQL::Parser' ) )
     {
         my $parser_dialect = $flags->{dialect} || 'AnyData';
-        $parser_dialect = 'AnyData' if $parser_dialect =~ m/^(?:CSV|Excel)$/;
+        $parser_dialect = 'AnyData' if ( $parser_dialect =~ m/^(?:CSV|Excel)$/ );
 
         $parser = SQL::Parser->new( $parser_dialect, $flags );
     }
@@ -1852,7 +1852,7 @@ sub verify_columns
                 my ( $table, $col ) = $self->verify_expand_column( $self->{column_aliases}->{$grpby} || $grpby,
                                                                    \$i, \@usr_cols, \%is_duplicate, \%col_exists );
                 return if ( $self->{errstr} );
-                ( $table, $col ) = $self->full_qualified_column_name( $col ) if( defined($col) && !defined($table) );
+                ( $table, $col ) = $self->full_qualified_column_name($col) if ( defined($col) && !defined($table) );
                 next unless ( defined($table) && defined($col) );
                 delete $set_fully->{"$table.$col"};
             }

@@ -42,7 +42,7 @@ sub new
 
     my $flags = shift || {};
     $flags->{dialect} = $dialect;
-    $flags->{PrintError} = 1 unless defined $flags->{PrintError};
+    $flags->{PrintError} = 1 unless ( defined( $flags->{PrintError} ) );
 
     my $self = bless( $flags, $class );
     $self->dialect( $self->{dialect} );
@@ -56,10 +56,10 @@ sub new
 sub parse
 {
     my ( $self, $sql ) = @_;
-    $self->dialect( $self->{dialect} ) unless $self->{dialect_set};
+    $self->dialect( $self->{dialect} ) unless ( $self->{dialect_set} );
     $sql =~ s/^\s+//;
     $sql =~ s/\s+$//;
-    $self->{struct}                    = {};
+    $self->{struct}                    = { dialect => $self->{dialect} };
     $self->{tmp}                       = {};
     $self->{original_string}           = $sql;
     $self->{struct}->{original_string} = $sql;
@@ -275,7 +275,7 @@ sub dialect
 {
     my ( $self, $dialect ) = @_;
     return $self->{dialect} unless $dialect;
-    return $self->{dialect} if $self->{dialect_set};
+    return $self->{dialect} if ( $self->{dialect_set} );
     $self->{opts} = {};
     my $mod = "SQL/Dialects/$dialect.pm";
     undef $@;
@@ -283,7 +283,7 @@ sub dialect
     return $self->do_err($@) if $@;
     $mod =~ s/\.pm//;
     $mod =~ s"/"::"g;
-    my @data = split /\n/, $mod->get_config;
+    my @data = split( m/\n/, $mod->get_config() );
     my $feature;
 
     for (@data)
@@ -488,10 +488,13 @@ sub SELECT
         return undef unless ( $self->IMPLICIT_JOIN() );
     }
 
-    if( $self->{struct}->{set_quantifier} && ('DISTINCT' eq $self->{struct}->{set_quantifier}) && _ARRAY( $self->{struct}->{set_function} ) )
+    if (    $self->{struct}->{set_quantifier}
+         && ( 'DISTINCT' eq $self->{struct}->{set_quantifier} )
+         && _ARRAY( $self->{struct}->{set_function} ) )
     {
         delete $self->{struct}->{set_quantifier};
-        warn "Specifying DISTINCT when using aggregate functions isn't reasonable - ignored." if ( $self->{PrintError} );
+        warn "Specifying DISTINCT when using aggregate functions isn't reasonable - ignored."
+          if ( $self->{PrintError} );
     }
 
     return 1;
@@ -2293,9 +2296,9 @@ sub ROW_VALUE
         return undef unless $value;
         $str =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         my $value_type = $value->{type} if ref $value eq 'HASH';
-        $value_type = $value->[0] if( defined( _ARRAY( $value ) ) );
+        $value_type = $value->[0] if ( defined( _ARRAY($value) ) );
         return $self->do_err("Can't use a number in TRIM: '$str'!")
-          if( $value_type and $value_type eq 'number' );
+          if ( $value_type and $value_type eq 'number' );
         return {
                  type      => 'function',
                  name      => $name,

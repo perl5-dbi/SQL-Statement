@@ -9,7 +9,7 @@ use Data::Dumper;
 use Params::Util qw(_HASH _ARRAY0);
 use Scalar::Util qw(blessed weaken);
 
-our $VERSION = '1.22';
+our $VERSION = '1.23';
 
 my %oplist = (
                '='       => 'Equal',
@@ -30,8 +30,8 @@ my %oplist = (
 
 sub new
 {
-    my ($class, $owner) = @_;
-    my $self  = bless( { OWNER => $owner, }, $class );
+    my ( $class, $owner ) = @_;
+    my $self = bless( { OWNER => $owner, }, $class );
 
     weaken( $self->{OWNER} );
 
@@ -56,7 +56,20 @@ sub buildCondition
         }
         elsif ( defined( $oplist{$op} ) )
         {
-            my $cn    = 'SQL::Statement::Operation::' . $oplist{$op};
+            my $cn;
+            if (
+                 UNIVERSAL::isa(
+                                 'SQL::Statement::Operation::' . $self->{OWNER}->{dialect} . '::' . $oplist{$op},
+                                 'SQL::Statement::Operation'
+                               )
+               )
+            {
+                $cn = 'SQL::Statement::Operation::' . $self->{OWNER}->{dialect} . '::' . $oplist{$op};
+            }
+            else
+            {
+                $cn = 'SQL::Statement::Operation::' . $oplist{$op};
+            }
             my $left  = $self->buildCondition( $pred->{arg1} );
             my $right = $self->buildCondition( $pred->{arg2} );
             $term = $cn->new( $self->{OWNER}, $op, $left, $right );

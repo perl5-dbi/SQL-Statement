@@ -3,7 +3,7 @@ package SQL::Statement::Function;
 require SQL::Statement::Term;
 @ISA = qw(SQL::Statement::Term);
 
-our $VERSION = '1.22';
+our $VERSION = '1.23';
 
 =pod
 
@@ -191,7 +191,7 @@ Returns the result of the evaluated expression.
 
 sub new
 {
-    my ($class,$owner,$expr,$params) = @_;
+    my ( $class, $owner, $expr, $params ) = @_;
 
     my $self = $class->SUPER::new($owner);
 
@@ -284,9 +284,9 @@ Returns the trimmed value of first parameter argument.
 
 sub new
 {
-    my ($class, $owner, $spec, $char, $params ) = @_;
-    $spec   ||= 'BOTH';
-    $char   ||= ' ';
+    my ( $class, $owner, $spec, $char, $params ) = @_;
+    $spec ||= 'BOTH';
+    $char ||= ' ';
 
     my $self = $class->SUPER::new($owner);
 
@@ -378,7 +378,7 @@ Returns the extracted sub-string value from first parameter argument.
 
 sub new
 {
-    my ($class,$owner,$start,$length,$params) = @_;
+    my ( $class, $owner, $start, $length, $params ) = @_;
 
     my $self = $class->SUPER::new($owner);
 
@@ -441,7 +441,7 @@ Returns the concatenated string composed of the parameter values.
 
 sub new
 {
-    my ($class,$owner,$params ) = @_;
+    my ( $class, $owner, $params ) = @_;
 
     my $self = $class->SUPER::new($owner);
 
