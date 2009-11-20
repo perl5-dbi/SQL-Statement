@@ -20,6 +20,7 @@ Version 1.23, release November 20th, 2009
   which is usually forbidden by ANSI SQL
 * Add support for inserting multiple lines with one statement
   (fixes RT #31730)
+* Handle ANSI 'IS NULL' and CVS/AnyData 'IS NULL' different
 
 [Things that may break your code]
 * row_value now expects up to two arguments
