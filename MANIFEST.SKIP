@@ -1,6 +1,7 @@
 \B\.svn\b
 \.[Bb][Aa][Kk]$
 \.orig$
+\.rej$
 \.old$
 \..*sw[po]
 .*~
