@@ -147,7 +147,7 @@ package SQL::Statement::Function::NumericEval;
 
 use vars qw(@ISA);
 
-use Params::Util qw(_NUMBER);
+use Params::Util qw(_NUMBER _INSTANCE);
 
 @ISA = qw(SQL::Statement::Function);
 
