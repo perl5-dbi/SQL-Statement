@@ -1,0 +1,42 @@
+There is an implicit assumption throughout SQL::Statement and SQL::Parser that each item in a select list is going to be either a column name, or a function. It also seems to be an assumption that the argument of a function is always going to be a column name. I think this assumption limits the scalability of SQL::Statement code a great deal.
+
+I suggest that each item in the select list (and the where clause) be considered an "Expression", which might be an operation, function, or constant. This would allow the following statements to be valid:
+
+select 1;
+select a + 2 from foo;
+select max( stringlength( b ) ) from foo;
+select a from foo where (b / 2) < 5;
+select b from foo where stringlength(b) > 5;
+
+It would also lend itself to a system where people could create user-defined functions very easily.
+
+When done, you'd end up with a tree of expression objects both for the select list and the where clause that would both support the same set of operations.
+
+If you are interested in this, let me know, and I can assist with the coding.
+
+----------------------------------------------
+
+The following code:
+
+use common::sense;
+use SQL::Statement;
+my $sql1 = "SELECT 1+0 FROM some_table";
+my $sql2 = "SELECT 1 FROM some_table";
+my $parser = SQL::Parser->new();
+$parser->{RaiseError}=1;
+$parser->{PrintError}=0;
+
+for ($sql1, $sql2) {
+warn "trying: $_";
+my $stmt = SQL::Statement->new($_,$parser);
+}
+
+produces:
+
+trying: SELECT 1+0 FROM some_table at sql.pl line 10.
+trying: SELECT 1 FROM some_table at sql.pl line 10.
+Bad table or column name: '1' starts with non-alphabetic character! at
++ /usr/local/share/perl/5.10.0/SQL/Parser.pm line 2894.
+
+This seems to be impacting DBD::AnyData. See
+http://perlmonks.com/?node_id=811012.
