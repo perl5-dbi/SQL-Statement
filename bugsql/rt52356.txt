@@ -1,0 +1,15 @@
+I use SQL-Statement with DBD::CSV and I wanted to do the following:
+
+do( "DELETE FROM log WHERE time<( 1259763423 - ( $x * 60 ) ) OR
+username_or_IP IN ( ?, ? )", "", $y, $z )
+
+then I got the error:
+"Undefined subroutine &SQL::Statement::Function::NumericEval::_INSTANCE
+called at ..../SQL/Statement/Function.pm line 208, line 2."
+The real query was:
+( "DELETE FROM log WHERE time<( 1259763423 - ( 15 * 60 ) ) OR
+username_or_IP IN ( ?, ? )", "", "admin", "95.90.205.74" )
+
+This happens after I added "( 1259763423 - ( $x * 60 ) )" into the DB-
+query. If I do this calculation outside and write "... time<$i ..."
+everything works good.
