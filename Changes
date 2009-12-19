@@ -1,5 +1,20 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.24, release 
+----------------------------------------------
+
+[Misc]
+* Ignore *.rej in MANIFEST.SKIP (fixes RT #52081 reported by
+  Lars Thegler)
+
+[Bug fixes]
+* Add missing import of _INSTANCE in SQL::Statement::Function::NumericEval
+  fixes RT #52356 - reported by Detlef Pilzecker)
+
+[Improvements]
+* Fix parsing errors of plain numbers
+* Fix parsing errors of nested calculation / functions
+
 Version 1.23, release November 20th, 2009
 ----------------------------------------------
 

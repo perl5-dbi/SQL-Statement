@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 38;
+use Test::More tests => 40;
 use Data::Dumper;
 
 # test 1
@@ -83,8 +83,8 @@ my %calcs = (
 );
 
 $calcs{ q{SELECT MAX(time_stamp) FROM log WHERE time_stamp IN ( %d - (2*3600), %d - (4*3600))} } = $now - (2*3600);
-$calcs{ q{SELECT MAX(time_stamp) - 3*3600 FROM log} } = $now - (3*3600);
-$calcs{ q{SELECT MAX( CHAR_LENGTH(message) ) FROM log} } = '';
+$calcs{ q{SELECT MAX(time_stamp - 3*3600) FROM log} } = $now - (3*3600);
+$calcs{ q{SELECT MAX( CHAR_LENGTH(message) ) FROM log} } = '73';
 $calcs{ q{SELECT 1+0 from log} } = '1^1^1^1^1^1^1^1^1^1^1^1^1^1^1^1^1';
 $calcs{ q{SELECT 1+1*2} } = 3;
 $calcs{ q{SELECT 1} } = 1;
@@ -101,4 +101,27 @@ while( my ( $sql_t, $result ) = each(%calcs) )
         push( @res, @{$row} );
     }
     is( join( '^', @res ), $result, $sql );
+}
+
+$parser->{PrintError} = 0;
+my %todo = (
+q{SELECT MAX(time_stamp) - 3*3600 FROM log} => $now - (3*3600),
+);
+
+while( my ( $sql_t, $result ) = each(%todo) )
+{
+    TODO:
+    {
+        local $TODO = "Known limitation. Parser can not handle properly";
+    my $sql = sprintf( $sql_t, $now, $now, $now, $now );
+    $stmt = SQL::Statement->new($sql,$parser);
+    eval { $stmt->execute($cache) };
+    warn $@ if $@;
+    ok(!$@,'$stmt->execute "'.$sql.'" ('.$stmt->command.')');
+    my @res;
+    while (my $row=$stmt->fetch) {
+        push( @res, @{$row} );
+    }
+    is( join( '^', @res ), $result, $sql );
+    }
 }

@@ -10,7 +10,10 @@ See L<SQL::Statement> for usage.
 
 =head1 DESCRIPTION
 
-The SQL::Statement module can be used either from a DBI driver like DBD::CSV or directly.  The syntax below applies to both situations.  In the case of DBDs, each DBD can implement its own sub-dialect so be sure to check the DBD documentations also.
+The SQL::Statement module can be used either from a DBI driver like DBD::CSV
+or directly.  The syntax below applies to both situations.  In the case of
+DBDs, each DBD can implement its own sub-dialect so be sure to check the DBD
+documentations also.
 
 SQL::Statement is meant primarly as a base class for DBD drivers
 and as such concentrates on a small but useful subset of SQL.
@@ -67,7 +70,7 @@ B<Special Utility Functions>
 
 B<Operators and Predicates>
 
-   = , <> , < , > , <= , >= , IS [NOT] NULL , LIKE , CLIKE , IN , BETWEEN
+   = , <> , < , > , <= , >= , IS [NOT] (NULL|TRUE|FALSE) , LIKE , CLIKE , IN , BETWEEN
 
 B<Identifiers> and B<Aliases>
 
@@ -87,8 +90,8 @@ B<Comments>
 
 B<NULLs>
 
-   * currently NULLs and empty strings are identical, but this will change
-   * use {col IS NULL} to find NULLs, not {col=''} (though both currently work)
+   * currently NULLs and empty strings are identical in non-ANSI dialect.
+   * use {col IS NULL} to find NULLs, not {col=''} (though both may work depending on dialect)
 
 See below for further details.
 
@@ -114,13 +117,17 @@ The "AS SELECT" clause creates and populates the new table using the data and co
   #
   $dbh->do("CREATE TABLE qux AS SELECT id,word FROM foo NATURAL JOIN bar");
 
-If the optional keyword TEMP (or its synonym TEMPORARY) is used, the table will be an in-memory table, available  for the life of the current database handle or until  a DROP TABLE command is issued. 
+If the optional keyword TEMP (or its synonym TEMPORARY) is used, the table
+will be an in-memory table, available  for the life of the current
+database handle or until  a DROP TABLE command is issued. 
 
   # create a temporary table
   #
   $dbh->do("CREATE TEMP TABLE qux (id INT PRIMARY KEY,word VARCHAR(30))");
 
-TEMP tables can be modified with SQL commands but the updates are not automatically reflected back to any permanent tables they may be associated with.  To save a TEMP table - just use an AS SELECT clause:
+TEMP tables can be modified with SQL commands but the updates are not
+automatically reflected back to any permanent tables they may be
+associated with.  To save a TEMP table - just use an AS SELECT clause:
 
  $dbh = DBI->connect( 'dbi:CSV:' );
  $dbh->do("CREATE TEMP TABLE qux_temp AS (id INT, word VARCHAR(30))");
@@ -129,8 +136,9 @@ TEMP tables can be modified with SQL commands but the updates are not automatica
  #
  $dbh->do("CREATE TABLE qux_permanent AS SELECT * FROM qux_temp");
 
-Tables, both temporary and permanent may also be created directly from perl arrayrefs and from heterogeneous queries to any DBI accessible data source, see the IMPORT() function.
-
+Tables, both temporary and permanent may also be created directly from
+perl arrayrefs and from heterogeneous queries to any DBI accessible
+data source, see the IMPORT() function.
 
  CREATE [ {LOCAL|GLOBAL} TEMPORARY ] TABLE $table
         (
@@ -196,12 +204,12 @@ Tables, both temporary and permanent may also be created directly from perl arra
      [ LIMIT [start,] length ]
 
       * select clause ::=
-              [DISTINCT|ALL] *
+             [DISTINCT|ALL] *
            | [DISTINCT|ALL] col1 [,col2, ... colN]
            | set_function1 [,set_function2, ... set_functionN]
 
       * set function ::=
-             COUNT ( [DISTINCT|ALL] * )
+             COUNT ( [ALL] * )
            | COUNT | MIN | MAX | AVG | SUM ( [DISTINCT|ALL] col_name )
 
       * from clause ::=
@@ -227,11 +235,11 @@ Tables, both temporary and permanent may also be created directly from perl arra
 
        [NOT] $val1 $op1 $val1 [ ... AND|OR $valN $opN $valN ]
 
-
 =head3 OPERATORS
 
        $op  = |  <> |  < | > | <= | >=
-              | IS NULL | IS NOT NULL | LIKE | CLIKE | BETWEEN | IN
+              | IS [NOT] NULL | IS [NOT] TRUE | IS [NOT] FALSE
+              | LIKE | CLIKE | BETWEEN | IN
 
   The "CLIKE" operator works exactly the same as the "LIKE"
   operator, but is case insensitive.  For example:
@@ -251,6 +259,8 @@ for documentation of functions.
 
 Regular identifiers (table and column names *without* quotes around them) 
 are case INSENSITIVE so column foo, fOo, FOO all refer to the same column.
+Internally they're used in their lower case representation, so do not rely on
+SQL::Statement keeps your case.
 
 Delimited identifiers (table and column names *with* quotes around them) are 
 case SENSITIVE so column "foo", "fOo", "FOO" each refer to different columns.
@@ -258,7 +268,7 @@ case SENSITIVE so column "foo", "fOo", "FOO" each refer to different columns.
 A delimited identifier is *never* equal to a regular identifer (so "foo" and 
 foo are two different columns).  But don't do that :-).
 
-Remember thought that, in DBD::CSV if table names are used directly as file 
+Remember thought that, in L<DBD::CSV> if table names are used directly as file 
 names, the case sensitivity depends on the OS e.g. on Windows files named foo, 
 FOO, and fOo are the same as each other while on Unix they are different.
 
@@ -266,7 +276,8 @@ FOO, and fOo are the same as each other while on Unix they are different.
 
 =head4 IMPORT()
 
-Imports the data and structure of a table from an external data source into a permanent or temporary table.
+Imports the data and structure of a table from an external data source into a
+permanent or temporary table.
 
  $dbh->do("CREATE TABLE qux AS IMPORT(?)",{},$oracle_sth);
 
@@ -281,11 +292,18 @@ IMPORT() can also be used anywhere that table_names can:
  ");
  $sth->execute( $pg_sth, $mysql_sth );
 
-The IMPORT() function imports the data and structure of a table from an external data source.  The IMPORT() function is always used with a placeholder parameter which may be 1) a prepared and executed statement handle for any DBI accessible data source;  or 2) an AoA whose first row is column names and whose succeeding rows are data 3) an AoH.
+The IMPORT() function imports the data and structure of a table from an
+external data source.  The IMPORT() function is always used with a placeholder
+parameter which may be 1) a prepared and executed statement handle for any DBI
+accessible data source;  or 2) an AoA whose first row is column names and
+whose succeeding rows are data 3) an AoH.
 
-The IMPORT() function may be used in the AS clause of a CREATE statement, and in the FROM clause of any statement.  When used in a FROM clause, it should be used with a column alias e.g. SELECT * FROM IMPORT(?) AS TableA WHERE ...
+The IMPORT() function may be used in the AS clause of a CREATE statement, and
+in the FROM clause of any statement.  When used in a FROM clause, it should
+be used with a column alias e.g. SELECT * FROM IMPORT(?) AS TableA WHERE ...
 
-You can also write your own IMPORT() functions to treat anything as a data source.  See User-Defined Function in L<SQL::Statement::Functions>.
+You can also write your own IMPORT() functions to treat anything as a data
+source.  See User-Defined Function in L<SQL::Statement::Functions>.
 
 Examples:
 
@@ -317,21 +335,30 @@ Examples:
 
 =head4 RUN()
 
-Run SQL statements from a user supplied file.  <b>Please Note:</b> this function is experimental, please let me know if you have problems.
+Run SQL statements from a user supplied file.  B<Please Note:> this
+function is experimental, please let me know if you have problems.
 
  RUN( sql_file )
 
-If the file contains non-SELECT statements such as CREATE and INSERT, use the RUN() function with $dbh->do().  For example, this prepares and executes all of the SQL statements in a file called "populate.sql":
+If the file contains non-SELECT statements such as CREATE and INSERT, use
+the RUN() function with $dbh->do().  For example, this prepares and
+executes all of the SQL statements in a file called "populate.sql":
 
  $dbh->do(" CALL RUN( 'populate.sql') ");
 
-If the file contains SELECT statements, the RUN() function may be used anywhere a table name may be used, for example, if you have a file called "query.sql" containing "SELECT * FROM Employee", then these two lines are exactly the same:
+If the file contains SELECT statements, the RUN() function may be used
+anywhere a table name may be used, for example, if you have a file called
+"query.sql" containing "SELECT * FROM Employee", then these two lines
+are exactly the same:
 
  my $sth = $dbh->prepare(" SELECT * FROM Employee ");
 
  my $sth = $dbh->prepare(" SELECT * FROM RUN( 'query.sql' ) ");
 
-If the file contains a statement with placeholders, the values for the placehoders can be passed in the call to $sth->execute() as normal.  If the query.sql file contains "SELECT id,name FROM x WHERE id=?", then these two are the same:
+If the file contains a statement with placeholders, the values for the
+placehoders can be passed in the call to $sth->execute() as normal. If the
+query.sql file contains "SELECT id,name FROM x WHERE id=?", then these
+two are the same:
 
  my $sth = $dbh->prepare(" SELECT id,name FROM x WHERE id=?");
  $sth->execute(64);
@@ -339,7 +366,10 @@ If the file contains a statement with placeholders, the values for the placehode
  my $sth = $dbh->prepare(" SELECT * FROM RUN( 'query.sql' ) ");
  $sth->execute(64);
 
-B<Note> This function assumes that the SQL statements in the file are separated by a semi-colon+newline combination (/;\n/).  If you wish to use different separators or import SQL from a different source, just over-ride the RUN() function with your own user-defined-function.
+B<Note> This function assumes that the SQL statements in the file are
+separated by a semi-colon+newline combination (/;\n/).  If you wish to use
+different separators or import SQL from a different source, just over-ride
+the RUN() function with your own user-defined-function.
 
 =head2 Further details
 
@@ -353,10 +383,13 @@ Syntax obvious
 
 =item Strings
 
-Surrounded by either single or double quotes; some characters need to
+Surrounded by either single quotes; some characters need to
 be escaped with a backslash, in particular the backslash itself (\\),
 the NUL byte (\0), Line feeds (\n), Carriage return (\r), and the
-quotes (\' or \").
+quotes (\').
+
+B<Note:> Quoting "Strings" using double quotes are recognized as
+quoted identifiers (column or table names).
 
 =item Parameters
 
@@ -369,15 +402,21 @@ Prepare(). Parameters are represented by question marks (?).
 Identifiers are table or column names. Syntactically they consist of
 alphabetic characters, followed by an arbitrary number of alphanumeric
 characters. Identifiers like SELECT, INSERT, INTO, ORDER, BY, WHERE,
-... are forbidden and reserved for other tokens.  Identifiers are always compared case-insensitively, i.e. "select foo from bar" will be evaluated the same as "SELECT FOO FROM BAR".  One exception is that if the module is used in conjunction with a file storage system, the names of tables are case sensitive.
+... are forbidden and reserved for other tokens.  Identifiers are always
+compared case-insensitively, i.e. C<select foo from bar> will be evaluated
+the same as C<SELECT FOO FROM BAR> (C<FOO> will be evaluated as C<foo>,
+similar for C<BAR>). 
 
 =back
 
 =head1 Extending SQL syntax using SQL
 
-The Supported SQL syntax shown above is the default for SQL::Statement but it can be extended (or contracted) either on-the-fly or on a permanent basis.
-In other words, you can modify the SQL syntax accepted as valid by the parser and accepted as executable by the executer.  There are two methods for extending the syntax - 1) with SQL commands that can be issued directly in SQL::Statement or form a DBD or 2) by subclassing SQL::Parser.
-
+The Supported SQL syntax shown above is the default for SQL::Statement but
+it can be extended (or contracted) either on-the-fly or on a permanent basis.
+In other words, you can modify the SQL syntax accepted as valid by the parser
+and accepted as executable by the executer.  There are two methods for
+extending the syntax - 1) with SQL commands that can be issued directly in
+SQL::Statement or form a DBD or 2) by subclassing SQL::Parser.
 
 The following SQL commands modify the default SQL syntax:
 
@@ -386,41 +425,69 @@ The following SQL commands modify the default SQL syntax:
   CREATE/DROP TYPE
   CREATE/DROP OPERATOR
 
-A simple example would be a situation in which you have a table named 'TABLE'.  Since table is an ANSI reserved key word, by default SQL::Statement will produce an error when you attempt to create or access it.  You could put the table name inside double quotes since quoted identifiers can validly be reserved words, or you could rename the table.  But if those aren't options, you would do this:
+A simple example would be a situation in which you have a table named 'TABLE'.
+Since table is an ANSI reserved key word, by default SQL::Statement will
+produce an error when you attempt to create or access it.  You could put the
+table name inside double quotes since quoted identifiers can validly be
+reserved words, or you could rename the table.  But if those aren't options,
+you would do this:
 
   DROP KEYWORD table
 
-Once that statement is issued, the parser will no longer object to 'table' as a table name.  Careful though, if you drop too many keywords you may confuse the parser, especially keywords like FROM and WHERE that are central to parsing the statement.
+Once that statement is issued, the parser will no longer object to 'table' as
+a table name.  Careful though, if you drop too many keywords you may confuse
+the parser, especially keywords like FROM and WHERE that are central to
+parsing the statement.
 
-In the reverse situation, suppose you want to parse some SQL that defines a column as type BIG_BLOB.  Since 'BIG_BLOB' isn't a recognized ANSI data type, an error will be produced by default.  To make the parser treat it as a valid data type, you'd do this:
+In the reverse situation, suppose you want to parse some SQL that defines a
+column as type BIG_BLOB.  Since 'BIG_BLOB' isn't a recognized ANSI data type,
+an error will be produced by default.  To make the parser treat it as a valid
+data type, you'd do this:
 
  CREATE TYPE big_blob
 
-Keywords and types are case-insensitive, so it doesn't matter what case you define it or use it with.
+Keywords and types are case-insensitive, so it doesn't matter what case you
+define it or use it with.
 
-Suppose you're working with some SQL that contains the cosh() function (an Oracle function for hyperbolic cosine, whatever that is :-).  The cosh() function isn't currently implemented in SQL::Statement so the parser would die with an error.  But you can easily trick the parser into accepting the function:
+Suppose you're working with some SQL that contains the cosh() function (an
+Oracle function for hyperbolic cosine, whatever that is :-).  The cosh()
+function isn't currently implemented in SQL::Statement so the parser would
+die with an error.  But you can easily trick the parser into accepting
+the function:
 
  CREATE FUNCTION cosh
 
-Once the parser has read that CREATE FUNCTION statement, it will no longer object to the use of the cosh() function in SQL statements.
+Once the parser has read that CREATE FUNCTION statement, it will no longer
+object to the use of the cosh() function in SQL statements.
 
-If your only interest is in parsing SQL statements, then 'CREATE FUNCTION cosh' is sufficient.  But if you actually want to be able to use the cosh() function in executable statements, you need to supply a perl subroutine that performs the cosh() function:
+If your only interest is in parsing SQL statements, then C<CREATE FUNCTION
+cosh> is sufficient.  But if you actually want to be able to use the cosh()
+function in executable statements, you need to supply a perl subroutine
+that performs the cosh() function:
 
   CREATE FUNCTION cosh AS perl_subroutine_name
 
-The subroutine name can refer to a subroutine in your current script, or to a subroutine in any available package.  See L<SQL::Statement::Functions> for details of how to create and load functions.
+The subroutine name can refer to a subroutine in your current script, or to
+a subroutine in any available package.  See L<SQL::Statement::Functions> for
+details of how to create and load functions.
 
 Functions can be used as  predicates in search clauses, for example:
 
  SELECT * FROM x WHERE c1=7 AND SOUNDEX(c3,'foo') AND c8='bar'
 
-In the SQL above, the SOUNDEX() function full predicate - it plays the same role as "c1=7" or "c8='bar'".
+In the SQL above, the C<SOUNDEX()> function full predicate - it plays the
+same role as C<c1=7 or c8='bar'>.
 
-Functions can also serve as predicate operators.  An operator, unlike a full predicate, has something on the left and right sides.  An equal sign is an operator, so is LIKE.  If you really want to you can get the parser to not accept LIKE as an operator with
+Functions can also serve as predicate operators.  An operator, unlike a
+full predicate, has something on the left and right sides.  An equal sign
+is an operator, so is LIKE.  If you really want to you can get the parser
+to not accept LIKE as an operator with
 
  DROP OPERATOR like
 
-Or, you can invent your own operator.  Suppose you have an operator "REVERSE_OF" that is true if the string on its left side when reversed is equal to the string on the right side:
+Or, you can invent your own operator.  Suppose you have an operator
+C<REVERSE_OF> that is true if the string on its left side when reversed
+is equal to the string on the right side:
 
   CREATE OPERATOR reverse_of
   SELECT * FROM x WHERE c1=7 AND c3 REVERSE_OF 'foo'
@@ -430,18 +497,24 @@ The operator could just as well have been written as a function:
   CREATE FUNCTION reverse_of
   SELECT * FROM x WHERE c1=7 AND REVERSE_OF(c3,'foo')
 
-Like functions, if you want to actually execute a user-defined operator as distinct form just parsing it, you need to assign the operator to a perl subroutine.  This is done exactly like assigning functions:
+Like functions, if you want to actually execute a user-defined operator
+as distinct form just parsing it, you need to assign the operator to a
+perl subroutine.  This is done exactly like assigning functions:
 
   CREATE OPERATOR reverse_of AS perl_subroutine_name
 
 =head1 Extending SQL syntax using subclasses
 
-In addition to using the SQL shown above to modify the parser's behavior, you can also extend the SQL syntax by subclassing SQL::Parser.  See L<SQL::Parser> for details.
+In addition to using the SQL shown above to modify the parser's behavior,
+you can also extend the SQL syntax by subclassing SQL::Parser.
+See L<SQL::Parser> for details.
 
 =head1 AUTHOR & COPYRIGHT
 
 Copyright (c) 2005, Jeff Zucker <jzuckerATcpan.org>, all rights reserved.
+Copyright (c) 2009, Jens Rehsack <rehsackATcpan.org>, all rights reserved.
 
-This document may be freely modified and distributed under the same terms as Perl itself.
+This document may be freely modified and distributed under the same
+terms as Perl itself.
 
 =cut

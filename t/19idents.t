@@ -14,8 +14,6 @@ BEGIN
     use_ok('SQL::Parser');       # Test 2
 }
 
-diag("SQL::Statement version $SQL::Statement::VERSION");
-
 sub columns_sig
 {
     my (@columns) = @_;

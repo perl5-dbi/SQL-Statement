@@ -11,7 +11,9 @@ else {
     plan tests => 10;
 }
 use SQL::Statement;
-diag( sprintf( "SQL::Statement v.%s\n", $SQL::Statement::VERSION ) );
+diag( sprintf( "SQL::Statement v%s\n", $SQL::Statement::VERSION ) );
+diag( sprintf( "DBI v%s\n", $DBI::VERSION ) );
+diag( sprintf( "DBD::File v%s\n", $DBD::File::VERSION ) );
 my $dbh=DBI->connect('dbi:File(RaiseError=1,PrintError=0):');
 $dbh->do($_) for <DATA>;
 
