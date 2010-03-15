@@ -1,5 +1,14 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.25, release March 15th, 2010
+----------------------------------------------
+
+[Bug fixes]
+* Keep org_table_names with schema information to allow derived
+  table classes to handle as it seems reasonable there
+* Separate columns with "\0" in multi-column aggregation to be able to
+  difference between ('1','1foo') and ('11','foo')
+
 Version 1.24, release March 15th, 2010
 ----------------------------------------------
 

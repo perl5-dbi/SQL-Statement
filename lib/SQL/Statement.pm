@@ -34,7 +34,7 @@ BEGIN
 
 #use locale;
 
-$VERSION = '1.24';
+$VERSION = '1.25';
 
 sub new
 {
@@ -1260,7 +1260,9 @@ sub getColumnObject($)
             else
             {
                 # FIXME add '\0' constants between items?
-                @cols = map { $_->[2] } @cols;
+		my $colSep = $self->{termFactory}->buildCondition( { type => 'string', value => "\0", } );
+                @cols = map { $_->[2], $colSep } @cols;
+		pop(@cols);
                 $col = $self->{termFactory}->buildCondition(
                                                              {
                                                                type  => 'function',

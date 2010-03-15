@@ -19,7 +19,7 @@ use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.24';
+$VERSION = '1.25';
 
 BEGIN
 {
@@ -90,7 +90,7 @@ sub parse
     my ($com) = $sql =~ m/^\s*(\S+)\s+/s;
     if ( !$com )
     {
-        return 1 if $starts_with_comment;
+        return 1 if ($starts_with_comment);
         return $self->do_err("Incomplete statement!");
     }
     $com                                    = uc $com;
@@ -106,9 +106,9 @@ sub parse
         $self->replace_quoted_ids();
 
         my @tables = @{ $self->{struct}->{table_names} } if ( defined( _ARRAY0( $self->{struct}->{table_names} ) ) );
+        push( @{ $self->{struct}->{org_table_names} }, @tables );
         # REMOVE schema.table infor if present
         @tables = map { s/^.*\.([^\.]+)$/$1/; $_ } @tables;
-        push( @{ $self->{struct}->{org_table_names} }, @tables );
 
         if ( exists( $self->{struct}->{join} ) && !defined( _HASH( $self->{struct}->{join} ) ) )
         {
@@ -990,7 +990,7 @@ sub CREATE
     {
         return $self->do_err("Can't find column definitions!");
     }
-    return undef unless $self->TABLE_NAME($table_name);
+    return undef unless ( $self->TABLE_NAME($table_name) );
     $table_element_def =~ s/\s+\(/(/g;
     my $primary_defined;
     while (
