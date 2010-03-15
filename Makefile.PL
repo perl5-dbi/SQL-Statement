@@ -53,10 +53,17 @@ END_OF_WORKAROUND
 
 WriteMakefile1(
     MIN_PERL_VERSION => '5.008',
-    META_MERGE       => { resources => { repository => 'https://svn.perl.org/modules/SQL-Statement/', }, },
-    NAME             => 'SQL::Statement',
-    VERSION_FROM     => 'lib/SQL/Statement.pm',
-    dist             => {
+    META_MERGE       => {
+                    resources => {
+                                   repository  => 'https://svn.perl.org/modules/SQL-Statement/',
+                                   MailingList => 'mailto:dbi-dev@perl.org',
+                                   license     => 'http://dev.perl.org/licenses/',
+                                 },
+                  },
+    NAME          => 'SQL::Statement',
+    VERSION_FROM  => 'lib/SQL/Statement.pm',
+    ABSTRACT_FROM => 'lib/SQL/Statement.pm',
+    dist          => {
               'SUFFIX'       => ".gz",
               'DIST_DEFAULT' => 'manifest tardist',
               'COMPRESS'     => "gzip -9vf"
