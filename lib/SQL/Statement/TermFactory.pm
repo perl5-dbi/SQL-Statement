@@ -6,7 +6,7 @@ require SQL::Statement::Placeholder;
 require SQL::Statement::Function;
 
 use Data::Dumper;
-use Params::Util qw(_HASH _ARRAY0);
+use Params::Util qw(_HASH _ARRAY0 _INSTANCE);
 use Scalar::Util qw(blessed weaken);
 
 our $VERSION = '1.24';
@@ -42,7 +42,7 @@ my %opClasses;
 
 sub _getOpClass($)
 {
-    my ($self, $op) = @_;
+    my ( $self, $op ) = @_;
     unless ( defined( $opClasses{$op} ) )
     {
         my $opBase = 'SQL::Statement::Operation';
@@ -148,6 +148,10 @@ sub buildCondition
         {
             return $self->{OWNER}->do_err( sprintf( q{Unknown type '%s'}, $pred->{type} ) );
         }
+    }
+    elsif ( defined( _INSTANCE( $pred, 'SQL::Statement::Term' ) ) )
+    {
+        return $pred;
     }
     else
     {

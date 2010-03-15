@@ -20,7 +20,8 @@ sub columns_sig
 
     if ( blessed( $columns[0] ) && $columns[0]->isa('SQL::Statement') )
     {
-        unshift( @columns, @{shift(@columns)->{column_names}} ); # columns() doesn't work before open_tables succeeds
+	my $stmt = $columns[0];
+	@columns = map { $_->{name} || $_->{value} } @{$stmt->{column_defs}}; # columns() doesn't work before open_tables succeeds
     }
 
     @columns = sort( @columns );

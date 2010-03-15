@@ -12,8 +12,16 @@ Version 1.24, release
   fixes RT #52356 - reported by Detlef Pilzecker)
 
 [Improvements]
-* Fix parsing errors of plain numbers
-* Fix parsing errors of nested calculation / functions
+* Fix parsing errors of plain numbers (RT#16931)
+* Fix parsing errors of nested calculation / functions (RT#16931, RT#52356)
+* Rewrite result calculation of aggregation functions (simplify code, speed up)
+* Upgrade Makefile.PL (patch from Alexandr Ciornii) to handle different
+  EU::MM versions and abilities properly
+
+[Things that may break your code]
+* SQL::Parser now didn't deliver a struct containing 'column_names',
+  'computed_columns' and 'set_functions' - it's combined into one member
+  'column_defs'.
 
 Version 1.23, release November 20th, 2009
 ----------------------------------------------

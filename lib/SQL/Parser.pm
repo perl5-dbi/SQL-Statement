@@ -19,7 +19,7 @@ use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.23';
+$VERSION = '1.24';
 
 BEGIN
 {
@@ -101,57 +101,62 @@ sub parse
         my $rv = $self->$com($sql);
         delete $self->{struct}->{literals};
 
-        #        return $self->do_err("No table names found!")
-        #               unless $self->{struct}->{table_names};
-        return $self->do_err("No command found!")
-          unless $self->{struct}->{command};
-        if ( defined( $self->{struct}->{join} ) && !defined( _HASH( $self->{struct}->{join} ) ) )
+        return $self->do_err("No command found!") unless ( $self->{struct}->{command} );
+
+        $self->replace_quoted_ids();
+
+        my @tables = @{ $self->{struct}->{table_names} } if ( defined( _ARRAY0( $self->{struct}->{table_names} ) ) );
+        # REMOVE schema.table infor if present
+        @tables = map { s/^.*\.([^\.]+)$/$1/; $_ } @tables;
+        push( @{ $self->{struct}->{org_table_names} }, @tables );
+
+        if ( exists( $self->{struct}->{join} ) && !defined( _HASH( $self->{struct}->{join} ) ) )
         {
             delete $self->{struct}->{join};
         }
-        $self->replace_quoted_ids();
-        my @tables = @{ $self->{struct}->{table_names} } if ( defined( _ARRAY0( $self->{struct}->{table_names} ) ) );
-        push( @{ $self->{struct}->{org_table_names} }, @tables );
-
-        #
-        # REMOVE schema.table infor if present
-        #
-        @tables = map { s/^.*\.([^\.]+)$/$1/; $_ } @tables;
-        $self->{struct}->{table_names} = \@tables unless $com eq 'CREATE';
-        if ( $self->{struct}->{column_names} )
+        else
         {
-            for ( @{ $self->{struct}->{column_names} } )
+            $self->{struct}->{join}->{table_order} = $self->{struct}->{table_names}
+              if ( defined( $self->{struct}->{join}->{table_order} )
+                   && !defined( _ARRAY0( $self->{struct}->{join}->{table_order} ) ) );
+            @{ $self->{struct}->{join}->{keycols} } = map { lc $_ } @{ $self->{struct}->{join}->{keycols} }
+              if ( $self->{struct}->{join}->{keycols} );
+            @{ $self->{struct}->{join}->{shared_cols} } = map { lc $_ } @{ $self->{struct}->{join}->{shared_cols} }
+              if ( $self->{struct}->{join}->{shared_cols} );
+        }
+
+        if ( defined( $self->{struct}->{column_defs} ) && defined( _ARRAY( $self->{struct}->{column_defs} ) ) )
+        {
+            foreach my $col ( @{ $self->{struct}->{column_defs} } )
             {
-                my $cn = $_;
-                $cn = lc $cn unless $cn =~ m/^(?:\w+\.)?"/;
-                push @{ $self->{struct}->{org_col_names} }, $self->{struct}->{ORG_NAME}->{$cn};
+                next unless ( defined( $col->{fullorg} ) && ( -1 == index( $col->{fullorg}, '*' ) ) );
+                my $cn = $col->{fullorg};
+                #$cn = lc $cn unless ( $cn =~ m/^(?:\w+\.)?"/ );
+                push( @{ $self->{struct}->{org_col_names} }, $self->{struct}->{ORG_NAME}->{$cn} || $cn );
+            }
+
+            unless ( $com eq 'CREATE' )
+            {
+                $self->{struct}->{table_names} = \@tables;
+                #  For RR aliases, added quoted id protection from upper casing
+                foreach my $col ( @{ $self->{struct}->{column_defs} } )
+                {
+                    next
+                      unless ( defined( $col->{fullorg} ) && ( -1 == index( $col->{fullorg}, '*' ) ) )
+                      ;    # FIXME SUBSTR('*')
+                    my $orgname = $col->{fullorg};
+                    my $colname = $orgname;
+                    $colname = lc $colname unless ( $colname =~ m/^(?:\w+\.)?"/ );
+                    unless ( defined( $self->{struct}->{ORG_NAME}->{$colname} ) )
+                    {
+                        $self->{struct}->{ORG_NAME}->{$colname} = $self->{struct}->{ORG_NAME}->{$orgname};
+                    }
+                }
+                #my @uCols = map { ( $_ =~ /^(\w+\.)?"/ ) ? $_ : lc $_ } @{ $self->{struct}->{column_names} };
+                #$self->{struct}->{column_names} = \@uCols;
             }
         }
-        $self->{struct}->{join}->{table_order} = $self->{struct}->{table_names}
-          if ( $self->{struct}->{join}->{table_order}
-               && !defined( _ARRAY0( $self->{struct}->{join}->{table_order} ) ) );
-        @{ $self->{struct}->{join}->{keycols} } =
-          map { lc $_ } @{ $self->{struct}->{join}->{keycols} }
-          if $self->{struct}->{join}->{keycols};
-        @{ $self->{struct}->{join}->{shared_cols} } =
-          map { lc $_ } @{ $self->{struct}->{join}->{shared_cols} }
-          if $self->{struct}->{join}->{shared_cols};
-##
-        #  For RR aliases, added quoted id protection from upper casing
-        my @uCols = map { ( $_ =~ /^(\w+\.)?"/ ) ? $_ : lc $_ } @{ $self->{struct}->{column_names} };
-##
-        $self->{struct}->{column_names} = \@uCols unless $com eq 'CREATE';
-        if ( $self->{original_string} =~ /Y\.\*/ )
-        {
 
-            #use mylibs; zwarn $self; exit;
-        }
-        delete $self->{struct}->{join}
-          if $self->{struct}->{join}
-              and scalar keys %{ $self->{struct}->{join} } == 0;
-
-        undef $self->{struct}->{set_function}
-          unless $self->{struct}->{has_set_functions};
         return $rv;
     }
     else
@@ -411,9 +416,14 @@ sub DELETE
     my ( $table_name, $where_clause ) = $str =~ /^DELETE (\S+)(.*)$/i;
     return $self->do_err('Incomplete DELETE statement!') if !$table_name;
     return undef unless $self->TABLE_NAME($table_name);
-    $self->{tmp}->{is_table_name}   = { $table_name => 1 };
-    $self->{struct}->{table_names}  = [$table_name];
-    $self->{struct}->{column_names} = ['*'];
+    $self->{tmp}->{is_table_name} = { $table_name => 1 };
+    $self->{struct}->{table_names} = [$table_name];
+    $self->{struct}->{column_defs} = [
+                                       {
+                                         type  => 'column',
+                                         value => '*'
+                                       }
+                                     ];
     $where_clause =~ s/^\s+//;
     $where_clause =~ s/\s+$//;
 
@@ -483,7 +493,8 @@ sub SELECT
 
     if (    $self->{struct}->{set_quantifier}
          && ( 'DISTINCT' eq $self->{struct}->{set_quantifier} )
-         && $self->{struct}->{has_set_functions} )
+         && $self->{struct}->{has_set_functions}
+         && !defined( _ARRAY( $self->{struct}->{group_by} ) ) )
     {
         delete $self->{struct}->{set_quantifier};
         warn "Specifying DISTINCT when using aggregate functions isn't reasonable - ignored."
@@ -497,8 +508,9 @@ sub GROUPBY_LIST
 {
     my ( $self, $gclause ) = @_;
     return 1 unless ($gclause);
-    my @cols = split( /,/, $gclause );
-    $self->{struct}->{group_by} = \@cols;
+    my $cols = $self->ROW_VALUE_LIST($gclause);
+    return undef if ( $self->{struct}->{errstr} );
+    @{ $self->{struct}->{group_by} } = map { $_->{fullorg} } @{$cols};
     return 1;
 }
 
@@ -532,7 +544,7 @@ sub EXPLICIT_JOIN
     my ( $self, $remainder ) = @_;
     return undef unless ($remainder);
     my ( $tableA, $tableB, $keycols, $jtype, $natural );
-    if ( $remainder =~ /^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|UNION|JOIN)(.+)$/is )
+    if ( $remainder =~ m/^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|UNION|JOIN)(.+)$/is )
     {
         $tableA    = $1;
         $remainder = $2 . $3;
@@ -651,25 +663,16 @@ sub SELECT_CLAUSE
     return undef unless ($str);
     if ( $str =~ s/^(DISTINCT|ALL) (.+)$/$2/i )
     {
-        $self->{struct}->{set_quantifier} = uc $1;
+        $self->{struct}->{set_quantifier} = uc($1);
     }
-    #if ( $str =~ m/[()]/ )
-    #{
-    #    return undef unless $self->SET_FUNCTION_SPEC($str);
-    #            $self->SET_FUNCTION_SPEC($str);
-    #}
-
-    #    else {
     return undef unless ( $self->SELECT_LIST($str) );
-
-    #    }
 }
 
 sub FROM_CLAUSE
 {
     my ( $self, $str ) = @_;
     return undef unless $str;
-    if ( $str =~ / JOIN /i )
+    if ( $str =~ m/ JOIN /i )
     {
         return undef unless $self->EXPLICIT_JOIN($str);
     }
@@ -684,29 +687,34 @@ sub INSERT
     my ( $self, $str ) = @_;
     my $col_str;
     $str =~ s/^INSERT\s+INTO\s+/INSERT /i;    # allow INTO to be optional
-    my ( $table_name, $val_str ) = $str =~ /^INSERT\s+(.+?)\s+VALUES\s+(\(.+?\))$/i;
-    if ( $table_name and $table_name =~ /[()]/ )
+    my ( $table_name, $val_str ) = $str =~ m/^INSERT\s+(.+?)\s+VALUES\s+(\(.+?\))$/i;
+    if ( $table_name and $table_name =~ m/[()]/ )
     {
-        ( $table_name, $col_str, $val_str ) = $str =~ /^INSERT\s+(.+?)\s+\((.+?)\)\s+VALUES\s+(\(.+?\))$/i;
+        ( $table_name, $col_str, $val_str ) = $str =~ m/^INSERT\s+(.+?)\s+\((.+?)\)\s+VALUES\s+(\(.+?\))$/i;
     }
-    return $self->do_err('No table name specified!') unless $table_name;
-    return $self->do_err('Missing values list!')     unless defined $val_str;
-    return undef                                     unless $self->TABLE_NAME($table_name);
+    return $self->do_err('No table name specified!') unless ($table_name);
+    return $self->do_err('Missing values list!')     unless ( defined $val_str );
+    return undef                                     unless ( $self->TABLE_NAME($table_name) );
     $self->{struct}->{command}     = 'INSERT';
     $self->{struct}->{table_names} = [$table_name];
     if ($col_str)
     {
-        return undef unless $self->COLUMN_NAME_LIST($col_str);
+        return undef unless ( $self->{struct}->{column_defs} = $self->ROW_VALUE_LIST($col_str) );
     }
     else
     {
-        $self->{struct}->{column_names} = ['*'];
+        $self->{struct}->{column_defs} = [
+                                           {
+                                             type  => 'column',
+                                             value => '*'
+                                           }
+                                         ];
     }
     $self->{struct}->{values} = [];
     while ( $val_str =~ m/\((.+?)\)(?:,|$)/g )
     {
         my $line_str = $1;
-        return undef unless $self->LITERAL_LIST($line_str);
+        return undef unless ( $self->LITERAL_LIST($line_str) );
     }
     return 1;
 }
@@ -721,28 +729,28 @@ sub UPDATE
 {
     my ( $self, $str ) = @_;
     $self->{struct}->{command} = 'UPDATE';
-    my ( $table_name, $remainder ) = $str =~ /^UPDATE (.+?) SET (.+)$/i;
-    return $self->do_err('Incomplete UPDATE clause')
-      if !$table_name
-          or !$remainder;
-    return undef unless $self->TABLE_NAME($table_name);
+    my ( $table_name, $remainder ) = $str =~ m/^UPDATE (.+?) SET (.+)$/i;
+    return $self->do_err('Incomplete UPDATE clause') unless ( $table_name && $remainder );
+    return undef unless ( $self->TABLE_NAME($table_name) );
     $self->{tmp}->{is_table_name} = { $table_name => 1 };
     $self->{struct}->{table_names} = [$table_name];
-    my ( $set_clause, $where_clause ) = $remainder =~ /(.*?) WHERE (.*)$/i;
-    $set_clause = $remainder if !$set_clause;
-    return undef unless $self->SET_CLAUSE_LIST($set_clause);
+    my ( $set_clause, $where_clause ) = $remainder =~ m/(.*?) WHERE (.*)$/i;
+    $set_clause = $remainder if ( !$set_clause );
+    return undef unless ( $self->SET_CLAUSE_LIST($set_clause) );
 
     if ($where_clause)
     {
-        return undef unless $self->SEARCH_CONDITION($where_clause);
+        return undef unless ( $self->SEARCH_CONDITION($where_clause) );
     }
+
     my @vals                 = @{ $self->{struct}->{values}->[0] };
     my $num_val_placeholders = 0;
     for my $v (@vals)
     {
-        $num_val_placeholders++ if $v->{type} eq 'placeholder';
+        ++$num_val_placeholders if ( $v->{type} eq 'placeholder' );
     }
     $self->{struct}->{num_val_placeholders} = $num_val_placeholders;
+
     return 1;
 }
 
@@ -796,7 +804,7 @@ sub CREATE_RAM_TABLE
     return undef unless $self->TABLE_NAME($table_name);
     for my $col ( split ',', $table_element_def )
     {
-        push @{ $self->{struct}->{column_names} }, $self->ROW_VALUE($col);
+        push( @{ $self->{struct}->{column_defs} }, $self->ROW_VALUE($col) );
     }
     $self->{struct}->{table_names} = [$table_name];
     return 1;
@@ -923,7 +931,7 @@ sub CREATE
 {
     my ( $self, $stmt ) = @_;
     my $features = 'TYPE|KEYWORD|FUNCTION|OPERATOR|PREDICATE';
-    if ( $stmt =~ /^\s*CREATE\s+($features)\s+(.+)$/si )
+    if ( $stmt =~ m/^\s*CREATE\s+($features)\s+(.+)$/si )
     {
         my ( $sub, $arg ) = ( $1, $2 );
         $sub = 'CREATE_' . uc $sub;
@@ -931,7 +939,7 @@ sub CREATE
     }
 
     $stmt =~ s/^CREATE (LOCAL|GLOBAL) /CREATE /si;
-    if ( $stmt =~ /^\s*CREATE\s+(?:TEMP|TEMPORARY)\s+TABLE\s+(.+)$/si )
+    if ( $stmt =~ m/^\s*CREATE\s+(?:TEMP|TEMPORARY)\s+TABLE\s+(.+)$/si )
     {
         $stmt = "CREATE TABLE $1";
         $self->{struct}->{is_ram_table} = 1;
@@ -939,7 +947,7 @@ sub CREATE
     $self->{struct}->{command} = 'CREATE';
     my ( $table_name, $table_element_def, %is_col_name );
 
-    if ( $stmt =~ /^(.*) ON COMMIT (DELETE|PRESERVE) ROWS\s*$/si )
+    if ( $stmt =~ m/^(.*) ON COMMIT (DELETE|PRESERVE) ROWS\s*$/si )
     {
         $stmt = $1;
         $self->{struct}->{commit_behaviour} = $2;
@@ -950,12 +958,12 @@ sub CREATE
         #           if !defined $self->{struct}->{table_type}
         #              or $self->{struct}->{table_type} !~ /TEMPORARY/;
     }
-    if ( $stmt =~ /^CREATE TABLE (\S+) \((.*)\)$/si )
+    if ( $stmt =~ m/^CREATE TABLE (\S+) \((.*)\)$/si )
     {
         $table_name        = $1;
         $table_element_def = $2;
     }
-    elsif ( $stmt =~ /^CREATE TABLE (\S+) AS (.*)$/si )
+    elsif ( $stmt =~ m/^CREATE TABLE (\S+) AS (.*)$/si )
     {
         $table_name = $1;
         my $subquery = $2;
@@ -988,18 +996,18 @@ sub CREATE
     {
     }
 
-    for my $col ( split ',', $table_element_def )
+    for my $col ( split( ',', $table_element_def ) )
     {
         if (
-            $col =~ /^\s*(?:CONSTRAINT\s+(\S+)\s*)? # optional name of foreign key
-                              FOREIGN\s+KEY\s*\(\s* # start of list of; vi compatibile bracket -> (
-                                      (\s*[^)]+\s*) # field names in this table
-                                           \s*\)\s* # end of field names in this table
-                                         REFERENCES # key word
-                                        \s*(\S+)\s* # table name being referenced in foreign key
-                                              \(\s* # start of list of; vi compatible bracket -> (
-                                      (\s*[^)]+\s*) # field names in foreign table
-                                           \s*\)\s* # end of field names in foreign table
+            $col =~ m/^\s*(?:CONSTRAINT\s+(\S+)\s*)? # optional name of foreign key
+                               FOREIGN\s+KEY\s*\(\s* # start of list of; vi compatibile bracket -> (
+                                       (\s*[^)]+\s*) # field names in this table
+                                            \s*\)\s* # end of field names in this table
+                                          REFERENCES # key word
+                                         \s*(\S+)\s* # table name being referenced in foreign key
+                                               \(\s* # start of list of; vi compatible bracket -> (
+                                       (\s*[^)]+\s*) # field names in foreign table
+                                            \s*\)\s* # end of field names in foreign table
                     $/x
            )
         {
@@ -1037,10 +1045,10 @@ sub CREATE
             next;
         }
         elsif (
-            $col =~ /^\s*(?:CONSTRAINT\s+(\S+)\s*)? # optional name of foreign key
-                                   PRIMARY\s+KEY\s*\(\s* # start of list of; vi compatibile bracket -> (
-                                           (\s*[^)]+\s*) # field names in this table
-                                                \s*\)\s* # end of field names in this table
+            $col =~ m/^\s*(?:CONSTRAINT\s+(\S+)\s*)? # optional name of foreign key
+                               PRIMARY\s+KEY\s*\(\s* # start of list of; vi compatibile bracket -> (
+                                       (\s*[^)]+\s*) # field names in this table
+                                            \s*\)\s* # end of field names in this table
                         $/x
               )
         {
@@ -1072,11 +1080,11 @@ sub CREATE
           join( '|', sort { length($b) <=> length($a) } keys %{ $self->{opts}->{valid_data_types} } );
         $data_types_regex =~ s/ /\\ /g;    # backslash spaces to allow the /x modifier below
         my ( $name, $type, $constraints ) = (
-            $col =~ /\s*(\S+)\s+                          # capture the column name
+            $col =~ m/\s*(\S+)\s+                         # capture the column name
                         ((?:$data_types_regex|\S+)        # check for all allowed data types OR anything that looks like a bad data type to give a good error
                         (?:\s*\(\d+(?:\?COMMA\?\d+)?\))?) # allow the data type to have a precision specifier such as NUMERIC(4,6) on it
-                        \s*(\W.*|$)                           # capture the constraints if any
-                             /ix
+                        \s*(\W.*|$)                       # capture the constraints if any
+                     /ix
                                             );
         return $self->do_err("Column definition is missing a data type!") unless ($type);
         return undef unless ( $self->IDENTIFIER($name) );
@@ -1089,11 +1097,11 @@ sub CREATE
         {
             $constraints =~ s/PRIMARY KEY/PRIMARY_KEY/i;
             $constraints =~ s/NOT NULL/NOT_NULL/i;
-            my @c = split /\s+/, $constraints;
+            my @c = split m/\s+/, $constraints;
             my %has_c;
             for my $constr (@c)
             {
-                if ( $constr =~ /^\s*(UNIQUE|NOT_NULL|PRIMARY_KEY)\s*$/i )
+                if ( $constr =~ m/^\s*(UNIQUE|NOT_NULL|PRIMARY_KEY)\s*$/i )
                 {
                     my $cur_c = uc $1;
                     if ( $has_c{$cur_c}++ )
@@ -1105,7 +1113,7 @@ sub CREATE
                         return $self->do_err(qq{Can't have two PRIMARY KEYs in a table!});
                     }
                     $constr =~ s/_/ /g;
-                    push @{ $self->{struct}->{column_defs}->{$name}->{constraints} }, $constr;
+                    push @{ $self->{struct}->{table_defs}->{columns}->{$name}->{constraints} }, $constr;
 
                 }
                 else
@@ -1116,7 +1124,7 @@ sub CREATE
         }
         $type = uc $type;
         my $length;
-        if ( $type =~ /(.+)\((.+)\)/ )
+        if ( $type =~ m/(.+)\((.+)\)/ )
         {
             $type   = $1;
             $length = $2;
@@ -1125,15 +1133,20 @@ sub CREATE
         {
             return $self->do_err("'$type' is not a recognized data type!");
         }
-        $self->{struct}->{column_defs}->{$name}->{data_type}   = $type;
-        $self->{struct}->{column_defs}->{$name}->{data_length} = $length;
-        push @{ $self->{struct}->{column_names} }, $name;
+        $self->{struct}->{table_defs}->{columns}->{$name}->{data_type}   = $type;
+        $self->{struct}->{table_defs}->{columns}->{$name}->{data_length} = $length;
+        push(
+              @{ $self->{struct}->{column_defs} },
+              {
+                 type    => 'column',
+                 value   => $name,
+                 fullorg => $name,
+              }
+            );
 
-        #push @{$self->{struct}->{ORG_NAME}},$name;
         my $tmpname = $name;
-        $tmpname = lc $tmpname unless $tmpname =~ /^(?:\w+\.)?"/;
-        return $self->do_err("Duplicate column names!")
-          if $is_col_name{$tmpname}++;
+        $tmpname = lc $tmpname unless ( $tmpname =~ m/^(?:\w+\.)?"/ );
+        return $self->do_err("Duplicate column names!") if $is_col_name{$tmpname}++;
 
     }
     $self->{struct}->{table_names} = [$table_name];
@@ -1152,12 +1165,11 @@ sub SET_CLAUSE_LIST
     for my $set (@sets)
     {
         my ( $col, $val ) = split( m/ = /, $set );
-        return $self->do_err('Incomplete SET clause!')
-          unless ( defined($col) && defined($val) );
+        return $self->do_err('Incomplete SET clause!') unless ( defined($col) && defined($val) );
         push( @cols, $col );
         push( @vals, $val );
     }
-    return undef unless ( $self->COLUMN_NAME_LIST( join ',', @cols ) );
+    return undef unless ( $self->{struct}->{column_defs} = $self->ROW_VALUE_LIST( join ',', @cols ) );
     return undef unless ( $self->LITERAL_LIST( join ',', @vals ) );
     return 1;
 }
@@ -1244,7 +1256,7 @@ sub extract_column_list
     pos($colstr) = 0;
     my $parens = 0;
     my $spos   = 0;
-    while ( $colstr =~ /\G.*?([\(\),])/gcs )
+    while ( $colstr =~ m/\G.*?([\(\),])/gcs )
     {
         if ( $1 eq '(' )
         {
@@ -1256,33 +1268,25 @@ sub extract_column_list
         }
         elsif ( !$parens )
         {    # its a comma outside of parens
-            push @collist, substr( $colstr, $spos, $-[1] - $spos );
+            push( @collist, substr( $colstr, $spos, $-[1] - $spos ) );
             $collist[-1] =~ s/^\s+//;
             $collist[-1] =~ s/\s+$//;
-            return $self->do_err('Bad column list!')
-              if ( $collist[-1] eq '' );
+            return $self->do_err('Bad column list!') if ( $collist[-1] eq '' );
             $spos = $+[1];
         }
     }
-    return $self->do_err('Unbalanced parentheses!')
-      if $parens;
+    return $self->do_err('Unbalanced parentheses!') if ($parens);
 
-    #
-    #	don't forget the last one!
-    #
-    push @collist, substr( $colstr, $spos );
+    # don't forget the last one!
+    push( @collist, substr( $colstr, $spos ) );
     $collist[-1] =~ s/^\s+//;
     $collist[-1] =~ s/\s+$//;
-    return $self->do_err('Bad column list!')
-      if ( $collist[-1] eq '' );
+    return $self->do_err('Bad column list!') if ( $collist[-1] eq '' );
 
-    #
-    #	scan for and convert string concats to CONCAT()
-    #
+    # scan for and convert string concats to CONCAT()
     foreach ( 0 .. $#collist )
     {
-        $collist[$_] = $self->transform_concat( $collist[$_] )
-          if ( $collist[$_] =~ /\|\|/ );
+        $collist[$_] = $self->transform_concat( $collist[$_] ) if ( $collist[$_] =~ m/\|\|/ );
     }
 
     return @collist;
@@ -1293,7 +1297,14 @@ sub SELECT_LIST
     my ( $self, $col_str ) = @_;
     if ( $col_str =~ m/^\s*\*\s*$/ )
     {
-        $self->{struct}->{column_names} = ['*'];
+        $self->{struct}->{column_defs} = [
+                                           {
+                                             type  => 'column',
+                                             value => '*'
+                                           }
+                                         ];
+        $self->{struct}->{column_aliases} = {};
+
         return 1;
     }
     my @col_list = $self->extract_column_list($col_str);
@@ -1302,95 +1313,57 @@ sub SELECT_LIST
     my ( @newcols, %aliases );
     for my $col (@col_list)
     {
-
-        #	DAA
-        #	need better alias test here, since AS is a common
-        #	keyword that might be used in a function
-        #
-        my ( $fld, $alias ) =
-            ( $col =~ m/^(.+?)\s+(?:AS\s+)?([A-Z]\w*|\?QI\d+\?)$/i )
-          ? ( $1, $2 )
-          : ( $col, undef );
+        # DAA:
+        # need better alias test here, since AS is a common
+        # keyword that might be used in a function
+        my ( $fld, $alias ) = ( $col =~ m/^(.+?)\s+(?:AS\s+)?([A-Z]\w*|\?QI\d+\?)$/i ) ? ( $1, $2 ) : ( $col, undef );
         $col = $fld;
-        my ( $newcol, $newalias );
         if ( $col =~ m/^(\S+)\.\*$/ )
         {
-            my $table          = $1;
-            my %is_table_alias = %{ $self->{tmp}->{is_table_alias} };
-            $table = $is_table_alias{$table}     if ( $is_table_alias{$table} );
-            $table = $is_table_alias{"\L$table"} if ( $is_table_alias{"\L$table"} );
+            my $table = $1;
+            if ( defined($alias) )
+            {
+                return $self->do_err("'$table.*' cannot be aliased");
+            }
+            $table = $self->{tmp}->{is_table_alias}->{$table}     if ( $self->{tmp}->{is_table_alias}->{$table} );
+            $table = $self->{tmp}->{is_table_alias}->{"\L$table"} if ( $self->{tmp}->{is_table_alias}->{"\L$table"} );
             return undef unless ( $self->TABLE_NAME($table) );
             $table = $self->replace_quoted_ids($table);
-            push( @newcols, "$table.*" );
+            push(
+                  @newcols,
+                  {
+                     type  => 'column',
+                     value => "$table.*",
+                  }
+                );
         }
         else
         {
-
-            #
-            # SELECT_LIST COLUMN IS A COMPUTED COLUMN WITH A SET FUNCTION
-            #
+            my $newcol;
             $newcol = $self->SET_FUNCTION_SPEC($col);
-            return undef if ( $self->{struct}->{errstr} );
+            return if ( $self->{struct}->{errstr} );
+            $newcol ||= $self->ROW_VALUE($col);
+            return if ( $self->{struct}->{errstr} );
+            return $self->do_err("Invalid SELECT entry '$col'") unless ( defined( _HASH($newcol) ) );
 
-            #
-            # SELECT_LIST COLUMN IS A COMPUTED COLUMN WITH A NON-SET FUNCTION
-            #
-            if ( !$newcol )
+            # FIXME this might be better done later and only if not 2 functions with the same name are selected
+            if ( !defined($alias) && ( ( 'function' eq $newcol->{type} ) || ( 'setfunc' eq $newcol->{type} ) ) )
             {
-                my $func_obj = $self->ROW_VALUE($col);
-                if (    defined( _HASH($func_obj) )
-                     && defined( $func_obj->{type} )
-                     && ( $func_obj->{type} eq 'function' ) )
-                {
-                    $alias ||= $func_obj->{name};
-                    $newcol   = lc($alias);
-                    $newalias = $self->COLUMN_NAME($alias);    # FIXME func(a+b) -> no COLUMN_NAME
-                    $self->{struct}->{col_obj}->{$newcol} = {
-                                                              name    => $newcol,
-                                                              alias   => $newalias,
-                                                              content => $func_obj,
-                                                            };
-                }
+                $alias = $newcol->{name};
+            }
 
-                #
-                # SELECT_LIST COLUMN IS NOT A COMPUTED COLUMN
-                #
-                else
-                {
-                    return undef unless ( $newcol = $self->COLUMN_NAME($col) );
-                }
-            }
-            else
+            if ( defined($alias) )
             {
-                $newalias = $alias || $newcol;
+                $alias                                              = $self->replace_quoted_ids($alias);
+                $newcol->{alias}                                    = $alias;
+                $aliases{ $newcol->{fullorg} }                      = $alias;
+                $self->{struct}->{ORG_NAME}->{ $newcol->{fullorg} } = $alias;
             }
-            if ( !$alias && ( lc($col) eq $newcol ) )
-            {
-                $newalias = $col;
-            }
-            elsif ( !$newalias )
-            {
-                $newalias = $self->COLUMN_NAME( $alias || $newcol );
-            }
-            $self->{struct}->{ORG_NAME}->{$newcol} = $newalias;
-            $aliases{ lc $newalias } = $newcol;
-            push @newcols, $newcol;
-            if ( !$alias )
-            {
-                $alias = $fld;
-                $alias =~ s/^.*\.([^\.]+)$/$1/;
-            }
-            if ( !$self->{struct}->{col_obj}->{ lc $newcol } )
-            {
-                $self->{struct}->{col_obj}->{ lc $newcol } = {
-                                                               name  => lc $newcol,
-                                                               alias => $newalias,
-                                                             };
-            }
+            push( @newcols, $newcol );
         }
     }
     $self->{struct}->{column_aliases} = \%aliases;
-    $self->{struct}->{column_names}   = \@newcols;
+    $self->{struct}->{column_defs}    = \@newcols;
     return 1;
 }
 
@@ -1398,53 +1371,48 @@ sub SET_FUNCTION_SPEC
 {
     my ( $self, $col_str ) = @_;
 
-    my @funcs = split( m/,/, $col_str );
-    for my $func (@funcs)
+    if ( $col_str =~ m/^(COUNT|AVG|SUM|MAX|MIN) \((.*)\)\s*$/i )
     {
-        if ( $func =~ m/^(COUNT|AVG|SUM|MAX|MIN) \((.*)\)\s*$/i )
+        my $set_function_name    = uc $1;
+        my $set_function_arg_str = $2;
+        my $distinct             = 'ALL';
+        if ( $set_function_arg_str =~ s/(DISTINCT|ALL) (.+)$/$2/i )
         {
-            my $set_function_name    = uc $1;
-            my $set_function_arg_str = $2;
-            my $distinct;
-            if ( $set_function_arg_str =~ s/(DISTINCT|ALL) (.+)$/$2/i )
-            {
-                $distinct = uc $1;
-            }
-            my $count_star = ( $set_function_name eq 'COUNT' ) && ( $set_function_arg_str eq '*' );
-            return $self->do_err("Keyword DISTINCT is not allowed for COUNT(*)") if ( $distinct && $count_star );
+            $distinct = uc $1;
+        }
+        my $count_star = ( $set_function_name eq 'COUNT' ) && ( $set_function_arg_str eq '*' );
 
-            my $set_function_arg = $self->ROW_VALUE($set_function_arg_str) if ( !$count_star );
-            return undef if ( !$count_star and !defined( _HASH($set_function_arg) ) );
-
-            if ( defined( _HASH($set_function_arg) ) && defined( $set_function_arg->{type} ) && ( $set_function_arg->{type} eq 'function' ))
-            {
-                my $alias  = $set_function_arg_str;
-                my $lalias = lc($alias);
-                $self->{struct}->{col_obj}->{$lalias} = {
-                                                          name    => $lalias,
-                                                          alias   => $alias,
-                                                          content => $set_function_arg,
-                                                        };
-            }
-
-            $self->{struct}->{has_set_functions} = 1;
-
-            push @{ $self->{struct}->{set_function} },
-              {
-                name     => $set_function_name,
-                arg      => $set_function_arg,
-                argstr   => lc($set_function_arg_str),
-                distinct => $distinct,
-              };
-            return $set_function_arg_str;
+        my $set_function_arg;
+        if ($count_star)
+        {
+            return $self->do_err("Keyword DISTINCT is not allowed for COUNT(*)") if ( 'DISTINCT' eq $distinct );
+            $set_function_arg = {
+                                  type  => 'column',
+                                  value => '*'
+                                };
         }
         else
         {
-            push( @{ $self->{struct}->{set_function} }, { name => $func } );
-            return undef;
-
-            # return $self->do_err("Bad set function before FROM clause.");
+            $set_function_arg = $self->ROW_VALUE($set_function_arg_str);
+            return if ( $self->{struct}->{errstr} );
+            return unless ( defined( _HASH($set_function_arg) ) );
         }
+
+        $self->{struct}->{has_set_functions} = 1;
+
+        my $value = {
+                      name     => $set_function_name,
+                      arg      => $set_function_arg,
+                      argstr   => lc($set_function_arg_str),
+                      distinct => $distinct,
+                      type     => 'setfunc',
+                      fullorg  => $col_str,
+                    };
+        return $value;
+    }
+    else
+    {
+        return undef;
     }
 }
 
@@ -1993,11 +1961,11 @@ sub PREDICATE
         #        $arg2 = $self->ROW_VALUE($arg2);
     }
 
-    if (     defined(_HASH($arg1))
-         and defined(_HASH($arg2))
-         and (( $arg1->{type} || '' ) eq 'column')
-         and (( $arg2->{type} || '' ) eq 'column')
-         and ($op eq '=') )
+    if (     defined( _HASH($arg1) )
+         and defined( _HASH($arg2) )
+         and ( ( $arg1->{type} || '' ) eq 'column' )
+         and ( ( $arg2->{type} || '' ) eq 'column' )
+         and ( $op eq '=' ) )
     {
         push( @{ $self->{struct}->{keycols} }, $arg1->{value} );
         push( @{ $self->{struct}->{keycols} }, $arg2->{value} );
@@ -2017,16 +1985,12 @@ sub undo_string_funcs
     my ( $self, $str ) = @_;
     my $f = FUNCTION_NAMES;
 
-    #
     #	don't forget our UDFs
-    #
-    $f .= '|' . uc $_ foreach ( keys %{ $self->{opts}{function_names} } );
+    $f .= '|' . uc $_ foreach ( keys %{ $self->{opts}->{function_names} } );
 
-    #
     #	eliminate recursion:
     #	we have to scan for closing brackets, since we may
     #	have intervening MATH elements with brackets
-    #
     my $brackets = 0;
     my $pos;
     my @lbrackets = ();
@@ -2034,30 +1998,21 @@ sub undo_string_funcs
     {
         if ( $1 eq ']' )
         {
-
-            #
             #	close paren, see if any pending function open
             #	paren matches it
-            #
             $brackets--;
             $pos = $+[0], substr( $str, $+[0] - 1, 1 ) = ')', pos($str) = $pos, pop @lbrackets
               if ( @lbrackets && ( $lbrackets[-1] == $brackets ) );
         }
         elsif ( $1 eq '[' )
         {
-
-            #
             #	just an open paren, count it and go on
-            #
             $brackets++;
         }
         else
         {
-
-            #
             #	new function definition, capture its open paren
             #	also uppercase the function name
-            #
             $pos = $+[0];
             substr( $str, $-[3], length($3) ) = uc $3;
             substr( $str, $+[0] - 1, 1 ) = '(';
@@ -2067,9 +2022,6 @@ sub undo_string_funcs
         }
     }
 
-    #	return undo_string_funcs($str)
-    #    	if ($str =~ /($f)\[/);
-
     return $str;
 }
 
@@ -2077,13 +2029,10 @@ sub undo_math_funcs
 {
     my $str = $_[0];
 
-    #
     #	eliminate recursion
-    #
-    1 while ( $str =~ s/MATH\[([^\]\[]+?)\]/($1)/ );
-
-    #	return undo_math_funcs($str)
-    #    	if ($str =~ /MATH\[/);
+    while ( $str =~ s/MATH\[([^\]\[]+?)\]/($1)/ )
+    {
+    }
 
     return $str;
 }
@@ -2097,26 +2046,31 @@ sub extract_func_args
     my ( $self, $value ) = @_;
 
     my @final_args = ();
-    my $spos       = 0;
-    my $parens     = 0;
-    my $epos       = 0;
-    my $delim      = 0;
-    while ( $value =~ /\G.*?([\(\),])/gcs )
+    my ( $spos, $parens, $epos, $delim ) = ( 0, 0, 0, 0 );
+    while ( $value =~ m/\G.*?([\(\),])/gcs )
     {
         $epos  = $+[0];
         $delim = $1;
-        push( @final_args, $self->ROW_VALUE( substr( $value, $spos, $epos - $spos - 1 ) ) ), $spos = $epos, next
-          unless ( $parens or ( $delim ne ',' ) );
+        unless ( $parens or ( $delim ne ',' ) )
+        {
+            push( @final_args, $self->ROW_VALUE( substr( $value, $spos, $epos - $spos - 1 ) ) );
+            $spos = $epos;
+            next;
+        }
 
-        $parens += ( $delim eq '(' ) ? 1 : -1
-          unless ( $delim eq ',' );
+        unless ( $delim eq ',' )
+        {
+            $parens += ( $delim eq '(' ) ? 1 : -1;
+        }
     }
 
-    #
     #	don't forget the last argument
-    #
-    $epos = length($value), push( @final_args, $self->ROW_VALUE( substr( $value, $spos, $epos - $spos ) ) )
-      if ( $spos != length($value) );
+    if ( $spos != length($value) )
+    {
+        $epos = length($value);
+        push( @final_args, $self->ROW_VALUE( substr( $value, $spos, $epos - $spos ) ) );    # XXX
+    }
+
     return @final_args;
 }
 
@@ -2131,49 +2085,44 @@ sub ROW_VALUE
     $str =~ s/\s+$//;
     $str = $self->undo_string_funcs($str);
     $str = undo_math_funcs($str);
+    my $orgstr = $str;
 
     # USER-DEFINED FUNCTION
-    #
-    my $user_func_name = $str;
-    my $user_func_args = '';
+    my ( $user_func_name, $user_func_args, $is_func );
 
-    #
     #	DAA
     #	need better paren check here
-    #
-    #    if ($str =~ /^(\S+)\s*(.*)\s*$/ ) {
     if ( $str =~ m/^([^\s\(]+)\s*(.*)\s*$/ )
     {
         $user_func_name = $1;
         $user_func_args = $2;
 
-        #
-        #	convert operator-like function to
-        #	parenthetical format
-        #
-        if (     $self->is_func($user_func_name)
-             and $user_func_args !~ m/^\(.*\)$/ )
+        # convert operator-like function to parenthetical format
+        if ( ( $is_func = $self->is_func($user_func_name) ) && ( $user_func_args !~ m/^\(.*\)$/ ) )
         {
-            $str = "$user_func_name ($user_func_args)";
+            $orgstr = $str = "$user_func_name ($user_func_args)";
         }
     }
     else
     {
+        $user_func_name = $str;
         $user_func_name =~ s/^(\S+).*$/$1/;
+        $user_func_args = '';
+        $is_func        = $self->is_func($user_func_name);
     }
 
-    if (     $self->is_func($user_func_name)
-         and $user_func_name !~ m/(TRIM|SUBSTRING)/i )
+    if ( $is_func && ( uc($is_func) !~ m/(TRIM|SUBSTRING)/ ) )
     {
         my ( $name, $value ) = ( $user_func_name, '' );
         if ( $str =~ m/^(\S+)\s*\((.+)\)\s*$/i )
         {
-            $name  = $1;
-            $value = $2;
+            $name    = $1;
+            $value   = $2;
+            $is_func = $self->is_func($name);
         }
-        if ( my $u_name = $self->is_func($name) )
-        {
 
+        if ($is_func)
+        {
             #
             #	DAA
             #	need a better argument extractor, since it can
@@ -2186,7 +2135,7 @@ sub ROW_VALUE
             #           my @args = split ',',$value;
 
             my @final_args = $self->extract_func_args($value);
-            my $usr_sub    = $self->{opts}->{function_names}->{$u_name};
+            my $usr_sub    = $self->{opts}->{function_names}->{$is_func};
             $self->{struct}->{procedure} = {};
             if ($usr_sub)
             {
@@ -2195,24 +2144,15 @@ sub ROW_VALUE
                            name    => lc $name,
                            subname => $usr_sub,
                            value   => \@final_args,
+                           fullorg => $orgstr,
                          };
 
                 return $value;
             }
-
-            #            return {
-            #                type    => 'function',
-            #                name    => $name,
-            #                value   =>  {
-            #                              value => \@final_args,
-            #                              type  => 'multiple_args',
-            #                            },
-            #                usr_sub => $usr_sub,
-            #            };
         }
     }
-    my $type;
 
+    my $type;
     # MATH
     #
     if ( $str =~ m/[\*\+\-\/\%]/ )
@@ -2225,6 +2165,7 @@ sub ROW_VALUE
         {
             return $self->do_err("Mismatched parentheses in term '$str'!");
         }
+
         # $str =~ s/([^\s\*\+\-\/\%\)\(]+)/push @vals,$1;++$i;"?$i?"/ge;
         while ( $str =~ m/\G.*?([^\s\*\+\-\/\%\)\(]+)/g )
         {
@@ -2255,6 +2196,7 @@ sub ROW_VALUE
                 pos($str) = $start + length("?$i?");
             }
         }
+
         my @newvalues;
         foreach my $val (@vals)
         {
@@ -2265,11 +2207,13 @@ sub ROW_VALUE
             }
             push( @newvalues, $newval );
         }
+
         return {
-                 type  => 'function',
-                 name  => 'numeric_exp',
-                 str   => $str,
-                 value => \@newvalues,
+                 type    => 'function',
+                 name    => 'numeric_exp',
+                 str     => $str,
+                 value   => \@newvalues,
+                 fullorg => $orgstr,
                };
     }
 
@@ -2294,14 +2238,14 @@ sub ROW_VALUE
             return $self->do_err("Can't use a string as a SUBSTRING position: '$str'!");
         }
         return undef unless ($value);
-        return $self->do_err("Can't use a number in SUBSTRING: '$str'!")
-          if $value->{type} eq 'number';
+        return $self->do_err("Can't use a number in SUBSTRING: '$str'!") if $value->{type} eq 'number';
         return {
-                 type   => 'function',
-                 name   => $name,
-                 value  => [$value],
-                 start  => $start,
-                 length => $length,
+                 type    => 'function',
+                 name    => $name,
+                 value   => [$value],
+                 start   => $start,
+                 length  => $length,
+                 fullorg => $orgstr,
                };
     }
 
@@ -2331,6 +2275,7 @@ sub ROW_VALUE
                 $trim_char =~ s/\s+$//;
             }
         }
+
         $trim_char ||= '';
         $trim_char =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         $value = $self->ROW_VALUE($value);
@@ -2338,21 +2283,22 @@ sub ROW_VALUE
         $str =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
         my $value_type = $value->{type} if ref $value eq 'HASH';
         $value_type = $value->[0] if ( defined( _ARRAY($value) ) );
-        return $self->do_err("Can't use a number in TRIM: '$str'!")
-          if ( $value_type and $value_type eq 'number' );
+        return $self->do_err("Can't use a number in TRIM: '$str'!") if ( $value_type and $value_type eq 'number' );
+
         return {
                  type      => 'function',
                  name      => $name,
                  value     => [$value],
                  trim_spec => $trim_spec,
                  trim_char => $trim_char,
+                 fullorg   => $orgstr,
                };
     }
 
     # UNKNOWN FUNCTION
     if ( $str =~ m/^(\S+) \(/ )
     {
-        die "Unknown function '$1'\n";
+        return $self->do_err("Unknown function '$1'");
     }
 
     # STRING CONCATENATION
@@ -2370,9 +2316,10 @@ sub ROW_VALUE
             push @newvals, $newval;
         }
         return {
-                 type  => 'function',
-                 name  => 'str_concat',
-                 value => \@newvals,
+                 type    => 'function',
+                 name    => 'str_concat',
+                 value   => \@newvals,
+                 fullorg => $orgstr,
                };
     }
 
@@ -2388,8 +2335,9 @@ sub ROW_VALUE
         #	}
         $str = '' if ( $str and $str eq q('') );
         return {
-                 type  => $type,
-                 value => $str
+                 type    => $type,
+                 value   => $str,
+                 fullorg => $orgstr,
                };
     }
 
@@ -2398,8 +2346,9 @@ sub ROW_VALUE
     if ( $str =~ m/\?(\d+)\?/ )
     {
         return {
-                 type  => 'string',
-                 value => $self->{struct}->{literals}->[$1],
+                 type    => 'string',
+                 value   => $self->{struct}->{literals}->[$1],
+                 fullorg => $self->{struct}->{literals}->[$1],
                };
     }
     elsif ( $str =~ /^\?LI(\d+)\?$/ )
@@ -2431,10 +2380,11 @@ sub ROW_VALUE
 
     #    push @{ $self->{struct}->{where_cols}},$str
     #       unless $self->{tmp}->{where_cols}->{"$str"};
-    $self->{tmp}->{where_cols}->{$str}++;
+    ++$self->{tmp}->{where_cols}->{$str};
     return {
-             type  => 'column',
-             value => $str
+             type    => 'column',
+             value   => $str,
+             fullorg => $orgstr,
            };
 }
 
@@ -2482,7 +2432,6 @@ sub COLUMN_NAME
         my $ref;
         if ( $table_name =~ m/^"/ )
         {
-
             if (     !$self->{tmp}->{is_table_name}->{$table_name}
                  and !$self->{tmp}->{is_table_alias}->{$table_name} )
             {
@@ -2559,24 +2508,22 @@ sub COLUMN_NAME
 sub COLUMN_NAME_LIST
 {
     my ( $self, $col_str ) = @_;
+
     my @col_list = split( ',', $col_str );
-    if ( !( scalar(@col_list) ) )
-    {
-        return $self->do_err('Missing column name list!');
-    }
+    return $self->do_err('Missing column name list!') unless ( scalar(@col_list) );
+
     my @newcols;
-    my $newcol;
     for my $col (@col_list)
     {
         $col =~ s/^\s+//;
         $col =~ s/\s+$//;
 
-        #        return undef if !($newcol = $self->COLUMN_NAME(trim($col)));
-        return undef if !( $newcol = $self->COLUMN_NAME($col) );
+        my $newcol;
+        return undef unless ( $newcol = $self->COLUMN_NAME($col) );
         push( @newcols, $newcol );
     }
-    $self->{struct}->{column_names} = \@newcols;
-    return 1;
+
+    return \@newcols;
 }
 
 #####################################################
@@ -2835,7 +2782,6 @@ sub clean_sql
     #
     # patch from cpan@goess.org, adds support for col2=''
     #
-    #
     # $sql =~ s~'(([^'$e]|$e.|'')+)'~push(@$fields,$1);$i++;"?$i?"~ge;
     $sql =~ s~(?<!')'(([^'$e]|$e.|'')+)'~push(@$fields,$1);$i++;"?$i?"~ge;
 
@@ -2844,12 +2790,12 @@ sub clean_sql
     if ( $sql =~ tr/[^\\]'// % 2 == 1 )
     {
         $sql =~ s/^.*\?(.+)$/$1/;
-        die "Mismatched single quote before: '$sql'\n";
+        $self->do_err("Mismatched single quote before: '$sql'");
     }
     if ( $sql =~ m/\?\?(\d)\?/ )
     {
         $sql = $fields->[$1];
-        die "Mismatched single quote: '$sql\n";
+        $self->do_err("Mismatched single quote: '$sql");
     }
     @$fields = map { s/$e'/'/g; s/^'(.*)'$/$1/; $_ } @$fields;
 
@@ -2894,18 +2840,20 @@ sub clean_sql
 
     $sql =~ s/\n/ /g;
     $sql =~ s/\s+/ /g;
-    $sql =~ s/(\S)\(/$1 (/g;    # ensure whitespace before (
-    $sql =~ s/\)(\S)/) $1/g;    # ensure whitespace after )
-    $sql =~ s/\(\s*/(/g;        # trim whitespace after (
-    $sql =~ s/\s*\)/)/g;        # trim whitespace before )
-                                #
-                                # $sql =~ s/\s*\(/(/g;   # trim whitespace before (
-                                # $sql =~ s/\)\s*/)/g;   # trim whitespace after )
-    for my $op (qw(= <> < > <= >= \|\|))
-    {
-        $sql =~ s/(\S)$op/$1 $op/g;
-        $sql =~ s/$op(\S)/$op $1/g;
-    }
+    $sql =~ s/(\S)\(/$1 (/g;                       # ensure whitespace before (
+    $sql =~ s/\)(\S)/) $1/g;                       # ensure whitespace after )
+    $sql =~ s/\(\s*/(/g;                           # trim whitespace after (
+    $sql =~ s/\s*\)/)/g;                           # trim whitespace before )
+                                                   #
+                                                   # $sql =~ s/\s*\(/(/g;   # trim whitespace before (
+                                                   # $sql =~ s/\)\s*/)/g;   # trim whitespace after )
+                                                   #    for my $op (qw(= <> < > <= >= \|\|))
+                                                   #    {
+                                                   #        $sql =~ s/(\S)$op/$1 $op/g;
+                                                   #        $sql =~ s/$op(\S)/$op $1/g;
+                                                   #    }
+    $sql =~ s/(\S)(=|<>|<|>|<=|>=|\|\|)/$1 $2/g;
+    $sql =~ s/(=|<>|<|>|<=|>=|\|\|)(\S)/$1 $2/g;
     $sql =~ s/< >/<>/g;
     $sql =~ s/< =/<=/g;
     $sql =~ s/> =/>=/g;
@@ -2934,7 +2882,7 @@ sub do_err
 
     warn $err if ( $self->{PrintError} );
     die $err  if ( $self->{RaiseError} );
-    return undef;
+    return;
 }
 
 #
@@ -3295,9 +3243,11 @@ example:
 Would produce:
 
  $VAR1 = {
-          'column_names' => [
-                              'make',
-                              'model'
+          'column_defs' => [
+                              { 'type'  => 'column',
+                                'value' => 'make', },
+                              { 'type'  => 'column',
+                                'value' => 'model', },
                             ],
           'command' => 'SELECT',
           'table_names' => [

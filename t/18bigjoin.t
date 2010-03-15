@@ -115,7 +115,7 @@ EOD
     $sql =~ s/^\s+//;
     $sql =~ s/--.*$//;
     $sql =~ s/\s+$//;
-    next if( '' eq $sql );
+    next if ( '' eq $sql );
     $stmt = SQL::Statement->new( $sql, $parser );
     ok( $stmt->execute($cache), $sql );
 }
@@ -129,22 +129,62 @@ EOD
 # CREATE TEMP TABLE APPL_CONTACT (id INT, contact_id INT, appl_id INT, contact_type CHAR)
 
 my %joins = (
-  q{SELECT applname, appluniq, version, nodename FROM APPL, PREC, NODE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id} => 'ZQF^ZFQLIN^10.2.0.4^ernie^ZQF^ZFQLIN^10.2.0.4^bert^YRA^YRA-UX^10.2.0.2^bert^YRA^YRA-UX^10.2.0.2^ernie^cpan-mods^cpan-mods^8.4.1^statler^cpan-mods^cpan-mods^8.4.1^waldorf^cpan-authors^cpan-authors^8.4.1^waldorf^cpan-authors^cpan-authors^8.4.1^statler',
-  q{SELECT applname, appluniq, version, landscapename, nodename FROM APPL, PREC, NODE, LANDSCAPE, NM_LANDSCAPE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND NM_LANDSCAPE.obj_id=APPL.id AND NM_LANDSCAPE.obj_type=1 AND NM_LANDSCAPE.ls_id=LANDSCAPE.id} => 'ZQF^ZFQLIN^10.2.0.4^Logistic^ernie^ZQF^ZFQLIN^10.2.0.4^Logistic^bert^YRA^YRA-UX^10.2.0.2^Infrastructure^bert^YRA^YRA-UX^10.2.0.2^Infrastructure^ernie',
-  q{SELECT applname, appluniq, version, surname, familyname, phone, nodename FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT WHERE appl_type='CUPS' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND APPL_CONTACT.appl_id=APPL.id AND APPL_CONTACT.contact_id=CONTACT.id AND PREC.PRECEDENCE=1} => 'PRN1^PRN1-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^piggy^PRN2^PRN2-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^kermit^PRN1^PRN1-4.B1^1.1.22^Helge^Brunft^+41-123-45678-09^samson',
-  q{SELECT DISTINCT applname, appluniq, version, surname, familyname, phone, nodename FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT WHERE appl_type='CUPS' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND APPL_CONTACT.appl_id=APPL.id AND APPL_CONTACT.contact_id=CONTACT.id ORDER BY applname, nodename} => 'PRN1^PRN1-4.B1^1.1.22^Helge^Brunft^+41-123-45678-09^piggy^PRN1^PRN1-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^piggy^PRN1^PRN1-4.B1^1.1.22^Helge^Brunft^+41-123-45678-09^samson^PRN1^PRN1-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^samson^PRN2^PRN2-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^kermit^PRN2^PRN2-4.B2^1.1.22^Helge^Brunft^+41-123-45678-09^tiffy',
-  q{SELECT CONCAT('[% NOW %]') AS "timestamp", applname, appluniq, version, nodename FROM APPL, PREC, NODE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id} => '[% NOW %]^ZQF^ZFQLIN^10.2.0.4^ernie^[% NOW %]^ZQF^ZFQLIN^10.2.0.4^bert^[% NOW %]^YRA^YRA-UX^10.2.0.2^bert^[% NOW %]^YRA^YRA-UX^10.2.0.2^ernie^[% NOW %]^cpan-mods^cpan-mods^8.4.1^statler^[% NOW %]^cpan-mods^cpan-mods^8.4.1^waldorf^[% NOW %]^cpan-authors^cpan-authors^8.4.1^waldorf^[% NOW %]^cpan-authors^cpan-authors^8.4.1^statler',
+    q{SELECT applname, appluniq, version, nodename FROM APPL, PREC, NODE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id}
+      => [
+           'ZQF~ZFQLIN~10.2.0.4~ernie',
+	   'ZQF~ZFQLIN~10.2.0.4~bert',
+	   'YRA~YRA-UX~10.2.0.2~bert',
+           'YRA~YRA-UX~10.2.0.2~ernie',
+	   'cpan-mods~cpan-mods~8.4.1~statler',
+	   'cpan-mods~cpan-mods~8.4.1~waldorf',
+           'cpan-authors~cpan-authors~8.4.1~waldorf',
+	   'cpan-authors~cpan-authors~8.4.1~statler',
+         ],
+    q{SELECT applname, appluniq, version, landscapename, nodename FROM APPL, PREC, NODE, LANDSCAPE, NM_LANDSCAPE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND NM_LANDSCAPE.obj_id=APPL.id AND NM_LANDSCAPE.obj_type=1 AND NM_LANDSCAPE.ls_id=LANDSCAPE.id}
+      => [
+           'ZQF~ZFQLIN~10.2.0.4~Logistic~ernie',
+	   'ZQF~ZFQLIN~10.2.0.4~Logistic~bert',
+           'YRA~YRA-UX~10.2.0.2~Infrastructure~bert',
+	   'YRA~YRA-UX~10.2.0.2~Infrastructure~ernie',
+         ],
+    q{SELECT applname, appluniq, version, surname, familyname, phone, nodename FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT WHERE appl_type='CUPS' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND APPL_CONTACT.appl_id=APPL.id AND APPL_CONTACT.contact_id=CONTACT.id AND PREC.PRECEDENCE=1}
+      => [
+        'PRN1~PRN1-4.B2~1.1.22~Helge~Brunft~+41-123-45678-09~piggy',
+	'PRN2~PRN2-4.B2~1.1.22~Helge~Brunft~+41-123-45678-09~kermit',
+        'PRN1~PRN1-4.B1~1.1.22~Helge~Brunft~+41-123-45678-09~samson',
+      ],
+    q{SELECT DISTINCT applname, appluniq, version, surname, familyname, phone, nodename FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT WHERE appl_type='CUPS' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id AND APPL_CONTACT.appl_id=APPL.id AND APPL_CONTACT.contact_id=CONTACT.id}
+      => [
+           'PRN1~PRN1-4.B1~1.1.22~Helge~Brunft~+41-123-45678-09~piggy',
+           'PRN1~PRN1-4.B2~1.1.22~Helge~Brunft~+41-123-45678-09~piggy',
+           'PRN1~PRN1-4.B1~1.1.22~Helge~Brunft~+41-123-45678-09~samson',
+           'PRN1~PRN1-4.B2~1.1.22~Helge~Brunft~+41-123-45678-09~samson',
+           'PRN2~PRN2-4.B2~1.1.22~Helge~Brunft~+41-123-45678-09~kermit',
+           'PRN2~PRN2-4.B2~1.1.22~Helge~Brunft~+41-123-45678-09~tiffy',
+         ],
+    q{SELECT CONCAT('[% NOW %]') AS "timestamp", applname, appluniq, version, nodename FROM APPL, PREC, NODE WHERE appl_type LIKE '%DB' AND APPL.id=PREC.appl_id AND PREC.node_id=NODE.id}
+      => [
+           '[% NOW %]~ZQF~ZFQLIN~10.2.0.4~ernie',
+           '[% NOW %]~ZQF~ZFQLIN~10.2.0.4~bert',
+           '[% NOW %]~YRA~YRA-UX~10.2.0.2~bert',
+           '[% NOW %]~YRA~YRA-UX~10.2.0.2~ernie',
+           '[% NOW %]~cpan-mods~cpan-mods~8.4.1~statler',
+           '[% NOW %]~cpan-mods~cpan-mods~8.4.1~waldorf',
+           '[% NOW %]~cpan-authors~cpan-authors~8.4.1~waldorf',
+           '[% NOW %]~cpan-authors~cpan-authors~8.4.1~statler',
+         ],
 );
 
-while( my ( $sql, $result ) = each(%joins) )
+while ( my ( $sql, $result ) = each(%joins) )
 {
-    $stmt = SQL::Statement->new($sql,$parser);
+    $stmt = SQL::Statement->new( $sql, $parser );
     eval { $stmt->execute($cache) };
     warn $@ if $@;
-    ok(!$@,'$stmt->execute "'.$sql.'" ('.$stmt->command.')');
+    ok( !$@, '$stmt->execute "' . $sql . '" (' . $stmt->command . ')' );
     my @res;
-    while (my $row=$stmt->fetch) {
-        push( @res, @{$row} );
+    while ( my $row = $stmt->fetch )
+    {
+        push( @res, join( '~', @{$row} ) );
     }
-    is( join( '^', @res ), $result, $sql );
+    is( join( '^', sort @res ), join( '^', sort @{$result} ), $sql );
 }

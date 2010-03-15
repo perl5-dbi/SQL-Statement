@@ -180,5 +180,5 @@ $sth->finish();
 $sth = $dbh->prepare( "SELECT column1, COUNT(column1) FROM pauli GROUP BY column1" );
 $sth->execute();
 my $hres = $sth->fetchall_hashref('column1');
-cmp_ok( $hres->{XXXX}->{'COUNT(column1)'}, '==', 3, 'UPDATE with placeholder updates correct' );
+cmp_ok( $hres->{XXXX}->{'COUNT'}, '==', 3, 'UPDATE with placeholder updates correct' );
 __END__

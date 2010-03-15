@@ -1,7 +1,7 @@
 package SQL::Statement::Util;
 
 use vars qw($VERSION);
-$VERSION = '1.23';
+$VERSION = '1.24';
 
 sub type
 {
@@ -19,7 +19,7 @@ use Params::Util qw(_ARRAY _HASH0 _STRING);
 
 sub new
 {
-    my ( $class, $col_name, $table_name, $term, $display_name ) = @_;
+    my ( $class, $col_name, $table_name, $term, $display_name, $full_orig_name, $coldef ) = @_;
     $display_name ||= $col_name;
 
     # print " $col_name !\n";
@@ -34,10 +34,12 @@ sub new
     }
 
     my %instance = (
-                     name         => $col_name,
-                     table        => $table_name,
-                     display_name => $display_name,
-                     term         => $term,
+                     name           => $col_name,
+                     table          => $table_name,
+                     display_name   => $display_name,
+                     term           => $term,
+                     full_orig_name => $full_orig_name,
+                     coldef         => $coldef,
                    );
 
     my $self = bless( \%instance, $class );
@@ -45,23 +47,13 @@ sub new
     return $self;
 }
 
-sub value($)       { $_[0]->{term}->value( $_[1] ); }
-sub term()         { $_[0]->{term} }
-sub display_name() { $_[0]->{display_name} }
-sub name()         { $_[0]->{name} }
-sub table()        { $_[0]->{table} }
-
-package SQL::Statement::Util::AggregatedColumns;
-
-use vars qw(@ISA);
-@ISA = qw(SQL::Statement::Util::Column);
-
-sub value($)
-{
-    my ( $self, $row ) = @_;
-    my @vals = map { $_->value($row) } @{ $self->{term} };
-    return join( "\0", @vals );
-}
+sub value($)         { $_[0]->{term}->value( $_[1] ); }
+sub term()           { $_[0]->{term} }
+sub display_name()   { $_[0]->{display_name} }
+sub full_orig_name() { $_[0]->{full_orig_name} }
+sub name()           { $_[0]->{name} }
+sub table()          { $_[0]->{table} }
+sub coldef()         { $_[0]->{coldef} }
 
 package SQL::Statement::Util::Function;
 
