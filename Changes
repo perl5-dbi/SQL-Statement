@@ -9,6 +9,9 @@ Version 1.25, release March 15th, 2010
 * Separate columns with "\0" in multi-column aggregation to be able to
   difference between ('1','1foo') and ('11','foo')
 
+[Misc]
+* More resources added to META.yml
+
 Version 1.24, release March 15th, 2010
 ----------------------------------------------
 
