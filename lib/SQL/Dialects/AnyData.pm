@@ -3,6 +3,8 @@ package SQL::Dialects::AnyData;
 use vars qw($VERSION);
 $VERSION = '1.24';
 
+use SQL::Dialects::Role;
+
 sub get_config
 {
     return <<EOC;
@@ -99,7 +101,7 @@ SQL::Dialects::AnyData
 =head1 SYNOPSIS
 
   use SQL::Dialects::AnyData;
-  $config = SQL::Dialects::ANSI->get_config();
+  $config = SQL::Dialects::AnyData->get_config();
 
 =head1 DESCRIPTION
 

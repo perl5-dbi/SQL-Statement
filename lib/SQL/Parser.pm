@@ -3,7 +3,7 @@ package SQL::Parser;
 ######################################################################
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
-# This module is copyright (c), 2007,2009 by Jeff Zucker, Jens Rehsack.
+# This module is copyright (c), 2007-2010 by Jeff Zucker, Jens Rehsack.
 # All rights resered.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -272,37 +272,48 @@ sub list
 sub dialect
 {
     my ( $self, $dialect ) = @_;
-    return $self->{dialect} unless $dialect;
+    return $self->{dialect} unless ($dialect);
     return $self->{dialect} if ( $self->{dialect_set} );
     $self->{opts} = {};
-    my $mod = "SQL/Dialects/$dialect.pm";
-    undef $@;
-    eval { require "$mod"; } unless ( defined( $INC{$mod} ) );
-    return $self->do_err($@) if $@;
-    $mod =~ s/\.pm//;
-    $mod =~ s"/"::"g;
-    my @data = split( m/\n/, $mod->get_config() );
-    my $feature;
+    my $mod_class = "SQL::Dialects::$dialect";
 
-    for (@data)
-    {
-        chomp;
-        s/^\s+//;
-        s/\s+$//;
-        next unless $_;
-        if (/^\[(.*)\]$/i)
-        {
-            $feature = lc $1;
-            $feature =~ s/\s+/_/g;
-            next;
-        }
-        my $newopt = uc $_;
-        $newopt =~ s/\s+/ /g;
-        $self->{opts}->{$feature}->{$newopt} = 1;
-    }
+    $self->_load_class($mod_class) unless $mod_class->can("get_config");
+
+    # This is here for backwards comaptibility with existing dialects
+    # before the had the role to add new methods.
+    $self->_inject_role( "SQL::Dialects::Role", $mod_class )
+      unless ( $mod_class->can("get_config_as_hash") );
+
+    $self->{opts} = $mod_class->get_config_as_hash();
+
     $self->create_op_regexen();
     $self->{dialect} = $dialect;
     $self->{dialect_set}++;
+}
+
+sub _load_class
+{
+    my ( $self, $class ) = @_;
+
+    my $mod = $class;
+    $mod =~ s{::}{/}g;
+    $mod .= ".pm";
+
+    local ( $!, $@ );
+    eval { require "$mod"; } or return $self->do_err($@);
+
+    return 1;
+}
+
+sub _inject_role
+{
+    my ( $self, $role, $dest ) = @_;
+
+    eval qq{
+        package $dest;
+        use $role;
+        1;
+    } or die "Can't inject $role into $dest: $@";
 }
 
 sub create_op_regexen
@@ -765,10 +776,9 @@ sub LOAD
     my ($package) = $str =~ /^LOAD\s+(.+)$/;
     $str = $package;
     $package =~ s/\?(\d+)\?/$self->{struct}->{literals}->[$1]/g;
-    my $mod = $package . '.pm';
-    $mod =~ s|::|/|g;
-    eval { require $mod; } unless ( defined( $INC{$mod} ) );
-    die "Couldn't load '$package': $@\n" if $@;
+
+    $self->_load_class($package);
+
     my %subs = eval '%' . $package . '::';
 
     for my $sub ( keys %subs )
