@@ -2,6 +2,7 @@ Changes
 lib/SQL/Dialects/ANSI.pm
 lib/SQL/Dialects/AnyData.pm
 lib/SQL/Dialects/CSV.pm
+lib/SQL/Dialects/Role.pm
 lib/SQL/Eval.pm
 lib/SQL/Parser.pm
 lib/SQL/Statement.pm
@@ -44,5 +45,7 @@ t/18bigjoin.t
 t/19idents.t
 t/20pod.t
 t/21pod_coverage.t
+t/22calc.t
+t/23dialects.t
 t/SQLtest.pm
 Todo
