@@ -27,6 +27,8 @@ Version 1.24, release March 15th, 2010
 * SQL::Parser now didn't deliver a struct containing 'column_names',
   'computed_columns' and 'set_functions' - it's combined into one member
   'column_defs'.
+* Minimum required perl version is now 5.8 - upcoming next version of DBI
+  requires perl 5.8, too - and I could simplify some code that's why
 
 Version 1.23, release November 20th, 2009
 ----------------------------------------------
