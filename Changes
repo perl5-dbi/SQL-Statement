@@ -1,6 +1,6 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.24, release 
+Version 1.24, release March 15th, 2010
 ----------------------------------------------
 
 [Misc]
@@ -10,6 +10,7 @@ Version 1.24, release
 [Bug fixes]
 * Add missing import of _INSTANCE in SQL::Statement::Function::NumericEval
   fixes RT #52356 - reported by Detlef Pilzecker)
+* Fix wrongly discarded DISTINCT clause (RT#53186)
 
 [Improvements]
 * Fix parsing errors of plain numbers (RT#16931)
@@ -17,6 +18,10 @@ Version 1.24, release
 * Rewrite result calculation of aggregation functions (simplify code, speed up)
 * Upgrade Makefile.PL (patch from Alexandr Ciornii) to handle different
   EU::MM versions and abilities properly
+* Update documentation to show how 'column_defs' and SQL::Statement::Term
+  instances shall be used
+* Introduce SQL::Dialect::Role providing ini-style data access to SQL::Dialects
+  (patch from Michael Schwern)
 
 [Things that may break your code]
 * SQL::Parser now didn't deliver a struct containing 'column_names',
