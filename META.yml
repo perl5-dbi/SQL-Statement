@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:               SQL-Statement
-version:            1.24
-abstract:           ~
+version:            1.25
+abstract:           SQL parsing and processing engine
 author:
     - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>
 license:            perl
@@ -19,7 +19,9 @@ requires:
     perl:          5.008
     Scalar::Util:  1.0
 resources:
-    repository:  https://svn.perl.org/modules/SQL-Statement/
+    license:      http://dev.perl.org/licenses/
+    MailingList:  mailto:dbi-dev@perl.org
+    repository:   https://svn.perl.org/modules/SQL-Statement/
 no_index:
     directory:
         - t
