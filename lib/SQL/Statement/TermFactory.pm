@@ -199,7 +199,7 @@ calls itself recursively for I<predicates>.
 =head1 AUTHOR AND COPYRIGHT
 
 Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
-Copyright (c) 2008,2009 by Jens Rehsack: rehsackATcpan.org
+Copyright (c) 2008-2010 by Jens Rehsack: rehsackATcpan.org
 
 Portions Copyright (C) 1998 by Jochen Wiedmann: jwiedATcpan.org
 

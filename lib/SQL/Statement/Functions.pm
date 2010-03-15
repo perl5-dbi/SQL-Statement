@@ -647,7 +647,7 @@ Dean Arnold supplied DECODE, COALESCE, REPLACE, many thanks!
 =head1 AUTHOR & COPYRIGHT
 
 Copyright (c) 2005 by Jeff Zucker: jzuckerATcpan.org
-Copyright (c) 2009 by Jens Rehsack: rehsackATcpan.org
+Copyright (c) 2009,2010 by Jens Rehsack: rehsackATcpan.org
 
 All rights reserved.
 
