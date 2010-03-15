@@ -8,7 +8,7 @@ if ($@) {
         plan skip_all => "No DBI or DBD::File available";
 }
 else {
-    plan tests => 10;
+    plan tests => 12;
 }
 
 use SQL::Statement;
@@ -48,7 +48,7 @@ like( $@, qr/Column 'biz\.class' must appear in the GROUP BY clause or be used i
 
 my $sql_stmt = "INSERT INTO numbers VALUES (?, ?, ?)";
 my $stmt = $dbh->prepare($sql_stmt);
-for my $num ( 1 .. 4000 )
+for my $num ( 1 .. 3999 )
 {
     my @params = ( $num, ( "a" .. "f" )[ int rand 6 ], int rand 10 );
     $stmt->execute(@params);
@@ -64,7 +64,13 @@ foreach my $row (@{$res})
 {
     $all_counted += $row->[1];
 }
-cmp_ok( $all_counted, '==', 4000, 'SUM(COUNTED)' );
+cmp_ok( $all_counted, '==', 3999, 'SUM(COUNTED)' );
+
+$sth = $dbh->prepare( "SELECT MIN(c_foo), MAX(c_foo), AVG(c_foo) FROM numbers" );
+cmp_ok( query2str($sth), 'eq', '1~3999~2000', 'Aggregate functions');
+
+$sth=$dbh->prepare("SELECT COUNT(*) FROM trick");
+cmp_ok(query2str($sth), 'eq', '2','Nasty COUNT(*)');
 
 sub query2str {
     my($sth)=@_;
@@ -87,3 +93,6 @@ INSERT INTO biz VALUES ('Truck','White',400 )
 INSERT INTO biz VALUES ('Car'  ,'Red'  ,500 )
 INSERT INTO biz VALUES ('Truck','White',300 )
 CREATE TEMP TABLE numbers (c_foo INTEGER, foo TEXT, bar INTEGER)
+CREATE TEMP TABLE trick   (id INTEGER, foo TEXT)
+INSERT INTO trick VALUES (1, '1foo')
+INSERT INTO trick VALUES (11, 'foo')
