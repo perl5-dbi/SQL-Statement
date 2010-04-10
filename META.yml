@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SQL-Statement
-version:            1.25
+version:            1.26
 abstract:           SQL parsing and processing engine
 author:
     - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>
