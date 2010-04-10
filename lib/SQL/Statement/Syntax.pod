@@ -407,6 +407,10 @@ compared case-insensitively, i.e. C<select foo from bar> will be evaluated
 the same as C<SELECT FOO FROM BAR> (C<FOO> will be evaluated as C<foo>,
 similar for C<BAR>). 
 
+Since SQL::Statement is internally using lower cased identifiers (unquoted),
+everytime a wildcard is used, the delivered names of the identifiers are
+lower cased.
+
 =back
 
 =head1 Extending SQL syntax using SQL

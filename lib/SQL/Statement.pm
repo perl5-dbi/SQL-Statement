@@ -26,15 +26,9 @@ use Scalar::Util qw(blessed looks_like_number);
 use List::Util qw(first);
 use Params::Util qw(_INSTANCE _STRING _ARRAY _ARRAY0 _HASH0 _HASH);
 
-BEGIN
-{
-    eval { local $SIG{__DIE__}; local $SIG{__WARN__}; require 'Data/Dumper.pm'; $Data::Dumper::Indent = 1 };
-    *bug = ($@) ? sub { warn @_ } : sub { print Data::Dumper::Dumper( \@_ ) };
-}
-
 #use locale;
 
-$VERSION = '1.25';
+$VERSION = '1.26';
 
 sub new
 {
@@ -970,7 +964,7 @@ sub SELECT($$)
     if ( $self->distinct() )
     {
         my %seen;
-        @{$rows} = map { $seen{ join( "\0", @{$_} ) }++ ? () : $_ } @{$rows};
+        @{$rows} = map { $seen{ join( "\0", ( map { defined($_) ? $_ : '' } @{$_} ) ) }++ ? () : $_ } @{$rows};
     }
 
     if ( $self->{has_set_functions} )
@@ -1854,7 +1848,7 @@ sub new
 my $empty_agg = {
                   uniq  => [],
                   count => 0,
-                  sum   => 0,
+                  sum   => undef,
                   min   => undef,
                   max   => undef,
                 };
@@ -1912,7 +1906,7 @@ sub build_row    # (\%)
         {
             if ( $coldef->{name} eq 'COUNT' )
             {
-                push( @row, $result->{agg}->[$colidx]->{count} );
+                push( @row, $result->{agg}->[$colidx]->{count} || 0 );
             }
             elsif ( $coldef->{name} eq 'MAX' )
             {
@@ -1990,11 +1984,20 @@ sub calc()
 
     $self->do_calc();
 
-    foreach my $key ( keys( %{ $self->{final_rows} } ) )
+    if( scalar( keys( %{ $self->{final_rows} } ) ) )
     {
-        my $final_row = $self->build_row( $self->{final_rows}->{$key} );
-        push( @final_table, $final_row );
+	foreach my $key ( keys( %{ $self->{final_rows} } ) )
+	{
+	    my $final_row = $self->build_row( $self->{final_rows}->{$key} );
+	    push( @final_table, $final_row );
+	}
     }
+    else
+    {
+	my $final_row = $self->build_row( {} );
+	push( @final_table, $final_row );
+    }
+
     return \@final_table;
 }
 
@@ -2219,8 +2222,6 @@ about the development, write Jeff (<jzuckerATcpan.org>) or Jens
 
 =head2 _anycmp
 
-=head2 bug
-
 =head2 buildColumnObjects
 
 =head2 buildSortSpecList
@@ -2384,7 +2385,30 @@ as well as the support of the ANSI SQL 99 standard.
 
 For SQL::Statement 1.xx it's not planned to add new XS parts.
 
+=item *
+
+Wildcards are expanded to lower cased identifiers. This might confuse
+some people, but it was easier to implement.
+
+The warning from L<DBI>, never trust on case sensetiveness of returned column
+names should be read more often. If you need to rely on identifiers, always
+use C<sth-E<gt>{NAME_lc}> or C<sth-E<gt>{NAME_uc}> - never rely on
+C<sth-E<gt>{NAME}>:
+
+  $dbh->{FetchHashKeyName} = 'NAME_lc';
+  $sth = $dbh->prepare("SELECT FOO, BAR, ID, NAME, BAZ FROM TABLE");
+  $sth->execute;
+  $hash_ref = $sth->fetchall_hashref('id');
+  print "Name for id 42 is $hash_ref->{42}->{name}\n";
+
+See L<DBI/FetchHashKeyName> for more information.
+
 =back
+
+Patches to fix those bugs/limitations (or a grant to do it) would be very
+welcome. Please note, that these patches B<must> pass successful all tests
+of C<SQL::Statement>, L<DBD::File> and L<DBD::CSV> and must be a general
+improvement.
 
 =head1 AUTHOR AND COPYRIGHT
 

@@ -19,7 +19,7 @@ use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.25';
+$VERSION = '1.26';
 
 BEGIN
 {
@@ -146,7 +146,7 @@ sub parse
                       ;    # FIXME SUBSTR('*')
                     my $orgname = $col->{fullorg};
                     my $colname = $orgname;
-                    $colname = lc $colname unless ( $colname =~ m/^(?:\w+\.)?"/ );
+                    $colname = lc $colname unless ( $colname =~ m/^(?:\p{Word}+\.)?"/ );
                     unless ( defined( $self->{struct}->{ORG_NAME}->{$colname} ) )
                     {
                         $self->{struct}->{ORG_NAME}->{$colname} = $self->{struct}->{ORG_NAME}->{$orgname};
@@ -1155,7 +1155,7 @@ sub CREATE
             );
 
         my $tmpname = $name;
-        $tmpname = lc $tmpname unless ( $tmpname =~ m/^(?:\w+\.)?"/ );
+        $tmpname = lc $tmpname unless ( $tmpname =~ m/^(?:\p{Word}+\.)?"/ );
         return $self->do_err("Duplicate column names!") if $is_col_name{$tmpname}++;
 
     }
@@ -1326,7 +1326,7 @@ sub SELECT_LIST
         # DAA:
         # need better alias test here, since AS is a common
         # keyword that might be used in a function
-        my ( $fld, $alias ) = ( $col =~ m/^(.+?)\s+(?:AS\s+)?([A-Z]\w*|\?QI\d+\?)$/i ) ? ( $1, $2 ) : ( $col, undef );
+        my ( $fld, $alias ) = ( $col =~ m/^(.+?)\s+(?:AS\s+)?([A-Z]\p{Word}*|\?QI\d+\?)$/i ) ? ( $1, $2 ) : ( $col, undef );
         $col = $fld;
         if ( $col =~ m/^(\S+)\.\*$/ )
         {
@@ -1693,7 +1693,7 @@ sub non_parens_search
     #
     my $xstr = $str;
     my ( $k, $v );
-    if ( $str =~ /^\s*([A-Z]\w*)\s*\[/gcs )
+    if ( $str =~ /^\s*([A-Z]\p{Word}*)\s*\[/gcs )
     {
 
         #
@@ -1832,7 +1832,7 @@ sub nongroup_numeric
     #	DAA
     #	optimize regex
     #
-    if ( $str =~ m/\(([\w \*\/\+\-\[\]\?]+)\)/ )
+    if ( $str =~ m/\(([\p{Word} \*\/\+\-\[\]\?]+)\)/ )
     {
         my $match = $1;
         if ( $match !~ m/(LIKE |IS|BETWEEN|IN)/i )
@@ -1850,7 +1850,7 @@ sub nongroup_numeric
     #	DAA
     #	remove scoped recursion
     #
-    return ( !$has_op and $str =~ /\(([\w \*\/\+\-\[\]\?]+)\)/ )
+    return ( !$has_op and $str =~ /\(([\p{Word} \*\/\+\-\[\]\?]+)\)/ )
       ? nongroup_numeric($str)
       : $str;
 }
@@ -2490,7 +2490,7 @@ sub COLUMN_NAME
             #
             # JZ addition to RR's alias patch
             #
-            or ( $col_name =~ m/^(?:\w+\.)?"/ )
+            or ( $col_name =~ m/^(?:\p{Word}+\.)?"/ )
                  );
 
     }

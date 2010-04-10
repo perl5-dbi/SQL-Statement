@@ -8,7 +8,7 @@ if ($@) {
         plan skip_all => "No DBI or DBD::File available";
 }
 else {
-    plan tests => 12;
+    plan tests => 15;
 }
 
 use SQL::Statement;
@@ -45,6 +45,15 @@ eval {
     $sth->execute();
 };
 like( $@, qr/Column 'biz\.class' must appear in the GROUP BY clause or be used in an aggregate function/, 'GROUP BY required' );
+
+$sth = $dbh->prepare("SELECT SUM(bar) FROM numbers");
+cmp_ok( query2str($sth), 'eq', 'undef', 'SUM(bar) of empty table' );
+
+$sth = $dbh->prepare("SELECT COUNT(bar),c_foo FROM numbers GROUP BY c_foo");
+cmp_ok( query2str($sth), 'eq', '0~undef', 'COUNT(bar) of empty table with GROUP BY' );
+
+$sth = $dbh->prepare("SELECT COUNT(*) FROM numbers");
+cmp_ok( query2str($sth), 'eq', '0', 'COUNT(*) of empty table' );
 
 my $sql_stmt = "INSERT INTO numbers VALUES (?, ?, ?)";
 my $stmt = $dbh->prepare($sql_stmt);
@@ -86,12 +95,12 @@ sub query2str {
     return $str;
 }
 __END__
-CREATE TEMP TABLE biz (class TEXT, color TEXT, sales INTEGER)
-INSERT INTO biz VALUES ('Car'  ,'White',1000)
-INSERT INTO biz VALUES ('Car'  ,'Blue' ,500 )
-INSERT INTO biz VALUES ('Truck','White',400 )
-INSERT INTO biz VALUES ('Car'  ,'Red'  ,500 )
-INSERT INTO biz VALUES ('Truck','White',300 )
+CREATE TEMP TABLE biz (class TEXT, color TEXT, sales INTEGER, BUGNULL TEXT)
+INSERT INTO biz VALUES ('Car',   'White', 1000, NULL)
+INSERT INTO biz VALUES ('Car',   'Blue',   500, NULL )
+INSERT INTO biz VALUES ('Truck', 'White',  400, NULL )
+INSERT INTO biz VALUES ('Car',   'Red',    500, NULL )
+INSERT INTO biz VALUES ('Truck', 'White',  300, NULL )
 CREATE TEMP TABLE numbers (c_foo INTEGER, foo TEXT, bar INTEGER)
 CREATE TEMP TABLE trick   (id INTEGER, foo TEXT)
 INSERT INTO trick VALUES (1, '1foo')

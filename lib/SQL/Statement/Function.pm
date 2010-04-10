@@ -3,7 +3,7 @@ package SQL::Statement::Function;
 require SQL::Statement::Term;
 @ISA = qw(SQL::Statement::Term);
 
-our $VERSION = '1.25';
+our $VERSION = '1.26';
 
 =pod
 
@@ -455,7 +455,8 @@ sub value($)
     my $rc = '';
     foreach my $val ( @{ $_[0]->{PARAMS} } )
     {
-        $rc .= $val->value( $_[1] );
+	my $catval = $val->value( $_[1] );
+        $rc .= defined( $catval ) ? $catval : '';
     }
     return $rc;
 }

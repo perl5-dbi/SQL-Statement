@@ -1,5 +1,20 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.26, release April 09th, 2010
+----------------------------------------------
+
+[Bug fixes]
+* Handle NULL columns in concatenation as empty strings
+
+[Improvements]
+* Change regex's in parser to use \p{Word} instead of \w to allow unicode
+  support
+
+[Documentation]
+* Make clear, that identifiers are handled case insensetive and there is
+  a real good solution provided by DBI which allows to live great with
+  that behaviour.
+
 Version 1.25, release March 15th, 2010
 ----------------------------------------------
 

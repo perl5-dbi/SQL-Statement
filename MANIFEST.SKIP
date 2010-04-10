@@ -4,10 +4,11 @@
 \.rej$
 \.old$
 \..*sw[po]
-.*~
+.*~$
 Makefile$
 \.project
 \bblib\b
 pm_to_blib
 bugsql
 .*\.csv
+\.tmp$
