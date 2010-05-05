@@ -15,6 +15,7 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join( '|', qw(TRIM SUBSTRING) );
+use Carp qw(carp croak);
 use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
@@ -108,7 +109,7 @@ sub parse
         my @tables = @{ $self->{struct}->{table_names} } if ( defined( _ARRAY0( $self->{struct}->{table_names} ) ) );
         push( @{ $self->{struct}->{org_table_names} }, @tables );
         # REMOVE schema.table infor if present
-        @tables = map { s/^.*\.([^\.]+)$/$1/; $_ } @tables;
+        @tables = map { s/^.*\.([^\.]+)$/$1/; ( -1 == index( $_, '"' ) ) ? lc $_ : $_ } @tables;
 
         if ( exists( $self->{struct}->{join} ) && !defined( _HASH( $self->{struct}->{join} ) ) )
         {
@@ -313,7 +314,7 @@ sub _inject_role
         package $dest;
         use $role;
         1;
-    } or die "Can't inject $role into $dest: $@";
+    } or croak "Can't inject $role into $dest: $@";
 }
 
 sub create_op_regexen
@@ -508,7 +509,7 @@ sub SELECT
          && !defined( _ARRAY( $self->{struct}->{group_by} ) ) )
     {
         delete $self->{struct}->{set_quantifier};
-        warn "Specifying DISTINCT when using aggregate functions isn't reasonable - ignored."
+        carp "Specifying DISTINCT when using aggregate functions isn't reasonable - ignored."
           if ( $self->{PrintError} );
     }
 
@@ -1326,7 +1327,8 @@ sub SELECT_LIST
         # DAA:
         # need better alias test here, since AS is a common
         # keyword that might be used in a function
-        my ( $fld, $alias ) = ( $col =~ m/^(.+?)\s+(?:AS\s+)?([A-Z]\p{Word}*|\?QI\d+\?)$/i ) ? ( $1, $2 ) : ( $col, undef );
+        my ( $fld, $alias ) =
+          ( $col =~ m/^(.+?)\s+(?:AS\s+)?([A-Z]\p{Word}*|\?QI\d+\?)$/i ) ? ( $1, $2 ) : ( $col, undef );
         $col = $fld;
         if ( $col =~ m/^(\S+)\.\*$/ )
         {
@@ -1456,8 +1458,6 @@ sub SORT_SPEC_LIST
 {
     my ( $self, $order_clause ) = @_;
     return 1 if !$order_clause;
-    my %is_table_name  = %{ $self->{tmp}->{is_table_name} };
-    my %is_table_alias = %{ $self->{tmp}->{is_table_alias} };
     my @ocols;
     my @order_columns = split ',', $order_clause;
     for my $col (@order_columns)
@@ -1481,19 +1481,7 @@ sub SORT_SPEC_LIST
         if ( $newcol =~ /^(.+)\..+$/s )
         {
             my $table = $1;
-            if ( $table =~ /^'/ )
-            {
-                if (     !$is_table_name{$table}
-                     and !$is_table_alias{$table} )
-                {
-                    return $self->do_err( "Table '$table' in ORDER BY clause " . "not in FROM clause." );
-                }
-            }
-            elsif (     !$is_table_name{"\L$table"}
-                    and !$is_table_alias{"\L$table"} )
-            {
-                return $self->do_err( "Table '$table' in ORDER BY clause " . "not in FROM clause." );
-            }
+            $self->_verify_tablename( $table, "ORDER BY" );
         }
         push @ocols, { $newcol => $newarg };
     }
@@ -2373,19 +2361,7 @@ sub ROW_VALUE
     if ( $str =~ m/^(.*)\./ )
     {
         my $table_name = $1;
-        if ( $table_name =~ m/^"/ )
-        {
-            if (     !$self->{tmp}->{is_table_name}->{$table_name}
-                 and !$self->{tmp}->{is_table_alias}->{$table_name} )
-            {
-                return $self->do_err("Table '$table_name' in WHERE clause not in FROM clause!");
-            }
-        }
-        elsif (     !$self->{tmp}->{is_table_name}->{"\L$table_name"}
-                and !$self->{tmp}->{is_table_alias}->{"\L$table_name"} )
-        {
-            return $self->do_err("Table '$table_name' in WHERE clause not in FROM clause!");
-        }
+        $self->_verify_tablename( $table_name, "WHERE" );
     }
 
     #    push @{ $self->{struct}->{where_cols}},$str
@@ -2439,20 +2415,7 @@ sub COLUMN_NAME
         }
         return undef unless ( $table_name = $self->TABLE_NAME($table_name) );
         $table_name = $self->replace_quoted_ids($table_name);
-        my $ref;
-        if ( $table_name =~ m/^"/ )
-        {
-            if (     !$self->{tmp}->{is_table_name}->{$table_name}
-                 and !$self->{tmp}->{is_table_alias}->{$table_name} )
-            {
-                return $self->do_err("Table '$table_name' referenced but not found in FROM list!");
-            }
-        }
-        elsif (     !$self->{tmp}->{is_table_name}->{"\L$table_name"}
-                and !$self->{tmp}->{is_table_alias}->{"\L$table_name"} )
-        {
-            return $self->do_err("Table '$table_name' referenced but not found in FROM list!");
-        }
+        $self->_verify_tablename($table_name);
     }
     else
     {
@@ -2599,11 +2562,11 @@ sub TABLE_NAME_LIST
         }
 
         $table = $self->replace_quoted_ids($table);
-        push( @tables, $table =~ m/^"/ ? $table : lc $table );
+        push( @tables, $table =~ m/^"/ ? $table : $table );
 
         if ($alias)
         {
-            return undef unless ( $self->TABLE_NAME($alias) );
+            return unless ( $self->TABLE_NAME($alias) );
             $alias = $self->replace_quoted_ids($alias);
             if ( $alias =~ m/^"/ )
             {
@@ -2659,6 +2622,41 @@ sub TABLE_NAME
 
     #    return undef if !($self->IDENTIFIER($table_name));
     #    return 1;
+}
+
+sub _verify_tablename
+{
+    my ( $self, $table_name, $location ) = @_;
+    if ( defined($location) )
+    {
+        $location = " in $location";
+    }
+    else
+    {
+        $location = "";
+    }
+
+    if ( $table_name =~ m/^"/ )
+    {
+        if (     !$self->{tmp}->{is_table_name}->{$table_name}
+             and !$self->{tmp}->{is_table_alias}->{$table_name} )
+        {
+            return $self->do_err("Table '$table_name' referenced$location but not found in FROM list!");
+        }
+    }
+    else
+    {
+        my @tblnamelist = ( keys( %{ $self->{tmp}->{is_table_name} } ), keys( %{ $self->{tmp}->{is_table_alias} } ) );
+        my $tblnames = join( "|", @tblnamelist );
+        unless ( $table_name =~ m/^(?:$tblnames)$/i )
+        {
+            return $self->do_err(   "Table '$table_name' referenced$location but not found in FROM list ("
+                                  . join( ",", @tblnamelist )
+                                  . ")!" );
+        }
+    }
+
+    return 1;
 }
 
 ###################################################################
@@ -2890,8 +2888,8 @@ sub do_err
     # $err = $errtype ? "DIALECT ERROR: $err" : "SQL ERROR: $err";
     $self->{struct}->{errstr} = $err;
 
-    warn $err if ( $self->{PrintError} );
-    die $err  if ( $self->{RaiseError} );
+    carp $err  if ( $self->{PrintError} );
+    croak $err if ( $self->{RaiseError} );
     return;
 }
 

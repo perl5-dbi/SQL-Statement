@@ -23,7 +23,6 @@ MANIFEST
 MANIFEST.SKIP
 META.yml
 README
-SQL-Statement-1.26.tar.gz
 t/00error.t
 t/01prepare.t
 t/02executeDirect.t
