@@ -94,7 +94,7 @@ User-defined functions (UDFs) are perl subroutines that return values appropriat
      sprintf "%02s::%02s::%02s",(localtime)[2,1,0]
  }
 
-More complex functions can make use of a number of arguments always passed to functions automatically.  Functions always recieve these values in @_:
+More complex functions can make use of a number of arguments always passed to functions automatically.  Functions always receive these values in @_:
 
  sub FOO {
      my($self,$sth,$rowhash,@params);
@@ -198,7 +198,7 @@ Table-Returning functions are a way to turn *anything* that can be modeled as an
 =cut
 
 use vars qw($VERSION);
-$VERSION = '1.26';
+$VERSION = '1.27';
 
 =pod
 

@@ -22,7 +22,7 @@ SQL::Statement provides SQL parsing and evaluation and DBD::File provides file-b
 
 Consider what needs to happen to perform a SELECT query on our 'Foo' data:
 
- * recieve a SQL string
+ * receive a SQL string
  * parse the SQL string into a request structure
  * open the table(s) specified in the request
  * define column names and postions for the table

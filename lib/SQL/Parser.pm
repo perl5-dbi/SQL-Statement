@@ -20,7 +20,7 @@ use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.26';
+$VERSION = '1.27';
 
 BEGIN
 {
@@ -3115,7 +3115,7 @@ To see the list of Supported SQL syntax formerly kept in this pod, see L<SQL::St
 =head1 Subclassing SQL::Parser
 
 In the event you need to either extend or modify SQL::Parser's
-default behavior, the following methods may be overriden
+default behavior, the following methods may be overridden
 to modify the behavior:
 
 =over
@@ -3144,7 +3144,7 @@ functions.
 =head1 The parse structure
 
 This section outlines the B<now-deprecated> hash interface to the parsed
-structure.  It is included B<for backwards compatability only>.  You should
+structure.  It is included B<for backwards compatibility only>.  You should
 use the SQL::Statement object interface to the structure instead.  See L<SQL::Statement>.
 
 B<Parse Structures>

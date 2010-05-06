@@ -29,7 +29,7 @@ use Params::Util qw(_INSTANCE _STRING _ARRAY _ARRAY0 _HASH0 _HASH);
 
 #use locale;
 
-$VERSION = '1.26';
+$VERSION = '1.27';
 
 sub new
 {
@@ -2159,7 +2159,7 @@ and other features.
 
 SQL::Statement is a small embeddable Database Management System (DBMS), this
 means that it provides all of the services of a simple DBMS except that
-instead of a persistant storage mechanism, it has two things: 1) an in-memory
+instead of a persistent storage mechanism, it has two things: 1) an in-memory
 storage mechanism that allows you to prepare, execute, and fetch from SQL
 statements using temporary tables and 2) a set of software sockets where
 any author can plug in any storage mechanism.
@@ -2172,7 +2172,7 @@ CSV, XML, and other formats 2) to build your own DBD for a new data source
 =head1 INSTALLATION
 
 There are no prerequisites for using this as a standalone parser. If you want
-to access persistant stored data, you either need to write a subclass or use
+to access persistent stored data, you either need to write a subclass or use
 one of the DBI DBD drivers.  You can install this module using CPAN.pm,
 CPANPLUS.pm, PPM, apt-get, or other packaging tools.  Or you can download the
 tar.gz file form CPAN and use the standard perl mantra:
@@ -2333,7 +2333,7 @@ Bugs and feature requests are accepted against latest version
 only. To get patches for earlier versions, you need to get an
 agreement with a developer of your choice - who might or might
 not report the issue and a suggested fix upstream (depends on
-the license you've choosen).
+the license you've chosen).
 
 =head2 Business support and maintenance
 
