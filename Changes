@@ -4,10 +4,13 @@ Version 1.27, release May 06th, 2010
 ----------------------------------------------
 
 [Bug fixes]
-- use originally given table name for open_table() on SELECT, too
+* use originally given table name for open_table() on SELECT, too
   (all other command still use the originally given name)
-- warn/die -> carp/croak
-- fix delete_one_row & update_one_row ability using
+* warn/die -> carp/croak
+* fix delete_one_row & update_one_row ability using
+
+[Documentation]
+* Apply spelling fix patch from Ansgar Burchardt (RT#56475)
 
 Version 1.26, release April 09th, 2010
 ----------------------------------------------
