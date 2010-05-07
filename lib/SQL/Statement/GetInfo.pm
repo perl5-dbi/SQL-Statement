@@ -1,7 +1,7 @@
 package SQL::Statement::GetInfo;
 
 use vars qw($VERSION);
-$VERSION = '1.27';
+$VERSION = '1.28';
 
 use SQL::Statement();
 use vars qw(%info);

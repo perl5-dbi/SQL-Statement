@@ -3,7 +3,7 @@ package SQL::Statement::RAM;
 ############################
 
 use vars qw($VERSION);
-$VERSION = '1.27';
+$VERSION = '1.28';
 
 sub new
 {

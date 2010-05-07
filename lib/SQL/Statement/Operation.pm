@@ -5,7 +5,7 @@ require Carp;
 
 require SQL::Statement::Term;
 
-our $VERSION = '1.27';
+our $VERSION = '1.28';
 
 @ISA = qw(SQL::Statement::Term);
 

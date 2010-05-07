@@ -6,7 +6,7 @@ use strict;
 package SQL::Eval;
 
 use vars qw($VERSION);
-$VERSION = '1.27';
+$VERSION = '1.28';
 
 require SQL::Statement;
 
