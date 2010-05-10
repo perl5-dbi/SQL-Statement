@@ -1,54 +1,39 @@
 # -*- perl -*-
 
-require 5.008;
-use strict;
-
 package SQL::Eval;
 
+require 5.008;
+use strict;
+use warnings;
 use vars qw($VERSION);
+
 $VERSION = '1.28';
 
-require SQL::Statement;
+use Carp qw(croak);
 
 sub new($)
 {
     my ( $proto, $attr ) = @_;
     my ($self) = {%$attr};
     bless( $self, ( ref($proto) || $proto ) );
-    $self;
+    return $self;
 }
 
 sub param($;$)
 {
     my ( $self, $paramNum, $param ) = @_;
 
-    if ( @_ == 3 )
-    {
-        return $self->{params}->[$paramNum] = $param;
-    }
-    else
-    {
-        if ( $paramNum < 0 )
-        {
-            die "Illegal parameter number: $paramNum";
-        }
-
-        return $self->{params}->[$paramNum];
-    }
+    $paramNum < 0 and croak "Illegal parameter number: $paramNum";
+    return $self->{params}->[$paramNum] = $param if ( @_ == 3 );
+    return $self->{params}->[$paramNum];
 }
 
 sub params(;$)
 {
     my ( $self, $array ) = @_;
 
-    if ( @_ == 2 )
-    {
-        $self->{params} = $array;
-    }
-    else
-    {
-        $self->{params};
-    }
+    $self->{params} = $array if ( @_ == 2 );
+    return $self->{params};
 }
 
 sub table($)
@@ -65,12 +50,36 @@ sub column($$)
 
 package SQL::Eval::Table;
 
+use Carp qw(croak);
+use Params::Util qw(_ARRAY0 _HASH0);
+
 sub new($)
 {
     my ( $proto, $attr ) = @_;
     my ($self) = {%$attr};
+
+    defined( $self->{col_names} ) and defined( _ARRAY0( $self->{col_names} ) )
+      or croak("attrbute 'col_names' must be defined as an array");
+    exists( $self->{col_nums} ) or $self->{col_nums} = _map_colnums( $self->{col_names} );
+    defined( $self->{col_nums} ) and defined( _HASH0( $self->{col_nums} ) )
+      or croak("attrbute 'col_nums' must be defined as a hash");
+
+    $self->{capabilities} = {} unless ( defined( $self->{capabilities} ) );
     bless( $self, ( ref($proto) || $proto ) );
+
     return $self;
+}
+
+sub _map_colnums
+{
+    my $col_names = $_[0];
+    my %col_nums;
+    for my $i ( 0 .. $#$col_names )
+    {
+        next unless $col_names->[$i];
+        $col_nums{ $col_names->[$i] } = $i;
+    }
+    return \%col_nums;
 }
 
 sub row()         { return $_[0]->{row}; }
@@ -78,6 +87,44 @@ sub column($)     { return $_[0]->{row}->[ $_[0]->column_num( $_[1] ) ]; }
 sub column_num($) { $_[0]->{col_nums}->{ $_[1] }; }
 sub col_nums()    { $_[0]->{col_nums} }
 sub col_names()   { $_[0]->{col_names}; }
+
+sub capability($)
+{
+    my ( $self, $capname ) = @_;
+    return $self->{capabilities}->{$capname} if ( defined( $self->{capabilities}->{$capname} ) );
+
+    $capname eq "delete_one_row" and $self->{capabilities}->{delete_one_row} = $self->can("delete_one_row");
+    $capname eq "delete_current_row"
+      and $self->{capabilities}->{delete_current_row} =
+      ( $self->can("delete_current_row") and $self->capability("inplace_delete") );
+    $capname eq "update_one_row" and $self->{capabilities}->{update_one_row} = $self->can("update_one_row");
+    $capname eq "update_current_row"
+      and $self->{capabilities}->{update_current_row} =
+      ( $self->can("update_current_row") and $self->capability("inplace_update") );
+    $capname eq "update_specific_row"
+      and $self->{capabilities}->{update_specific_row} = $self->can("update_specific_row");
+
+    $capname eq "rowwise_update"
+      and $self->{capabilities}->{rowwise_update} = (
+                                                           $self->capability("update_one_row")
+                                                        or $self->capability("update_current_row")
+                                                        or $self->capability("update_specific_row")
+                                                    );
+    $capname eq "rowwise_delete"
+      and $self->{capabilities}->{rowwise_delete} = (
+                                                           $self->capability("delete_one_row")
+                                                        or $self->capability("delete_current_row")
+                                                    );
+
+    return $self->{capabilities}->{$capname};
+}
+
+sub drop ($$)        { croak "Abstract method " . ref( $_[0] ) . "::drop called" }
+sub fetch_row ($$$)  { croak "Abstract method " . ref( $_[0] ) . "::fetch_row called" }
+sub push_row ($$$)   { croak "Abstract method " . ref( $_[0] ) . "::push_row called" }
+sub push_names ($$$) { croak "Abstract method " . ref( $_[0] ) . "::push_names called" }
+sub truncate ($$)    { croak "Abstract method " . ref( $_[0] ) . "::truncate called" }
+sub seek ($$$$)      { croak "Abstract method " . ref( $_[0] ) . "::seek called" }
 
 1;
 
@@ -196,6 +243,26 @@ Constructor; use it like this:
 Blesses the hash ref \%attr into the SQL::Eval::Table class (or a
 subclass).
 
+The following attributes are used by C<SQL::Eval::Table>:
+
+=over 12
+
+=item col_names
+
+Array reference containing the names of the columns in order they appear
+in the table. This attribute B<must> be provided by the inheritent.
+
+=item col_nums
+
+Hash reference containing the column names as index and the column index as
+value. If this is omitted (not exists), it will be created from C<col_names>.
+
+=item capabilities
+
+Hash reference containing additional capabilities.
+
+=back
+
 =item row
 
 Used to get the current row as an array ref. Do not mismatch
@@ -220,17 +287,129 @@ well use this for verifying valid column names. Example:
 
     $colNum = $table->column_num($colNum);
 
-=item column_names
+=item col_nums
 
-Returns an array ref of column names.
+Returns an hash ref of column names with the column name as index and the
+column index as value.
+
+=item col_names
+
+Returns an array ref of column names ordered by their index within the table.
+
+=item capability
+
+Returns a boolean value whether the table has the specified capability or
+not. This method might be overwritten by derived classes, but ensure that
+in that case the parent capability method is called when the derived class
+doesn't handle the requested capability.
+
+Following capabilities are used (and requested) by SQL::Statement:
+
+=over 12
+
+=item update_one_row
+
+Tells if the table is able to update one single row. This capability is
+used for backward compatibility and might have (depending on table
+implementation several limitations). Please carefully study the
+documentation of the table or ask the author of the table, if this
+information isn't provided.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item update_specific_row
+
+Tells if the table is able to update one single row, but keeps the original
+content of the row to update.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item update_current_row
+
+Tells if the table is able to update the currently touched row. This
+capability requires the capability of C<inplace_update>.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item rowwise_update
+
+Tells if the table is able to do an row-wise update, means one of
+C<update_one_row>, C<update_specific_row> or C<update_current_row>.
+The C<update_current_row> is only evaluated, if the table has the
+capability C<inplace_update>.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item inplace_update
+
+Tells if an update of a row has side effects (capability is not available)
+or can be done without harming any other currently running task on the
+table.
+
+Example: The table storage is using a hash on the C<PRIMARY KEY> of the
+table. Real perl hashes don't care when an item is updated while the
+hash is traversed using C<each>. C<SDBM_File> 1.06 has a bug, which doesn't
+corrent the traversion pointer when an item is deleted.
+
+C<SQL::Statement::RAM::Table> recognize such situations and corrent the
+traversion pointer.
+
+This might not be possible for all implementations which can update single
+rows.
+
+This capability could be provided by a derived class only.
+
+=item delete_one_row
+
+This capability tells C<SQL::Statement> whether the table can delete one
+single row by it's content or not.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item delete_current_row
+
+This capability tells C<SQL::Statement> whether a table can delete current
+traversed row or not. This capability requires the capability of
+C<inplace_delete>.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item rowwise_delete
+
+Tells if any row-wise delete operation is provided by the table. C<row-wise>
+delete capabilities are C<delete_one_row> and C<delete_current_row>.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
+=item inplace_delete
+
+Tells if a deletion of a row has side effects (capability is not available)
+or can be done without harming any other currently running task on the
+table.
+
+This capability could be provided by a derived class only.
+
+=back
 
 =back
 
 The above methods are implemented by SQL::Eval::Table. The following
 methods aren't, so that they *must* be implemented by concrete
-subclassed. See the C<test.pl> script for example.
+subclassed. See the C<DBD::DBM::Table> or C<DBD::CSV::Table> for example.
 
 =over 8
+
+=item drop
+
+Drops the table. All resources allocated by the table must be released
+after C<$table->drop($data)>.
 
 =item fetch_row
 
@@ -245,6 +424,9 @@ Note, that you may use
     $row = $table->row();
 
 for retrieving the same row again, until the next call of C<fetch_row>.
+
+C<SQL::Statement> requires that the last fetched row is available again
+and again via C<$table->row()>.
 
 =item push_row
 
@@ -266,8 +448,8 @@ of the next row being written. Example:
 
     $table->seek($data, $whence, $rowNum);
 
-Actually the current implementation is using only C<seek($data, 0,0)>
-(first row) and C<seek($data, 2,0)> (last row, end of file).
+Actually the current implementation is using only C<seek($data, 0, 0)>
+(first row) and C<seek($data, 2, 0)> (beyond last row, end of file).
 
 =item truncate
 
@@ -290,15 +472,53 @@ are C<row> (the array ref of the current row), C<col_nums> (an hash ref
 of column names as keys and column numbers as values) and C<col_names>,
 an array ref of column names with the column numbers as indexes.
 
-
 =head1 MULTITHREADING
 
 All methods are working with instance-local data only, thus the module
 is reentrant and thread safe, if you either don't share handles between
 threads or grant serialized use.
 
+=head1 BUGS
+
+Please report any bugs or feature requests to
+C<bug-sql-statement at rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=SQL-Statement>.
+I will be notified, and then you'll automatically be notified of progress
+on your bug as I make changes.
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc SQL::Eval
+    perldoc SQL::Statement
+
+You can also look for information at:
+
+=over 4
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=SQL-Statement>
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/SQL-Statement>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/s/SQL-Statement>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/SQL-Statement/>
+
+=back
+
 
 =head1 AUTHOR AND COPYRIGHT
+
+Written by Jochen Wiedmann and currently maintained by Jens Rehsack.
 
 This module is Copyright (C) 1998 by
 
@@ -309,6 +529,10 @@ This module is Copyright (C) 1998 by
 
     Email: joe@ispsoft.de
     Phone: +49 7123 14887
+
+and Copyright (C) 2009, 2010 by
+
+     Jens Rehsack < rehsackATcpan.org>
 
 All rights reserved.
 

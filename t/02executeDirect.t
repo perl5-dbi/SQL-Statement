@@ -49,7 +49,7 @@ my $cache = {};
 
 for my $sql (
     split /\n/,
-    "   CREATE TABLE a (b INT, c CHAR)
+    "   CREATE TEMP TABLE a (b INT, c CHAR)
     INSERT INTO a VALUES(1,'abc')
     INSERT INTO a VALUES(2,'efg')
     INSERT INTO a VALUES(3,'hij')

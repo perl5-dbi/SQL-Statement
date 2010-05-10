@@ -7,10 +7,9 @@ use Test::More;
 eval {
     require DBI;
     require DBD::File;
-    require IO::File;
 };
-if ($@) {
-        plan skip_all => "Requires DBI and DBD::File";
+if ($@ or $DBD::File::VERSION lt '0.39') {
+        plan skip_all => "Requires DBI > 1.611 and DBD::File >= 0.39";
 }
 else {
     plan tests => 26;

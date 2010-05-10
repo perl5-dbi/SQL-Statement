@@ -455,8 +455,8 @@ sub value($)
     my $rc = '';
     foreach my $val ( @{ $_[0]->{PARAMS} } )
     {
-	my $catval = $val->value( $_[1] );
-        $rc .= defined( $catval ) ? $catval : '';
+        my $catval = $val->value( $_[1] );
+        $rc .= defined($catval) ? $catval : '';
     }
     return $rc;
 }

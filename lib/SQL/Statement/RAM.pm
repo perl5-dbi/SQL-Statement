@@ -5,29 +5,33 @@ package SQL::Statement::RAM;
 use vars qw($VERSION);
 $VERSION = '1.28';
 
-sub new
-{
-    my ( $self, $tname, $col_names, $data_tbl ) = @_;
-    my $col_nums = {};
-    my $i        = 0;
-    for (@$col_names) { next unless $_; $col_nums->{$_} = $i; $i++; }
-    my %table = (
-                  NAME      => $tname,
-                  index     => 0,
-                  records   => $data_tbl,
-                  col_nums  => $col_nums,
-                  col_names => $col_names,
-                );
-    return bless \%table, 'SQL::Statement::RAM::Table';
-}
 ####################################
 package SQL::Statement::RAM::Table;
 ####################################
 
+require SQL::Eval;
+
 use vars qw(@ISA);
 @ISA = qw(SQL::Eval::Table);
 
-sub get_pos() { return $_[0]->{CUR} = $_[0]->{index} }
+use Carp qw(croak);
+use Clone qw(clone);
+
+sub new
+{
+    my ( $class, $tname, $col_names, $data_tbl ) = @_;
+    my %table = (
+                  NAME         => $tname,
+                  index        => 0,
+                  records      => $data_tbl,
+                  col_names    => $col_names,
+                  capabilities => {
+                                    inplace_update => 1,
+                                    inplace_delete => 1,
+                                  },
+                );
+    my $self = $class->SUPER::new( \%table );
+}
 
 ##################################
 # fetch_row()
@@ -35,12 +39,10 @@ sub get_pos() { return $_[0]->{CUR} = $_[0]->{index} }
 sub fetch_row
 {
     my ( $self, $data ) = @_;
-    my $currentRow = $self->{index};
-    return $self->{row} = undef unless $self->{records};
-    return $self->{row} = undef if $currentRow >= @{ $self->{records} };
-    $self->{index} = $currentRow + 1;
-    $self->get_pos( $self->{index} );
-    return $self->{row} = $self->{records}->[$currentRow];
+    return $self->{row} = undef unless ( $self->{records} );
+    return $self->{row} = undef if ( $self->{index} >= scalar( @{ $self->{records} } ) );
+    # clone before return, otherwise modifications in fetched result will modify table
+    return $self->{row} = clone( $self->{records}->[ $self->{index}++ ] );
 }
 ####################################
 # push_row()
@@ -48,9 +50,30 @@ sub fetch_row
 sub push_row
 {
     my ( $self, $data, $fields ) = @_;
-    my $currentRow = $self->{index};
-    $self->{index} = $currentRow + 1;
-    $self->{records}->[$currentRow] = $fields;
+    $self->{records}->[ $self->{index}++ ] = clone($fields);
+    return 1;
+}
+##################################
+# delete_current_row()
+##################################
+sub delete_current_row
+{
+    my ( $self, $data, $fields ) = @_;
+    my $currentRow = $self->{index} - 1;
+    croak "No current row" unless ( $currentRow >= 0 );
+    splice @{ $self->{records} }, $currentRow, 1;
+    --$self->{index};
+    return 1;
+}
+##################################
+# update_current_row()
+##################################
+sub update_current_row
+{
+    my ( $self, $data, $fields ) = @_;
+    my $currentRow = $self->{index} - 1;
+    croak "No current row" unless ( $currentRow >= 0 );
+    $self->{records}->[$currentRow] = clone($fields);
     return 1;
 }
 ##################################
@@ -58,7 +81,7 @@ sub push_row
 ##################################
 sub truncate
 {
-    return splice @{ $_[0]->{records} }, $_[0]->{index}, 1;
+    return splice @{ $_[0]->{records} }, $_[0]->{index};
 }
 #####################################
 # push_names()
@@ -66,15 +89,9 @@ sub truncate
 sub push_names
 {
     my ( $self, $data, $names ) = @_;
-    $self->{col_names} = $names;
-    push @{ $self->{org_col_names} }, $_ for @$names;
-    push @{ $self->{parser}->{col_names} }, $_ for @$names;
-    my ($col_nums) = {};
-    for ( my $i = 0; $i < @$names; $i++ )
-    {
-        $col_nums->{ $names->[$i] } = $i;
-    }
-    $self->{col_nums} = $col_nums;
+    $self->{col_names}     = $names;
+    $self->{org_col_names} = clone($names);
+    $self->{col_nums}      = SQL::Eval::Table::_map_colnums($names);
 }
 #####################################
 # drop()
@@ -108,11 +125,11 @@ sub seek
     }
     else
     {
-        die $self . "->seek: Illegal whence argument ($whence)";
+        croak $self . "->seek: Illegal whence argument ($whence)";
     }
     if ( $currentRow < 0 )
     {
-        die "Illegal row number: $currentRow";
+        croak "Illegal row number: $currentRow";
     }
     $self->{index} = $currentRow;
 }
@@ -139,5 +156,124 @@ This package contains support for the internally used SQL::Statement::RAM::Table
 
   SQL::Statement::RAM::Table
   ISA SQL::Eval::Table
+
+=head1 SQL::Statement::RAM::Table
+
+=head2 METHODS
+
+=over 8
+
+=item new
+
+Instantiates a new C<SQL::Statement::RAM::Table> object, used for temporary
+tables.
+
+    CREATE TEMP TABLE foo ....
+
+=item fetch_row
+
+Fetches the next row
+
+=item push_row
+
+Similar for writing
+
+=item delete_current_row
+
+Deletes the last fetched/pushed row
+
+=item update_current_row
+
+Updates the last fetched/pushed row
+
+=item trunctate
+
+Truncates the table at the current position
+
+=item push_names
+
+Set the column names of the table
+
+=item drop
+
+Discards the table
+
+=item seek
+
+Seek the row pointer
+
+=back
+
+=head2 CAPABILITIES
+
+This table has following capabilities:
+
+=over 8
+
+=item update_current_row
+
+By providing method C<update_current_row> and capability C<inplace_update>.
+
+=item rowwise_update
+
+By providing capability C<update_current_row>.
+
+=item inplace_update
+
+By definition (appropriate flag set in constructor).
+
+=item delete_current_row
+
+By providing method C<delete_current_row> and capability C<inplace_delete>.
+
+=item rowwise_delete
+
+By providing capability C<delete_current_row>.
+
+=item inplace_delete
+
+By definition (appropriate flag set in constructor).
+
+=back
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc SQL::Statement
+
+You can also look for information at:
+
+=over 4
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=SQL-Statement>
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/SQL-Statement>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/s/SQL-Statement>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/SQL-Statement/>
+
+=back
+
+
+=head1 AUTHOR AND COPYRIGHT
+
+Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
+Copyright (c) 2007-2010 by Jens Rehsack: rehsackATcpan.org
+
+All rights reserved.
+
+You may distribute this module under the terms of either the GNU
+General Public License or the Artistic License, as specified in
+the Perl README file.
 
 =cut

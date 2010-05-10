@@ -1,5 +1,28 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.28
+----------------------------------------------
+
+[Improvements]
+* introduce new "capability" method for SQL::Statement and SQL::Eval::Table
+
+[Bug fixes]
+* expect every table object being derived from SQL::Eval::Table
+* rewrite DELETE and UPDATE command based on table capabilities
+* add abstract methods for all methods derived classes must override
+  (this means, open_table for SQL::Statement deriveds must be overridden
+   and all data access methods of tables - see SQL::Eval::Table for details)
+* Tests are fixed to use TEMP TABLES explicitely when required
+
+[Documentation]
+* Method documentation of SQL::Statement and SQL::Eval::Table are improved
+
+[Things that may break your code]
+* SQL::Statement 1.28 is expected not to work proper in combination with
+  DBI 1.611 and below
+* SQL::Statement::ColumnValue expects now every table being derived from
+  SQL::Eval::Table
+
 Version 1.27, release May 06th, 2010
 ----------------------------------------------
 

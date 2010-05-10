@@ -121,7 +121,8 @@ package SQL::Statement::ColumnValue;
 use vars qw(@ISA);
 @ISA = qw(SQL::Statement::Term);
 
-use Params::Util qw(_INSTANCE);
+use Params::Util qw(_INSTANCE _ARRAY0 _SCALAR);
+use Scalar::Util qw(looks_like_number);
 
 =pod
 
@@ -184,19 +185,23 @@ sub value($)
 
     # with TempEval: return $eval->column($self->{TABLE_NAME}, $self->{COLUMN_NAME});
 
-    if ( _INSTANCE( $eval, 'SQL::Eval' ) )
+    if ( defined( _INSTANCE( $eval, 'SQL::Eval' ) ) )
     {
         my $table = $eval->{tables}->{ $self->{TABLE_NAME} };
         return $table->column( $self->{COLUMN_NAME} );
 
         # return $line->[ $table->{col_nums}->{ $self->{COLUMN_NAME} } ];
     }
+    elsif ( defined( _INSTANCE( $eval, 'SQL::Eval::Table' ) ) )
+    {
+        return $eval->column( $self->{TMPVAL} );
+        #my $line = $eval->{table}->[ $eval->{rowpos} - 1 ];
+
+        #return $line->[ $eval->{col_nums}->{ $self->{TMPVAL} } ];
+    }
     else
     {
-        return undef unless ( defined( $eval->{rowpos} ) );
-        my $line = $eval->{table}->[ $eval->{rowpos} - 1 ];
-
-        return $line->[ $eval->{col_nums}->{ $self->{TMPVAL} } ];
+        croak( "Unsupported table storage: '" . ref($eval) . "'" );
     }
 }
 

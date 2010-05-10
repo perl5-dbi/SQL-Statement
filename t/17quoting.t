@@ -24,7 +24,7 @@ my $parser = SQL::Parser->new(
                                }
                              );
 for my $sql ( split( "\n", join( '', <<EOD ) ) )
-CREATE TABLE "TBL WITH SPACES" (id INT, "COLUMN WITH SPACES" CHAR, "SET" INT)
+CREATE TEMP TABLE "TBL WITH SPACES" (id INT, "COLUMN WITH SPACES" CHAR, "SET" INT)
 INSERT INTO "TBL WITH SPACES" VALUES (1, 'foo', 1)
 INSERT INTO "TBL WITH SPACES" VALUES (2, 'bar', 0)
 EOD
@@ -123,7 +123,7 @@ EOD
 
     $cache = {};
     for my $sql ( split( ';', join( '', <<EOD ) ) )
-CREATE TABLE T1 (id INT, "COLUMN WITH SPACES" CHAR, "SET" INT);
+CREATE TEMP TABLE T1 (id INT, "COLUMN WITH SPACES" CHAR, "SET" INT);
 INSERT INTO T1 VALUES (1, 'foo', 1);
 INSERT INTO T1 VALUES (2, 'bar', 0)
 EOD
@@ -221,7 +221,7 @@ EOD
 
     $cache = {};
     for my $sql ( split( ';', join( '', <<EOD ) ) )
-CREATE TABLE "TBL WITH SPACES" (id INT, CWS CHAR, "SET" INT);
+CREATE TEMP TABLE "TBL WITH SPACES" (id INT, CWS CHAR, "SET" INT);
 INSERT INTO "TBL WITH SPACES" VALUES (1, 'foo', 1);
 INSERT INTO "TBL WITH SPACES" VALUES (2, 'bar', 0)
 EOD
@@ -290,7 +290,7 @@ EOD
 
     $cache = {};
     for my $sql ( split( ';', join( '', <<EOD ) ) )
-CREATE TABLE T1 (id INT, CWS CHAR, "SET" INT);
+CREATE TEMP TABLE T1 (id INT, CWS CHAR, "SET" INT);
 INSERT INTO T1 VALUES (1, 'foo', 1);
 INSERT INTO T1 VALUES (2, 'bar', 0)
 EOD

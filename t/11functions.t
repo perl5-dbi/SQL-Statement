@@ -9,7 +9,7 @@ $parser = new_parser();
 $parser->{PrintError}=0;
 $parser->{RaiseError}=1;
 do_($_)for split/;\n/,"
-    CREATE TABLE tbl (c1 INT, c2 CHAR, c3 CHAR);
+    CREATE TEMP TABLE tbl (c1 INT, c2 CHAR, c3 CHAR);
     INSERT INTO tbl VALUES(1,'Seattle',200);
     INSERT INTO tbl VALUES(2,'Portland',300);
     INSERT INTO tbl VALUES(3,'Boston',600);

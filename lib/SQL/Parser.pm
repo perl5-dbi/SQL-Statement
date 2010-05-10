@@ -3306,16 +3306,83 @@ Would produce:
 
     values => [ 7, 'Chevy', 'Impala' ],
 
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc SQL::Parser
+    perldoc SQL::Statement
+
+You can also look for information at:
+
+=over 4
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=SQL-Statement>
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/SQL-Statement>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/s/SQL-Statement>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/SQL-Statement/>
+
+=back
+
+=head2 Where can I go for more help?
+
+For questions about installation or usage, please ask on the
+dbi-users@perl.org mailing list or post a question on PerlMonks
+(L<http://www.perlmonks.org/>, where Jeff is known as jZed).
+Jens didn't visit PerlMonks on a regular basis.
+
+If you have a bug report, a patch, a suggestion, please open
+a new report ticket at CPAN, if there isn't already a one for
+the issue you want to report. Of course, you can mail any of the
+module maintainers, but you'll be sure that you're report will
+not be "forgotten" or reach an (temporarily) inactive maintainer.
+Report tickets should contain a detailed description of the
+bug or enhancement request you want to report and at least an
+easy to verify and use test to reproduce the issue and verify the
+applied fix. Patches are always welcome, too.
+
+=head2 Where can I go for help with a concrete version?
+
+Bugs and feature requests are accepted against latest version
+only. To get patches for earlier versions, you need to get an
+agreement with a developer of your choice - who might or might
+not report the issue and a suggested fix upstream (depends on
+the license you've chosen).
+
+=head2 Business support and maintenance
+
+For business support you can contact Jens via it's CPAN email
+address rehsackATcpan.org. Please keep in mind that business
+support is neither available for free nor you're eligible to
+receive any support based on the license distributed with this
+package.
+
 
 =head1 AUTHOR & COPYRIGHT
 
- This module is copyright (c) 2001,2005 by Jeff Zucker.
+ This module is
+
+ copyright (c) 2001,2005 by Jeff Zucker and
+ copyright (c) 2008,2010 by Jens Rehsack.
+
  All rights reserved.
 
- The module may be freely distributed under the same terms as
- Perl itself using either the "GPL License" or the "Artistic
- License" as specified in the Perl README file.
+The module may be freely distributed under the same terms as
+Perl itself using either the "GPL License" or the "Artistic
+License" as specified in the Perl README file.
 
- Jeff can be reached at: jzuckerATcpan.org
+Jeff can be reached at: jzuckerATcpan.org
+Jens can be reached at: rehsackATcpan.org or via dbi-devATperl.org
 
 =cut

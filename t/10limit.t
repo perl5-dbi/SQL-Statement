@@ -10,7 +10,7 @@ printf "SQL::Statement v.%s\n", $SQL::Statement::VERSION;
 $DEBUG=0;
 my $p = SQL::Parser->new();
 my($stmt,$cache)=(undef,{});
-do_(" CREATE TABLE tbl (c1 INT)   ");
+do_(" CREATE TEMP TABLE tbl (c1 INT)   ");
 do_(" INSERT INTO tbl VALUES($_) ") for 0..9;  # MySQL LIMIT is 0-based!
 ok( '5^6^7^' eq fetchStr("SELECT * FROM tbl ORDER BY c1 LIMIT 5,3")
   , 'limit with order by');
