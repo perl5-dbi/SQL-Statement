@@ -5,6 +5,7 @@ Version 1.28
 
 [Improvements]
 * introduce new "capability" method for SQL::Statement and SQL::Eval::Table
+* Performance of IMPORT feature improved (thanks to Sven Probst, RT#57322)
 
 [Bug fixes]
 * expect every table object being derived from SQL::Eval::Table

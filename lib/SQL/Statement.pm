@@ -187,7 +187,8 @@ sub CREATE ($$$)
         $data->{Database}->do($create_sql);
         my $colstr     = ('?,') x @tbl_cols;
         my $insert_sql = "INSERT INTO $tbl_name VALUES($colstr)";
-        $data->{Database}->do( $insert_sql, {}, @$_ ) for @$tbl_data;
+        my $local_sth=$data->{Database}->prepare( $insert_sql );
+        $local_sth->execute( @$_ ) for @$tbl_data;
         return ( 0, 0 );
     }
     my ( $eval, $foo ) = $self->open_tables( $data, 1, 1 );
