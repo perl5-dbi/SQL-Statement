@@ -59,10 +59,10 @@ sub new($)
     my ($self) = {%$attr};
 
     defined( $self->{col_names} ) and defined( _ARRAY0( $self->{col_names} ) )
-      or croak("attrbute 'col_names' must be defined as an array");
+      or croak("attribute 'col_names' must be defined as an array");
     exists( $self->{col_nums} ) or $self->{col_nums} = _map_colnums( $self->{col_names} );
     defined( $self->{col_nums} ) and defined( _HASH0( $self->{col_nums} ) )
-      or croak("attrbute 'col_nums' must be defined as a hash");
+      or croak("attribute 'col_nums' must be defined as a hash");
 
     $self->{capabilities} = {} unless ( defined( $self->{capabilities} ) );
     bless( $self, ( ref($proto) || $proto ) );
@@ -120,7 +120,7 @@ sub capability($)
 }
 
 sub drop ($$)        { croak "Abstract method " . ref( $_[0] ) . "::drop called" }
-sub fetch_row ($$$)  { croak "Abstract method " . ref( $_[0] ) . "::fetch_row called" }
+sub fetch_row ($$)   { croak "Abstract method " . ref( $_[0] ) . "::fetch_row called" }
 sub push_row ($$$)   { croak "Abstract method " . ref( $_[0] ) . "::push_row called" }
 sub push_names ($$$) { croak "Abstract method " . ref( $_[0] ) . "::push_names called" }
 sub truncate ($$)    { croak "Abstract method " . ref( $_[0] ) . "::truncate called" }
