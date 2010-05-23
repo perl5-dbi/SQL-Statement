@@ -61,8 +61,8 @@ WriteMakefile1(
     LICENSE        => 'perl',
     BUILD_REQUIRES => {
         'Test::Simple' => '0.86',
-        # means: DBI >= 1.609
-        'DBD::File' => '0.37',
+        # means: DBI >= 1.612
+        'DBD::File' => '0.39',
                       },
     AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
               );
