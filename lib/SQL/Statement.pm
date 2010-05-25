@@ -337,6 +337,8 @@ sub DELETE ($$$)
             {
                 push( @rows, $array );
             }
+
+	    next;
         }
 
         push( @rows, $array ) unless ( $table->capability('rowwise_delete') );
