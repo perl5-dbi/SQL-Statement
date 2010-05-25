@@ -264,7 +264,6 @@ L<http://search.cpan.org/dist/SQL-Statement/>
 
 =back
 
-
 =head1 AUTHOR AND COPYRIGHT
 
 Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
