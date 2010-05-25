@@ -223,16 +223,18 @@ sub DROP ($$$)
 {
     my ( $self, $data, $params ) = @_;
     my $eval;
-    eval { ($eval) = $self->open_tables( $data, 0, 1 ); };
-    if ( $self->{ignore_missing_table} )
+    my @err;
+    eval {
+	local $SIG{__WARN__} = sub { push @err, @_ };
+	($eval) = $self->open_tables( $data, 0, 1 );
+    };
+    if ( $self->{ignore_missing_table} and ($@ or @err) and grep { m/no such (table|file)/i } (@err, $@) )
     {
-        if ( $@ and $@ =~ m/no such (table|file)/i )
-        {
-            return ( -1, 0 );
-        }
+	$@ = '';
+        return ( -1, 0 );
     }
 
-    $self->do_err($@) if ($@);
+    $self->do_err($@ || $err[0]) if ($@ || @err);
 
     #    return undef unless $eval;
     return ( -1, 0 ) unless $eval;
