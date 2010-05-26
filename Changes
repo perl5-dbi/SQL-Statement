@@ -14,6 +14,7 @@ Version 1.28
   (this means, open_table for SQL::Statement deriveds must be overridden
    and all data access methods of tables - see SQL::Eval::Table for details)
 * Tests are fixed to use TEMP TABLES explicitely when required
+* check for invalid column names fixed
 
 [Documentation]
 * Method documentation of SQL::Statement and SQL::Eval::Table are improved
