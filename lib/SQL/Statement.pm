@@ -187,8 +187,8 @@ sub CREATE ($$$)
         $data->{Database}->do($create_sql);
         my $colstr     = ('?,') x @tbl_cols;
         my $insert_sql = "INSERT INTO $tbl_name VALUES($colstr)";
-        my $local_sth=$data->{Database}->prepare( $insert_sql );
-        $local_sth->execute( @$_ ) for @$tbl_data;
+        my $local_sth  = $data->{Database}->prepare($insert_sql);
+        $local_sth->execute(@$_) for @$tbl_data;
         return ( 0, 0 );
     }
     my ( $eval, $foo ) = $self->open_tables( $data, 1, 1 );
@@ -225,16 +225,16 @@ sub DROP ($$$)
     my $eval;
     my @err;
     eval {
-	local $SIG{__WARN__} = sub { push @err, @_ };
-	($eval) = $self->open_tables( $data, 0, 1 );
+        local $SIG{__WARN__} = sub { push @err, @_ };
+        ($eval) = $self->open_tables( $data, 0, 1 );
     };
-    if ( $self->{ignore_missing_table} and ($@ or @err) and grep { m/no such (table|file)/i } (@err, $@) )
+    if ( $self->{ignore_missing_table} and ( $@ or @err ) and grep { m/no such (table|file)/i } ( @err, $@ ) )
     {
-	$@ = '';
+        $@ = '';
         return ( -1, 0 );
     }
 
-    $self->do_err($@ || $err[0]) if ($@ || @err);
+    $self->do_err( $@ || $err[0] ) if ( $@ || @err );
 
     #    return undef unless $eval;
     return ( -1, 0 ) unless $eval;
@@ -256,6 +256,7 @@ sub INSERT ($$$)
 
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols ) if ( scalar( $self->columns() ) );
+    return if($self->{errstr});
 
     my ($table) = $eval->table( $self->tables(0)->name() );
     $table->seek( $data, 0, 2 );
@@ -314,6 +315,7 @@ sub DELETE ($$$)
     return unless $eval;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
+    return if($self->{errstr});
     my $tname      = $self->tables(0)->name();
     my ($table)    = $eval->table($tname);
     my ($affected) = 0;
@@ -340,7 +342,7 @@ sub DELETE ($$$)
                 push( @rows, $array );
             }
 
-	    next;
+            next;
         }
 
         push( @rows, $array ) unless ( $table->capability('rowwise_delete') );
@@ -382,6 +384,7 @@ sub UPDATE ($$$)
     $self->{params} ||= $params;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
+    return if($self->{errstr});
 
     my $tname      = $self->tables(0)->name();
     my ($table)    = $eval->table($tname);
@@ -581,6 +584,7 @@ sub JOIN
     return undef unless $eval;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
+    return if($self->{errstr});
     if (     $self->{join}->{keycols}
          and $self->{join}->{table_order}
          and ( scalar( @{ $self->{join}->{table_order} } ) == 0 ) )
@@ -866,6 +870,7 @@ sub SELECT($$)
         return unless $eval;
         $eval->params($params);
         $self->verify_columns( $data, $eval, $all_cols );
+	return if($self->{errstr});
         $tableName = $self->tables(0)->name();
         $table     = $eval->table($tableName);
     }
@@ -1408,20 +1413,24 @@ sub verify_expand_column
 {
     my ( $self, $c, $i, $usr_cols, $is_duplicate, $col_exists ) = @_;
 
-    my ( $table, $col );
+    my ( $table, $col, $col_obj );
     if ( $c =~ m/(\S+)\.(\S+)/ )
     {
         $table = $1;
         $col   = $2;
     }
-    else
+    elsif ( ++${$i} >= 0 )
     {
-        ++${$i};
-        ( $table, $col ) = ( $usr_cols->[ ${$i} ]->{table}, $usr_cols->[ ${$i} ]->{name} ) if ( ${$i} >= 0 );
+        $col_obj = $usr_cols->[ ${$i} ];
+        ( $table, $col ) = ( $col_obj->{table}, $col_obj->{name} );
     }
     return unless ($col);
 
-    unless ( defined($table) )
+    my $is_column =
+      ( defined( _INSTANCE( $col_obj, 'SQL::Statement::Util::Column' ) )
+        and ( $col_obj->{coldef}->{type} eq 'column' ) ) ? 1 : 0;
+
+    unless ( $is_column and defined($table) )
     {
         ( $table, undef ) = $self->full_qualified_column_name($col);
     }
@@ -1431,23 +1440,22 @@ sub verify_expand_column
         $table = $table->name();
     }
 
-    my $col_obj = $self->{computed_column}->{$c};
-    if ( !$table and !$col_obj )
+    if ( $is_column and !$table )
     {
         return $self->do_err("Ambiguous column name '$c'") if ( $is_duplicate->{$c} );
+        return $self->do_err("No such column '$col'");
         $col = $c;
     }
-    elsif ( !$col_obj )
+    elsif ($is_column)
     {
         my $is_user_def = 1 if ( $self->{opts}->{function_defs}->{$col} );
         return $self->do_err("No such column '$table.$col'")
           unless (    $col_exists->{"$table.$col"}
                    or $col_exists->{ "\L$table." . $col }
                    or $is_user_def );
-
     }
 
-    return ( $table, $col );
+    return ( $table, $col ) if ($is_column);
 }
 
 sub verify_columns
@@ -1872,7 +1880,6 @@ sub DESTROY
     undef $self->{col_obj};
     undef $self->{column_names};
     undef $self->{columns};
-    undef $self->{computed_column};
     undef $self->{cur_table};
     undef $self->{data};
     undef $self->{group_by};
