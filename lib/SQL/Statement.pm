@@ -172,7 +172,7 @@ sub CREATE ($$$)
         }
         $names = $sth->{NAME} unless defined $names;
         my $tbl_data = $sth->{f_stmt}->{data};
-        my $tbl_name = $self->tables(0)->name;
+        my $tbl_name = $self->{org_table_names}->[0] || $self->tables(0)->name;
 
         # my @tbl_cols = map {$_->name} $sth->{f_stmt}->columns;
         #my @tbl_cols=map{$_->name} $sth->{f_stmt}->columns if $sth->{f_stmt};
