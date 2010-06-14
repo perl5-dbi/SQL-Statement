@@ -93,6 +93,7 @@ sub capability($)
     my ( $self, $capname ) = @_;
     return $self->{capabilities}->{$capname} if ( defined( $self->{capabilities}->{$capname} ) );
 
+    $capname eq "insert_new_row" and $self->{capabilities}->{insert_new_row} = $self->can("insert_new_row");
     $capname eq "delete_one_row" and $self->{capabilities}->{delete_one_row} = $self->can("delete_one_row");
     $capname eq "delete_current_row"
       and $self->{capabilities}->{delete_current_row} =
@@ -396,7 +397,19 @@ table.
 
 This capability could be provided by a derived class only.
 
+=item insert_new_row
+
+Tells if a table can easily insert a new row, without need of seeking
+and truncating. This capability is provided by defining the table class
+method C<insert_new_row>.
+
+This capability is evaluated automatically on first request and must not
+be handled be derived classes.
+
 =back
+
+If the capabilities I<rowwise_update> and I<insert_new_row> are provided,
+the table primitive C<push_row> is not needed anymore and may omitted.
 
 =back
 

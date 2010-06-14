@@ -23,6 +23,7 @@ require SQL::Statement::Util;
 
 use Carp qw(carp croak);
 use Clone qw(clone);
+use Errno;
 use Scalar::Util qw(blessed looks_like_number);
 use List::Util qw(first);
 use Params::Util qw(_INSTANCE _STRING _ARRAY _ARRAY0 _HASH0 _HASH);
@@ -219,6 +220,9 @@ sub CALL
     ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) = $procTerm->value($data);
 }
 
+my $enoentstr = "Cannot open .*\(" . Errno::ENOENT . "\)";
+my $enoentrx  = qr/$enoentstr/;
+
 sub DROP ($$$)
 {
     my ( $self, $data, $params ) = @_;
@@ -228,7 +232,7 @@ sub DROP ($$$)
         local $SIG{__WARN__} = sub { push @err, @_ };
         ($eval) = $self->open_tables( $data, 0, 1 );
     };
-    if ( $self->{ignore_missing_table} and ( $@ or @err ) and grep { m/no such (table|file)/i } ( @err, $@ ) )
+    if ( $self->{ignore_missing_table} and ( $@ or @err ) and grep { $_ =~ $enoentrx } ( @err, $@ ) )
     {
         $@ = '';
         return ( -1, 0 );
@@ -256,10 +260,10 @@ sub INSERT ($$$)
 
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols ) if ( scalar( $self->columns() ) );
-    return if($self->{errstr});
+    return if ( $self->{errstr} );
 
     my ($table) = $eval->table( $self->tables(0)->name() );
-    $table->seek( $data, 0, 2 );
+    $table->seek( $data, 0, 2 ) unless ( $table->capability('insert_new_row') );
 
     my ( $val, $col, $i, $k );
     my ($cNum) = scalar( $self->columns() );
@@ -298,7 +302,9 @@ sub INSERT ($$$)
                 }
                 $array->[ $table->column_num( $col->name() ) ] = $val;
             }
-            $table->push_row( $data, $array );
+            $table->capability('insert_new_row')
+              ? $table->insert_new_row( $data, $array )
+              : $table->push_row( $data, $array );
         }
     }
     else
@@ -315,7 +321,7 @@ sub DELETE ($$$)
     return unless $eval;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
-    return if($self->{errstr});
+    return if ( $self->{errstr} );
     my $tname      = $self->tables(0)->name();
     my ($table)    = $eval->table($tname);
     my ($affected) = 0;
@@ -384,7 +390,7 @@ sub UPDATE ($$$)
     $self->{params} ||= $params;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
-    return if($self->{errstr});
+    return if ( $self->{errstr} );
 
     my $tname      = $self->tables(0)->name();
     my ($table)    = $eval->table($tname);
@@ -584,7 +590,7 @@ sub JOIN
     return undef unless $eval;
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
-    return if($self->{errstr});
+    return if ( $self->{errstr} );
     if (     $self->{join}->{keycols}
          and $self->{join}->{table_order}
          and ( scalar( @{ $self->{join}->{table_order} } ) == 0 ) )
@@ -870,7 +876,7 @@ sub SELECT($$)
         return unless $eval;
         $eval->params($params);
         $self->verify_columns( $data, $eval, $all_cols );
-	return if($self->{errstr});
+        return if ( $self->{errstr} );
         $tableName = $self->tables(0)->name();
         $table     = $eval->table($tableName);
     }

@@ -47,10 +47,19 @@ sub fetch_row
 ####################################
 # push_row()
 ####################################
-sub push_row
+#sub push_row
+#{
+#    my ( $self, $data, $fields ) = @_;
+#    $self->{records}->[ $self->{index}++ ] = clone($fields);
+#    return 1;
+#}
+####################################
+# insert_new_row()
+####################################
+sub insert_new_row
 {
     my ( $self, $data, $fields ) = @_;
-    $self->{records}->[ $self->{index}++ ] = clone($fields);
+    push @{$self->{records}}, clone($fields);
     return 1;
 }
 ##################################
