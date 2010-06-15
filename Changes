@@ -4,7 +4,9 @@ Version 1.28
 ----------------------------------------------
 
 [Improvements]
-* introduce new "capability" method for SQL::Statement and SQL::Eval::Table
+* Introduce new "capability" method for SQL::Statement and SQL::Eval::Table
+  + Add capability for "insert_new_row" to allow DBD::DBM to fix PK
+    constrain on INSERT statements.
 * Performance of IMPORT feature improved (thanks to Sven Probst, RT#57322)
 
 [Bug fixes]
@@ -18,6 +20,8 @@ Version 1.28
 
 [Documentation]
 * Method documentation of SQL::Statement and SQL::Eval::Table are improved
+* Add a Roadmap describing future plans for SQL::Statement (in addition to
+  DBD::File::Roadmap).
 
 [Things that may break your code]
 * SQL::Statement 1.28 is expected not to work proper in combination with
