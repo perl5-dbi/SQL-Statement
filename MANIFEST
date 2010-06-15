@@ -13,6 +13,7 @@ lib/SQL/Statement/GetInfo.pm
 lib/SQL/Statement/Operation.pm
 lib/SQL/Statement/Placeholder.pm
 lib/SQL/Statement/RAM.pm
+lib/SQL/Statement/Roadmap.pod
 lib/SQL/Statement/Structure.pod
 lib/SQL/Statement/Syntax.pod
 lib/SQL/Statement/Term.pm
