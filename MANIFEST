@@ -49,4 +49,3 @@ t/21pod_coverage.t
 t/22calc.t
 t/23dialects.t
 t/SQLtest.pm
-Todo
