@@ -75,6 +75,82 @@ executing tasks should be organized into separated commands. This will
 reduce side effects and will open the door for higher level optimizations,
 reliability improvements or sub-selects (or other calculated tables).
 
+=head3 Features
+
+There are a bigger amount of missing features, and not all table backends
+will be able to support each new feature. The most of the wanted features
+need additional discussing and everyone is welcome to do it on the
+L<mailto:dbi-dev@perl.org|DBI Development Mailing List>.
+
+=head4 LOCK TABLE
+
+Locking table within SQL scripts to manually control table consistence over
+several operations. The current locking support is restricted to one
+statement.
+
+=head4 Transaction support
+
+Executing statements on a temporary copy of the table data.
+
+The easiest way to implement this would be to create a
+L<SQL::Statement::RAM|SQL::Statement::RAM::Table> on C<BEGIN TRANSACTION>
+and write the entire table back on C<COMMIT> or discard on C<ROLLBACK>.
+
+Better performance could be reached when the implementation allows to
+memorize the single modification and apply them at C<COMMIT>. This needs
+more discussion.
+
+=head4 ALTER TABLE
+
+Adding, removing or modifying columns isn't supported for once created
+tables. A generic C<ALTER TABLE> seems to rely on the implementation of
+the transaction support - until better ideas are provided.
+
+=head4 Indices
+
+Currently some table backends have implicitely support to access defined
+rows quicker than fetching each row and evaluating the where clause against
+the row data.
+
+An interface would be required to configure fetching to return only rows
+matching a restricted where clause. Another (probably better) way to support
+indices would be to fetch index entries at first and have an interface to
+the table fetching lines based on an index key.
+
+=head4 Sub-Selects
+
+In most cases queries can be re-expressed without using sub-selects. But
+anyway, there are circumstances where sub-selects are required.
+
+The first implementation will do the sub-select before the primary
+statement will be executed without any further optimization. Hopefully
+a later version will provide better L<Performance> with some
+optimizations.
+
+=head4 Query based variables
+
+Currently the only variable I can imagine is C<ROWNUM>. More suggestions
+are very welcome.
+
+=head4 Better SQL Script support
+
+In SQL::Statement 1.xx the function C<RUN ()> provides SQL script
+execution. This function may have limitations and side effects (at least
+when the executed SQL touched the same tables as the primary statement).
+
+I plan to improve the SQL script support to remove the side effects one
+the one hand and have more flexible and easier way to execute them.
+
+Finally it should be possible to execute a script via:
+
+    $dbh->do( join( ";", @script ) );
+
+=head4 Trigger support
+
+Most important when doing complicated things is having callback functions
+for several events. While real triggers won't be possible for SQL::Statement
+and underlying pseudo-databases, callbacks could be provided via triggers.
+
 =head3 Performance
 
 There are several performance optimizations wanted for SQL::Statement 2.xx.
