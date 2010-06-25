@@ -587,7 +587,6 @@ sub SQL_FUNCTION_IMPORT
     elsif ( _INSTANCE( $params[0], 'DBI::st' ) )
     {
 
-        #   my @cols = map{$_->name} $tmp_sth->{f_stmt}->columns if $tmp_sth->{f_stmt};
         my @cols;
         @cols = @{ $params[0]->{NAME} } unless @cols;
 
@@ -610,7 +609,7 @@ sub SQL_FUNCTION_IMPORT
 sub SQL_FUNCTION_RUN
 {
     my ( $self, $owner, $file ) = @_;
-    my @params = $owner->{f_stmt}->params();
+    my @params = $owner->{sql_stmt}->params();
     @params = () unless @params;
     local *IN;
     open( IN, '<', $file ) or die "Couldn't open SQL File '$file': $!\n";

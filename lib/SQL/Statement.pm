@@ -132,6 +132,7 @@ sub execute
     my ($command) = $self->command();
     return $self->do_err('No command found!') unless ($command);
     ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) = $self->$command( $data, $params );
+    return if($self->{err_str});
 
     @{ $self->{NAME} } = map { $_->display_name() } @{ $self->{columns} };
 
@@ -142,7 +143,7 @@ sub execute
     {
         push( @{ $self->{tables} }, SQL::Statement::Table->new($_) );
     }
-    $self->{NUM_OF_ROWS} || '0E0';
+    return $self->{NUM_OF_ROWS} || '0E0';
 }
 
 sub CREATE ($$$)
@@ -172,11 +173,11 @@ sub CREATE ($$$)
             $names = $sth->{NAME};
         }
         $names = $sth->{NAME} unless defined $names;
-        my $tbl_data = $sth->{f_stmt}->{data};
+        my $tbl_data = $sth->{sql_stmt}->{data};
         my $tbl_name = $self->{org_table_names}->[0] || $self->tables(0)->name;
 
-        # my @tbl_cols = map {$_->name} $sth->{f_stmt}->columns;
-        #my @tbl_cols=map{$_->name} $sth->{f_stmt}->columns if $sth->{f_stmt};
+        # my @tbl_cols = map {$_->name} $sth->{sql_stmt}->columns;
+        #my @tbl_cols=map{$_->name} $sth->{sql_stmt}->columns if $sth->{sql_stmt};
         my @tbl_cols;
 
         #            @tbl_cols=@{ $sth->{NAME} } unless @tbl_cols;
@@ -247,7 +248,7 @@ sub DROP ($$$)
     my ($table) = $eval->table( $self->tables(0)->name() );
     $table->drop($data);
 
-    #use mylibs; zwarn $self->{f_stmt};
+    #use mylibs; zwarn $self->{sql_stmt};
     ( -1, 0 );
 }
 

@@ -46,7 +46,7 @@ for (split /\n/,
       DELETE FROM phrase WHERE id = 2                   }
 ){
     $sth = $dbh->prepare($_);
-    ok($sth->execute(),$sth->{f_stmt}->command);
+    ok($sth->execute(),$sth->{sql_stmt}->command);
 }
 
 $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
