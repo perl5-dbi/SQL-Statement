@@ -132,7 +132,7 @@ sub execute
     my ($command) = $self->command();
     return $self->do_err('No command found!') unless ($command);
     ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) = $self->$command( $data, $params );
-    return if($self->{err_str});
+    return unless( defined( $self->{NUM_OF_ROWS} ) );
 
     @{ $self->{NAME} } = map { $_->display_name() } @{ $self->{columns} };
 
@@ -194,7 +194,7 @@ sub CREATE ($$$)
         return ( 0, 0 );
     }
     my ( $eval, $foo ) = $self->open_tables( $data, 1, 1 );
-    return undef unless ($eval);
+    return unless ($eval);
     $eval->params($params);
     my ( $row, $table, $col ) = ( [], $eval->table( $self->tables(0)->name() ) );
     if ( _ARRAY( $table->col_names() ) )
@@ -257,7 +257,7 @@ sub INSERT ($$$)
     my ( $self, $data, $params ) = @_;
 
     my ( $eval, $all_cols ) = $self->open_tables( $data, 0, 1 );
-    return undef unless ($eval);
+    return unless ($eval);
 
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols ) if ( scalar( $self->columns() ) );
@@ -1175,15 +1175,7 @@ sub open_tables
             undef $@;
             eval {
                 my $open_name = $self->{org_table_names}->[$count];
-                if ( $caller && $caller =~ m/^DBD::AnyData/ )
-                {
-                    $caller .= '::Statement' unless ( $caller =~ m/::Statement/ );
-                    $t->{$name} = $caller->open_table( $data, $open_name, $createMode, $lockMode );
-                }
-                else
-                {
-                    $t->{$name} = $self->open_table( $data, $open_name, $createMode, $lockMode );
-                }
+		$t->{$name} = $self->open_table( $data, $open_name, $createMode, $lockMode );
             };
             my $err = $t->{$name}->{errstr};
             return $self->do_err($err) if ($err);
