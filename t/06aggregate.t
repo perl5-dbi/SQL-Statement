@@ -3,19 +3,23 @@ $|=1;
 use strict;
 use Test::More;
 use vars qw($DEBUG);
-eval { require DBI; require DBD::File; };
+eval {
+    require DBI;
+    require DBI::DBD::SqlEngine;
+    require DBD::File;
+};
+
+if ($@ or $DBI::DBD::SqlEngine::VERSION lt '0.01') {
+        plan skip_all => "Requires DBI > 1.611, DBD::File >= 0.39 and DBI::DBD::SqlEngine >= 0.01";
+}
+else {
+    plan tests => 15;
+}
 
 use SQL::Statement;
 diag( sprintf( "SQL::Statement v%s\n", $SQL::Statement::VERSION ) );
 diag( sprintf( "DBI v%s\n", $DBI::VERSION ) );
 diag( sprintf( "DBD::File v%s\n", $DBD::File::VERSION ) );
-
-if ($@ or $DBD::File::VERSION lt '0.39') {
-        plan skip_all => "No DBI > 1.611 or DBD::File > 0.38 available";
-}
-else {
-    plan tests => 15;
-}
 
 my ($dbh, $sth);
 

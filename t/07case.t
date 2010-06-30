@@ -4,12 +4,13 @@ use strict;
 #use lib  qw( ../lib );
 use vars qw($DEBUG);
 use Test::More;
-eval { require DBI; require DBD::File; require IO::File; };
-if ($@) {
-    plan skip_all => "No DBI or DBD::File available";
-}
-elsif ($DBD::File::VERSION < '0.033' ) {
-    plan skip_all => "Tests require DBD::File >= 0.33";
+eval {
+    require DBI;
+    require DBI::DBD::SqlEngine;
+    require DBD::File;
+};
+if ($@ or $DBI::DBD::SqlEngine::VERSION lt '0.01') {
+        plan skip_all => "Requires DBI > 1.611, DBD::File >= 0.39 and DBI::DBD::SqlEngine >= 0.01";
 }
 else {
     plan tests => 12;
