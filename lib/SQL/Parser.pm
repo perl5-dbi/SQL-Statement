@@ -915,8 +915,7 @@ sub CREATE_OPERATOR
     $self->{opts}->{function_names}->{ uc $func } = $subname;
 
     $self->feature( 'valid_comparison_operators', uc $func, 1 );
-    $self->create_op_regexen();
-
+    return $self->create_op_regexen();
 }
 
 sub DROP_OPERATOR
@@ -925,7 +924,7 @@ sub DROP_OPERATOR
     $self->{struct}->{command}    = 'DROP_OPERATOR';
     $self->{struct}->{no_execute} = 1;
     $self->feature( 'valid_comparison_operators', uc $type, 0 );
-    $self->create_op_regexen();
+    return $self->create_op_regexen();
 }
 
 sub replace_quoted($)

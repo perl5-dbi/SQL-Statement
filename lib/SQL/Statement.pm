@@ -49,9 +49,14 @@ sub new
     $flags->{PrintError}    = 1 unless defined $flags->{PrintError};
     $flags->{text_numbers}  = 1 unless defined $flags->{text_numbers};
     $flags->{alpha_compare} = 1 unless defined $flags->{alpha_compare};
-    for ( keys %{$flags} )
+    
+    unless( blessed( $flags ) ) # avoid copying stale data from earlier parsing sessions
     {
-        $self->{$_} = $flags->{$_};
+        %$self = ( %$self, %{ clone( $flags ) } );
+    }
+    else
+    {
+	$self->{$_} = $flags->{$_} for qw(RaiseError PrintError opts);
     }
 
     $self->{dlm} = '~';
