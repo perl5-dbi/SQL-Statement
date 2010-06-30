@@ -17,6 +17,8 @@ Version 1.28
    and all data access methods of tables - see SQL::Eval::Table for details)
 * Tests are fixed to use TEMP TABLES explicitely when required
 * check for invalid column names fixed
+* Don't let depreciated parser structures stay alive in SQL::Statement when
+  reusing the Parser
 
 [Documentation]
 * Method documentation of SQL::Statement and SQL::Eval::Table are improved
