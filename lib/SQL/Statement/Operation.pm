@@ -233,7 +233,7 @@ SQL::Statement::Operation::Is - is operation
 =head1 DESCRIPTION
 
 SQL::Statement::Operation::Is supports: C<IS NULL>, C<IS TRUE> and C<IS FALSE>.
-The right operand is always evaluated in boolean contect in case of C<IS TRUE>
+The right operand is always evaluated in boolean context in case of C<IS TRUE>
 and C<IS FALSE>. C<IS NULL> returns I<true> even if the left term is an empty
 string (C<''>).
 
@@ -293,7 +293,7 @@ SQL::Statement::Operation::ANSI::Is - is operation
 =head1 DESCRIPTION
 
 SQL::Statement::Operation::ANSI::Is supports: C<IS NULL>, C<IS TRUE> and C<IS FALSE>.
-The right operand is always evaluated in boolean contect in case of C<IS TRUE>
+The right operand is always evaluated in boolean context in case of C<IS TRUE>
 and C<IS FALSE>. C<IS NULL> returns I<true> if the right term is not defined,
 I<false> otherwise.
 
@@ -476,7 +476,7 @@ SQL::Statement::Operation::Equality - abstract base class for comparisons
 
 SQL::Statement::Operation::Equality implements compare operations between
 two terms - choosing either numerical comparison or string comparison,
-depending wherther both operands are a numeric or not.
+depending whether both operands are a numeric or not.
 
 =head1 INHERITANCE
 

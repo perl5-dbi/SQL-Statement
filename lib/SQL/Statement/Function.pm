@@ -88,7 +88,7 @@ Instantiates a new C<SQL::Statement::Function::UserFunc> instance.
 
 =head2 value
 
-Invokes the given soubroutine with the values of the params and return it's
+Invokes the given subroutine with the values of the params and return it's
 result:
 
     my @params = map { $_->value($eval); } @{ $self->{PARAMS} };

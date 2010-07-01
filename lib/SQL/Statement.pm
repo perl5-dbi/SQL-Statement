@@ -2300,18 +2300,18 @@ about the development, write Jeff (<jzuckerATcpan.org>) or Jens
 
 =head1 METHODS
 
-Following methods can or must be overriden by derived classes.
+Following methods can or must be overridden by derived classes.
 
 =head2 capability
 
-This method is called for quicker check for capabilies than
+This method is called for quicker check for capabilities than
 C<< $self->can('method_name') >>. Currently no capabilities for the Statement
 objects are required - but analogous to C<< SQL::Eval::Table::capability >>
 it's declared for future use.
 
 =head2 open_table
 
-The C<< open_table >> method must be overriden by derived classes to provide
+The C<< open_table >> method must be overridden by derived classes to provide
 the capability of opening data tables. This is is must have.
 
 Arguments given to open_table call:
@@ -2359,7 +2359,7 @@ If omitted, default flags are used.
 
 =back
 
-When the basic initalization is completed,
+When the basic initialization is completed,
 C<< $self->prepare($sql, $parser) >> is invoked.
 
 =head2 prepare
@@ -2598,7 +2598,7 @@ For SQL::Statement 1.xx it's not planned to add new XS parts.
 Wildcards are expanded to lower cased identifiers. This might confuse
 some people, but it was easier to implement.
 
-The warning from L<DBI>, never trust on case sensetiveness of returned column
+The warning from L<DBI>, never trust on case sensitiveness of returned column
 names should be read more often. If you need to rely on identifiers, always
 use C<sth-E<gt>{NAME_lc}> or C<sth-E<gt>{NAME_uc}> - never rely on
 C<sth-E<gt>{NAME}>:

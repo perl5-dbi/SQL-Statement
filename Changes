@@ -24,6 +24,8 @@ Version 1.28
 * Method documentation of SQL::Statement and SQL::Eval::Table are improved
 * Add a Roadmap describing future plans for SQL::Statement (in addition to
   DBD::File::Roadmap).
+* POD spelling fixes provided by H.Merijn Brand and Pod::Spell::CommonMistakes
+  (thanks Tux)
 
 [Things that may break your code]
 * SQL::Statement 1.28 is expected not to work proper in combination with

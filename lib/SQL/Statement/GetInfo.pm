@@ -473,7 +473,7 @@ SQL::Statement::GetInfo
 
 This package contains support for C<$dbh->get_info()>.
 
-=head1 INHERITABCE
+=head1 INHERITANCE
 
   SQL::Statement::GetInfo
 

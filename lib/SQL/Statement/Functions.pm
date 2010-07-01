@@ -68,7 +68,7 @@ In addition to the built-in functions, you can create any number of your own use
 
       $dbh->do(' LOAD "Bar::Baz" ');
 
-Functions themselves should follow SQL identifier naming rules.  Subroutines loaded with CREATE FUNCTION can have any valied perl subrourinte name.  Subroutines loaded with LOAD must start with SQL_FUNCTION_ and then the actual function name.  For example:
+Functions themselves should follow SQL identifier naming rules.  Subroutines loaded with CREATE FUNCTION can have any valid perl subroutine name.  Subroutines loaded with LOAD must start with SQL_FUNCTION_ and then the actual function name.  For example:
 
  package Qux::Quimble;
  sub SQL_FUNCTION_FOO { ... }
@@ -83,7 +83,7 @@ Functions themselves should follow SQL identifier naming rules.  Subroutines loa
 
 =head2 Creating User-Defined Functions
 
-User-defined functions (UDFs) are perl subroutines that return values appropriate to the context of the function in a SQL statement.  For example the built-in CURRENT_TIME returns a string value and therefore may beused anywhere in a SQL statement that a string value can.  Here' the entire perl code for the function:
+User-defined functions (UDFs) are perl subroutines that return values appropriate to the context of the function in a SQL statement.  For example the built-in CURRENT_TIME returns a string value and therefore may be used anywhere in a SQL statement that a string value can.  Here' the entire perl code for the function:
 
  # CURRENT_TIME
  #
@@ -119,7 +119,7 @@ The third argument, $rowhash, is a reference to a hash containing the key/value 
      my $str = join ':', values %$rowhash;
  }
 
-The remaining arguments, @params, are aguements passed by users to the function, either directly or with placeholders; another silly example which just returns the results of multiplying the arguments passed to it:
+The remaining arguments, @params, are arguments passed by users to the function, either directly or with placeholders; another silly example which just returns the results of multiplying the arguments passed to it:
 
  sub MULTIPLY {
      my($self,$sth,$rowhash,@params);

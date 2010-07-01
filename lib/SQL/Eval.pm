@@ -133,7 +133,7 @@ __END__
 
 =head1 NAME
 
-SQL::Eval - Base for deriving evalution objects for SQL::Statement
+SQL::Eval - Base for deriving evaluation objects for SQL::Statement
 
 
 =head1 SYNOPSIS
@@ -251,7 +251,7 @@ The following attributes are used by C<SQL::Eval::Table>:
 =item col_names
 
 Array reference containing the names of the columns in order they appear
-in the table. This attribute B<must> be provided by the inheritent.
+in the table. This attribute B<must> be provided by the derived class.
 
 =item col_nums
 
@@ -268,7 +268,7 @@ Hash reference containing additional capabilities.
 
 Used to get the current row as an array ref. Do not mismatch
 getting the current row with the fetch_row method! In fact this
-method is valid only after a successfull C<$table-E<gt>fetchrow()>.
+method is valid only after a successful C<$table-E<gt>fetchrow()>.
 Example:
 
     $row = $table->row();
@@ -276,7 +276,7 @@ Example:
 =item column
 
 Get the column with a given name in the current row. Valid only after
-a successfull C<$table-E<gt>fetchrow()>. Example:
+a successful C<$table-E<gt>fetchrow()>. Example:
 
     $col = $table->column($colName);
 
@@ -354,9 +354,9 @@ table.
 Example: The table storage is using a hash on the C<PRIMARY KEY> of the
 table. Real perl hashes don't care when an item is updated while the
 hash is traversed using C<each>. C<SDBM_File> 1.06 has a bug, which doesn't
-corrent the traversion pointer when an item is deleted.
+adjust the traversion pointer when an item is deleted.
 
-C<SQL::Statement::RAM::Table> recognize such situations and corrent the
+C<SQL::Statement::RAM::Table> recognize such situations and adjust the
 traversion pointer.
 
 This might not be possible for all implementations which can update single
