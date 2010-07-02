@@ -2307,10 +2307,13 @@ The following methods can or must be overridden by derived classes.
 
 =head2 capability
 
-This method is called for a quicker check for capabilities than
-C<< $self->can('method_name') >>. Currently no capabilities for the Statement
-objects are required - but analogous to C<< SQL::Eval::Table::capability >>
-it is declared for future use.
+  $has_capability = $h->capability('capability_name');
+
+Returns a true value if the specified capability is available.
+
+Currently no capabilities are defined and this is a placeholder for
+future use. It is envisioned it will be used like C<<
+SQL::Eval::Table::capability >>.
 
 =head2 open_table
 
@@ -2540,7 +2543,7 @@ package.
 
 Jochen Wiedmann created the original module as an XS (C) extension in 1998.
 Jeff Zucker took over the maintenance in 2001 and rewrote all of the C
-portions in perl and began extending the SQL support.  More recently Ilya
+portions in Perl and began extending the SQL support.  More recently Ilya
 Sterin provided help with SQL::Parser, Tim Bunce provided both general and
 specific support, Dan Wright and Dean Arnold have contributed extensively
 to the code, and dozens of people from around the world have submitted
@@ -2584,21 +2587,21 @@ Aggregate functions cannot be used in where clause.
 Some SQL commands/features are not supported (most of them cannot by
 design), as C<LOCK TABLE>, using indices, sub-selects etc.
 
-Currently the statement to missing features is: I plan to create a
+Currently the statement for missing features is: I plan to create a
 SQL::Statement v2.00 based on a pure Backus-Naur-Form parser and a
 fully object oriented command pattern based engine implementation.
-When the time is available, I will do it. As long, mostly bugs will
-be fixed or other Perl modules under my maintainership will receive
-my time. Feature which can be added without deeper design changes
-might get applied earlier - especially when their addition allows
-studying effective ways to implement the feature in upcoming 2.00.
+When the time is available, I will do it. Until then bugs will be
+fixed or other Perl modules under my maintainership will receive my
+time. Features which can be added without deep design changes might be
+applied earlier - especially when their addition allows studying
+effective ways to implement the feature in upcoming 2.00.
 
 =item *
 
-Some people report, that SQL::Statement is getting slower since
-the XS parts are implemented in pure perl. This might be true, but on the
-other hand the amount of supported features have been increased dramatically
-as well as the support of the ANSI SQL 99 standard.
+Some people report that SQL::Statement is slower since the XS parts
+were implemented in pure Perl. This might be true, but on the other
+hand a large number of features have been added including support for
+ANSI SQL 99.
 
 For SQL::Statement 1.xx it's not planned to add new XS parts.
 
@@ -2607,8 +2610,8 @@ For SQL::Statement 1.xx it's not planned to add new XS parts.
 Wildcards are expanded to lower cased identifiers. This might confuse
 some people, but it was easier to implement.
 
-The warning from L<DBI>, never trust on case sensitiveness of returned column
-names should be read more often. If you need to rely on identifiers, always
+The warning in L<DBI> to never trust the case of returned column names
+should be read more often. If you need to rely on identifiers, always
 use C<sth-E<gt>{NAME_lc}> or C<sth-E<gt>{NAME_uc}> - never rely on
 C<sth-E<gt>{NAME}>:
 
@@ -2622,17 +2625,17 @@ See L<DBI/FetchHashKeyName> for more information.
 
 =back
 
-Patches to fix those bugs/limitations (or a grant to do it) would be very
-welcome. Please note, that these patches B<must> pass successful all tests
-of C<SQL::Statement>, L<DBD::File> and L<DBD::CSV> and must be a general
-improvement.
+Patches to fix bugs/limitations (or a grant to do it) would be
+very welcome. Please note, that any patches B<must> successfully pass
+all the C<SQL::Statement>, L<DBD::File> and L<DBD::CSV> tests and must
+be a general improvement.
 
 =head1 AUTHOR AND COPYRIGHT
 
 Jochen Wiedmann created the original module as an XS (C) extension in 1998.
 Jeff Zucker took over the maintenance in 2001 and rewrote all of the C
 portions in perl and began extending the SQL support. Since 2008, Jens
-Rehsack holds the maintainership.
+Rehsack is the maintainer.
 
 Copyright (c) 2001,2005 by Jeff Zucker: jzuckerATcpan.org
 Copyright (c) 2007-2010 by Jens Rehsack: rehsackATcpan.org
