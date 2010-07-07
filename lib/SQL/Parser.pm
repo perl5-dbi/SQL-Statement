@@ -2938,9 +2938,19 @@ __END__
 
 =head1 DESCRIPTION
 
-SQL::Parser is part of the SQL::Statement distribution and, most interaction with the parser should be done through SQL::Statement.  The methods shown above create and modify a parser object.  To use the parser object to parse SQL and to examine the resulting structure, you should use SQL::Statement.
+SQL::Parser is part of the SQL::Statement distribution and, most
+interaction with the parser should be done through SQL::Statement.
+The methods shown above create and modify a parser object.  To use the
+parser object to parse SQL and to examine the resulting structure, you
+should use SQL::Statement.
 
-B<Important Note>: Previously SQL::Parser had its own hash-based interface for parsing, but that is now deprecated and will eventually be phased out in favor of the object-oriented parsing interface of SQL::Statement.  If you are unable to transition some features to the new interface or have concerns about the phase out, please contact Jeff.  See L<The Parse Structure> for details of the now-deprecated hash method if you still need them.
+B<Important Note>: Previously SQL::Parser had its own hash-based
+interface for parsing, but that is now deprecated and will eventually
+be phased out in favor of the object-oriented parsing interface of
+SQL::Statement.  If you are unable to transition some features to the
+new interface or have concerns about the phase out, please contact me.
+See L<The Parse Structure> for details of the now-deprecated hash
+method if you still need them.
 
 =head1 METHODS
 
@@ -2965,7 +2975,7 @@ The dialect_name parameter is a string containing any valid
 dialect such as 'ANSI', 'AnyData', or 'CSV'.  See the section on
 the dialect() method below for details.
 
-The attribute parameter is a reference to a hash that can
+The C<attrs> parameter is a reference to a hash that can
 contain error settings for the PrintError and RaiseError
 attributes.
 
@@ -2978,7 +2988,6 @@ An example:
   contained in the .../SQL/Dialects/AnyData.pm file and which
   sets the RaiseError attribute to true.
 
-
 =head2 dialect()
 
  $parser->dialect( $dialect_name );     # load a dialect configuration file
@@ -2989,7 +2998,7 @@ An example:
    $parser->dialect('AnyData');  # loads the AnyData config file
    print $parser->dialect;       # prints 'AnyData'
 
-The $dialect_name parameter may be the name of any dialect
+The C<$dialect_name> parameter may be the name of any dialect
 configuration file on your system.  Use the
 $parser->list('dialects') method to see a list of available
 dialects.  At a minimum it will include "ANSI", "CSV", and
@@ -3025,7 +3034,7 @@ status of any feature.
 
  $parser->feature( $class, $name, 0 );             # disable a feature
 
- my $feature = $parser->feature( $class, $name );  # show status of a feature
+ my $feature = $parser->feature( $class, $name );  # return status of a feature
 
  For example:
 
@@ -3109,13 +3118,13 @@ Currently, these are ignored by the execution engine.  Likewise syntax
 such as RESTRICT and CASCADE on DROP statements or LOCAL GLOBAL TEMPORARY
 tables in CREATE are supported by the parser but ignored by the executor.
 
-To see the list of Supported SQL syntax formerly kept in this pod, see L<SQL::Statement>.
+To see the list of Supported SQL syntax formerly kept in this pod, see
+L<SQL::Statement>.
 
 =head1 Subclassing SQL::Parser
 
 In the event you need to either extend or modify SQL::Parser's
-default behavior, the following methods may be overridden
-to modify the behavior:
+default behavior, the following methods may be overridden:
 
 =over
 
@@ -3142,9 +3151,10 @@ functions.
 
 =head1 The parse structure
 
-This section outlines the B<now-deprecated> hash interface to the parsed
-structure.  It is included B<for backwards compatibility only>.  You should
-use the SQL::Statement object interface to the structure instead.  See L<SQL::Statement>.
+This section outlines the B<now-deprecated> hash interface to the
+parsed structure.  It is included B<for backwards compatibility only>.
+You should use the SQL::Statement object interface to the structure
+instead.  See L<SQL::Statement>.
 
 B<Parse Structures>
 
@@ -3219,7 +3229,7 @@ example, given the string "SELECT model FROM cars", the parse()
 method will report that the string contains valid SQL but that
 will not tell you whether there actually is a table called
 "cars" or whether that table contains a column called 'model'.
-Those kinds of verifications can be performed by the
+Those kinds of verifications are performed by the
 SQL::Statement module, not by SQL::Parser by itself.
 
 IMPORTANT NOTE #2: The parse() method uses rules as defined by
@@ -3334,36 +3344,36 @@ L<http://search.cpan.org/dist/SQL-Statement/>
 
 =back
 
-=head2 Where can I go for more help?
+=head2 Where can I go for help?
 
 For questions about installation or usage, please ask on the
 dbi-users@perl.org mailing list or post a question on PerlMonks
 (L<http://www.perlmonks.org/>, where Jeff is known as jZed).
-Jens didn't visit PerlMonks on a regular basis.
+Jens does not visit PerlMonks on a regular basis.
 
-If you have a bug report, a patch, a suggestion, please open
-a new report ticket at CPAN, if there isn't already a one for
-the issue you want to report. Of course, you can mail any of the
-module maintainers, but you'll be sure that you're report will
-not be "forgotten" or reach an (temporarily) inactive maintainer.
-Report tickets should contain a detailed description of the
-bug or enhancement request you want to report and at least an
-easy to verify and use test to reproduce the issue and verify the
-applied fix. Patches are always welcome, too.
+If you have a bug report, a patch or a suggestion, please open a new
+report ticket at CPAN (but please check previous reports first in case
+your issue has already been addressed). You can mail any of the module
+maintainers, but you are more assured of an answer by posting to the
+dbi-users list or reporting the issue in RT.
+
+Report tickets should contain a detailed description of the bug or
+enhancement request and at least an easily verifiable way of
+reproducing the issue or fix. Patches are always welcome, too.
 
 =head2 Where can I go for help with a concrete version?
 
-Bugs and feature requests are accepted against latest version
+Bugs and feature requests are accepted against the latest version
 only. To get patches for earlier versions, you need to get an
-agreement with a developer of your choice - who might or might
-not report the issue and a suggested fix upstream (depends on
-the license you've chosen).
+agreement with a developer of your choice - who may or not report the
+the issue and a suggested fix upstream (depends on the license you
+have chosen).
 
 =head2 Business support and maintenance
 
-For business support you can contact Jens via it's CPAN email
+For business support you can contact Jens via his CPAN email
 address rehsackATcpan.org. Please keep in mind that business
-support is neither available for free nor you're eligible to
+support is neither available for free nor are you eligible to
 receive any support based on the license distributed with this
 package.
 

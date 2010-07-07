@@ -2506,16 +2506,16 @@ L<http://search.cpan.org/dist/SQL-Statement/>
 
 =back
 
-=head2 Where can I go for more help?
+=head2 Where can I go for help?
 
 For questions about installation or usage, please ask on the
 dbi-users@perl.org mailing list (see http://dbi.perl.org) or post a
 question on PerlMonks (L<http://www.perlmonks.org/>, where Jeff is
 known as jZed).  Jens does not visit PerlMonks on a regular basis.
 
-If you have a bug report, a patch, or a suggestion, please open a new
+If you have a bug report, a patch or a suggestion, please open a new
 report ticket at CPAN (but please check previous reports first in case
-you issue has already been addressed). You can mail any of the module
+your issue has already been addressed). You can mail any of the module
 maintainers, but you are more assured of an answer by posting to
 the dbi-users list or reporting the issue in RT.
 

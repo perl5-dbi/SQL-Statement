@@ -162,21 +162,19 @@ SQL::Eval - Base for deriving evaluation objects for SQL::Statement
 =head1 DESCRIPTION
 
 This module implements two classes that can be used for deriving
-concrete subclasses to evaluate SQL::Statement objects. The
-SQL::Eval object can be thought as an abstract state engine for
-executing SQL queries, the SQL::Eval::Table object can be considered
-a *very* table abstraction. It implements method for fetching or
-storing rows, retrieving column names and numbers and so on.
-See the C<test.pl> script as an example for implementing a concrete
-subclass.
+subclasses to evaluate SQL::Statement objects. The SQL::Eval object
+can be thought as an abstract state engine for executing SQL queries
+and the SQL::Eval::Table object is a table abstraction. It implements
+methods for fetching or storing rows, retrieving column names and
+numbers and so on.  See the C<test.pl> script as an example for
+implementing a subclass.
 
 While reading on, keep in mind that these are abstract classes,
-you *must* implement at least some of the methods describe below.
-Even more, you need not derive from SQL::Eval or SQL::Eval::Table,
+you *must* implement at least some of the methods described below.
+In addition, you need not derive from SQL::Eval or SQL::Eval::Table,
 you just need to implement the method interface.
 
-All methods just throw a Perl exception in case of errors.
-
+All methods throw a Perl exception in case of errors.
 
 =head2 Method interface of SQL::Eval
 
@@ -203,7 +201,7 @@ Example:
 
 =item params
 
-Likewise used for getting or setting the complete array of input
+Used for getting or setting the complete array of input
 parameters. Example:
 
     $eval->params($params);       # Set the array
@@ -224,7 +222,7 @@ Return the value of a column with a given name; example:
                                         # the current row in the
                                         # 'foo' table
 
-This is equivalent and just a shorthand for
+This is equivalent to and a shorthand for
 
     $col = $eval->table('foo')->column('id');
 
@@ -255,8 +253,9 @@ in the table. This attribute B<must> be provided by the derived class.
 
 =item col_nums
 
-Hash reference containing the column names as index and the column index as
-value. If this is omitted (not exists), it will be created from C<col_names>.
+Hash reference containing the column names as keys and the column
+indexes as values. If this is omitted (does not exist), it will be
+created from C<col_names>.
 
 =item capabilities
 
@@ -266,7 +265,7 @@ Hash reference containing additional capabilities.
 
 =item row
 
-Used to get the current row as an array ref. Do not mismatch
+Used to get the current row as an array ref. Do not confuse
 getting the current row with the fetch_row method! In fact this
 method is valid only after a successful C<$table-E<gt>fetchrow()>.
 Example:
@@ -283,15 +282,15 @@ a successful C<$table-E<gt>fetchrow()>. Example:
 =item column_num
 
 Return the number of the given column name. Column numbers start with
-0. Returns undef, if a column name is not defined, so that you can
-well use this for verifying valid column names. Example:
+0. Returns undef, if a column name is not defined, so that you can use
+this for verifying column names. Example:
 
     $colNum = $table->column_num($colNum);
 
 =item col_nums
 
-Returns an hash ref of column names with the column name as index and the
-column index as value.
+Returns an hash ref of column names with the column names as keys and
+the column indexes as the values.
 
 =item col_names
 
@@ -299,123 +298,125 @@ Returns an array ref of column names ordered by their index within the table.
 
 =item capability
 
-Returns a boolean value whether the table has the specified capability or
-not. This method might be overwritten by derived classes, but ensure that
-in that case the parent capability method is called when the derived class
-doesn't handle the requested capability.
+Returns a boolean value whether the table has the specified capability
+or not. This method might be overridden by derived classes, but ensure
+that in that case the parent capability method is called when the
+derived class does not handle the requested capability.
 
-Following capabilities are used (and requested) by SQL::Statement:
+The following capabilities are used (and requested) by SQL::Statement:
 
 =over 12
 
 =item update_one_row
 
-Tells if the table is able to update one single row. This capability is
-used for backward compatibility and might have (depending on table
-implementation several limitations). Please carefully study the
-documentation of the table or ask the author of the table, if this
-information isn't provided.
+Defines whether the table is able to update one single row. This
+capability is used for backward compatibility and might have
+(depending on table implementation) several limitations. Please
+carefully study the documentation of the table or ask the author of
+the table, if this information is not provided.
 
-This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+This capability is evaluated automatically on first request and must
+not be handled by any derived classes.
 
 =item update_specific_row
 
-Tells if the table is able to update one single row, but keeps the original
-content of the row to update.
+Defines if the table is able to update one single row, but keeps the
+original content of the row to update.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =item update_current_row
 
-Tells if the table is able to update the currently touched row. This
+Defines if the table is able to update the currently touched row. This
 capability requires the capability of C<inplace_update>.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =item rowwise_update
 
-Tells if the table is able to do an row-wise update, means one of
-C<update_one_row>, C<update_specific_row> or C<update_current_row>.
-The C<update_current_row> is only evaluated, if the table has the
-capability C<inplace_update>.
+Defines if the table is able to do row-wise updates which means one
+of C<update_one_row>, C<update_specific_row> or C<update_current_row>.
+The C<update_current_row> is only evaluated if the table has the
+C<inplace_update> capability.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =item inplace_update
 
-Tells if an update of a row has side effects (capability is not available)
-or can be done without harming any other currently running task on the
-table.
+Defines if an update of a row has side effects (capability is not
+available) or can be done without harming any other currently running
+task on the table.
 
-Example: The table storage is using a hash on the C<PRIMARY KEY> of the
-table. Real perl hashes don't care when an item is updated while the
-hash is traversed using C<each>. C<SDBM_File> 1.06 has a bug, which doesn't
-adjust the traversion pointer when an item is deleted.
+Example: The table storage is using a hash on the C<PRIMARY KEY> of
+the table. Real perl hashes do not care when an item is updated while
+the hash is traversed using C<each>. C<SDBM_File> 1.06 has a bug,
+which does not adjust the traversal pointer when an item is deleted.
 
-C<SQL::Statement::RAM::Table> recognize such situations and adjust the
-traversion pointer.
+C<SQL::Statement::RAM::Table> recognizes such situations and adjusts
+the traversal pointer.
 
-This might not be possible for all implementations which can update single
-rows.
+This might not be possible for all implementations which can update
+single rows.
 
 This capability could be provided by a derived class only.
 
 =item delete_one_row
 
-This capability tells C<SQL::Statement> whether the table can delete one
-single row by it's content or not.
+Defines whether the table can delete one single row by it's content or
+not.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =item delete_current_row
 
-This capability tells C<SQL::Statement> whether a table can delete current
-traversed row or not. This capability requires the capability of
-C<inplace_delete>.
+Defines whether a table can delete the current traversed row or
+not. This capability requires the C<inplace_delete> capability.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =item rowwise_delete
 
-Tells if any row-wise delete operation is provided by the table. C<row-wise>
-delete capabilities are C<delete_one_row> and C<delete_current_row>.
+Defines if any row-wise delete operation is provided by the
+table. C<row-wise> delete capabilities are C<delete_one_row> and
+C<delete_current_row>.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =item inplace_delete
 
-Tells if a deletion of a row has side effects (capability is not available)
-or can be done without harming any other currently running task on the
-table.
+Defines if the deletion of a row has side effects (capability is not
+available) or can be done without harming any other currently running
+task on the table.
 
-This capability could be provided by a derived class only.
+This capability should be provided by a derived class only.
 
 =item insert_new_row
 
-Tells if a table can easily insert a new row, without need of seeking
-and truncating. This capability is provided by defining the table class
+Defines if a table can easily insert a new row without need to seek
+or truncate. This capability is provided by defining the table class
 method C<insert_new_row>.
 
 This capability is evaluated automatically on first request and must not
-be handled be derived classes.
+be handled by derived classes.
 
 =back
 
-If the capabilities I<rowwise_update> and I<insert_new_row> are provided,
-the table primitive C<push_row> is not needed anymore and may omitted.
+If the capabilities I<rowwise_update> and I<insert_new_row> are
+provided, the table primitive C<push_row> is not required anymore and
+may be omitted.
 
 =back
 
 The above methods are implemented by SQL::Eval::Table. The following
-methods aren't, so that they *must* be implemented by concrete
-subclassed. See the C<DBD::DBM::Table> or C<DBD::CSV::Table> for example.
+methods are not, so that they *must* be implemented by the
+subclass. See the C<DBD::DBM::Table> or C<DBD::CSV::Table> for
+example.
 
 =over 8
 
@@ -428,7 +429,7 @@ after C<$table->drop($data)>.
 
 Fetches the next row from the table. Returns C<undef>, if the last
 row was already fetched. The argument $data is for private use of
-the concrete subclass. Example:
+the subclass. Example:
 
     $row = $table->fetch_row($data);
 
@@ -443,7 +444,7 @@ and again via C<$table->row()>.
 
 =item push_row
 
-Likewise for storing rows. Example:
+As fetch_row except for storing rows. Example:
 
     $table->push_row($data, $row);
 
@@ -461,7 +462,7 @@ of the next row being written. Example:
 
     $table->seek($data, $whence, $rowNum);
 
-Actually the current implementation is using only C<seek($data, 0, 0)>
+Actually the current implementation only uses C<seek($data, 0, 0)>
 (first row) and C<seek($data, 2, 0)> (beyond last row, end of file).
 
 =item truncate
@@ -480,10 +481,11 @@ hash ref with only two attributes. The C<params> attribute is an array
 ref of parameters. The C<tables> attribute is an hash ref of table
 names (keys) and table objects (values).
 
-SQL::Eval::Table instances are implemented as hash refs. Used attributes
-are C<row> (the array ref of the current row), C<col_nums> (an hash ref
-of column names as keys and column numbers as values) and C<col_names>,
-an array ref of column names with the column numbers as indexes.
+SQL::Eval::Table instances are implemented as hash refs. Attributes
+used are C<row> (the array ref of the current row), C<col_nums> (an
+hash ref of column names as keys and column numbers as values) and
+C<col_names>, an array ref of column names with the column numbers as
+indexes.
 
 =head1 MULTITHREADING
 
@@ -493,11 +495,11 @@ threads or grant serialized use.
 
 =head1 BUGS
 
-Please report any bugs or feature requests to
-C<bug-sql-statement at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=SQL-Statement>.
-I will be notified, and then you'll automatically be notified of progress
-on your bug as I make changes.
+Please report any bugs or feature requests to C<bug-sql-statement at
+rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=SQL-Statement>.  I
+will be notified, and then you will automatically be notified of
+progress on your bug as I make changes.
 
 =head1 SUPPORT
 
