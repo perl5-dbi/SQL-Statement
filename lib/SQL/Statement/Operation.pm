@@ -476,7 +476,7 @@ SQL::Statement::Operation::Equality - abstract base class for comparisons
 
 SQL::Statement::Operation::Equality implements compare operations between
 two terms - choosing either numerical comparison or string comparison,
-depending whether both operands are a numeric or not.
+depending whether both operands are numeric or not.
 
 =head1 INHERITANCE
 

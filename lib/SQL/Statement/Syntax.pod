@@ -13,7 +13,7 @@ See L<SQL::Statement> for usage.
 The SQL::Statement module can be used either from a DBI driver like DBD::CSV
 or directly.  The syntax below applies to both situations.  In the case of
 DBDs, each DBD can implement its own sub-dialect so be sure to check the DBD
-documentations also.
+documentation also.
 
 SQL::Statement is meant primarly as a base class for DBD drivers
 and as such concentrates on a small but useful subset of SQL.
@@ -46,7 +46,7 @@ B<SQL Statements>
    SELECT <function>
    SELECT <select_clause>
           <from_clause>
-          [<where_clause>] 
+          [<where_clause>]
           [ ORDER BY ocol1 [ASC|DESC], ... ocolN [ASC|DESC]] ]
           [ GROUP BY gcol1 [, ... gcolN] ]
           [ LIMIT [start,] length ]
@@ -66,7 +66,7 @@ B<Built-in Functions>
 B<Special Utility Functions>
 
   * IMPORT  - imports a table from an external RDBMS or perl structure
-  * RUN     - prepares & executes statements in a file of SQL statements
+  * RUN     - prepares and executes statements in a file of SQL statements
 
 B<Operators and Predicates>
 
@@ -85,7 +85,7 @@ B<Concatenation>
 
 B<Comments>
 
-   * comments must occur before or after statements, can't be embedded
+   * comments must occur before or after statements, cannot be embedded
    * SQL-style single line -- and C-style multi-line /* */ comments are supported
 
 B<NULLs>
@@ -105,13 +105,15 @@ Creates permanent and in-memory tables.
  CREATE [TEMP] TABLE <table_name> AS <select statement>
  CREATE [TEMP] TABLE <table_name> AS IMPORT()
 
-Column definitions are standard SQL column names, types, and constraints, see L<Column Definitions>.
+Column definitions are standard SQL column names, types, and
+constraints, see L<Column Definitions>.
 
   # create a permanent table
   #
   $dbh->do("CREATE TABLE qux (id INT PRIMARY KEY,word VARCHAR(30))");
 
-The "AS SELECT" clause creates and populates the new table using the data and column structure specified in the select statement.
+The "AS SELECT" clause creates and populates the new table using the
+data and column structure specified in the select statement.
 
   # create and populate a table from a query to two other tables
   #
@@ -119,7 +121,7 @@ The "AS SELECT" clause creates and populates the new table using the data and co
 
 If the optional keyword TEMP (or its synonym TEMPORARY) is used, the table
 will be an in-memory table, available  for the life of the current
-database handle or until  a DROP TABLE command is issued. 
+database handle or until  a DROP TABLE command is issued.
 
   # create a temporary table
   #
@@ -257,19 +259,19 @@ for documentation of functions.
 
 =head3 Identifiers (table & column names)
 
-Regular identifiers (table and column names *without* quotes around them) 
-are case INSENSITIVE so column foo, fOo, FOO all refer to the same column.
-Internally they're used in their lower case representation, so do not rely on
-SQL::Statement keeps your case.
+Regular identifiers (table and column names *without* quotes around
+them) are case INSENSITIVE so column foo, fOo, FOO all refer to the
+same column.  Internally they are used in their lower case
+representation, so do not rely on SQL::Statement retaining your case.
 
-Delimited identifiers (table and column names *with* quotes around them) are 
+Delimited identifiers (table and column names *with* quotes around them) are
 case SENSITIVE so column "foo", "fOo", "FOO" each refer to different columns.
 
-A delimited identifier is *never* equal to a regular identifer (so "foo" and 
+A delimited identifier is *never* equal to a regular identifer (so "foo" and
 foo are two different columns).  But don't do that :-).
 
-Remember thought that, in L<DBD::CSV> if table names are used directly as file 
-names, the case sensitivity depends on the OS e.g. on Windows files named foo, 
+Remember thought that, in L<DBD::CSV> if table names are used directly as file
+names, the case sensitivity depends on the OS e.g. on Windows files named foo,
 FOO, and fOo are the same as each other while on Unix they are different.
 
 =head3 Special Utility SQL Functions
@@ -368,7 +370,7 @@ two are the same:
 
 B<Note> This function assumes that the SQL statements in the file are
 separated by a semi-colon+newline combination (/;\n/).  If you wish to use
-different separators or import SQL from a different source, just over-ride
+different separators or import SQL from a different source, just override
 the RUN() function with your own user-defined-function.
 
 =head2 Further details
@@ -405,7 +407,7 @@ characters. Identifiers like SELECT, INSERT, INTO, ORDER, BY, WHERE,
 ... are forbidden and reserved for other tokens.  Identifiers are always
 compared case-insensitively, i.e. C<select foo from bar> will be evaluated
 the same as C<SELECT FOO FROM BAR> (C<FOO> will be evaluated as C<foo>,
-similar for C<BAR>). 
+similar for C<BAR>).
 
 Since SQL::Statement is internally using lower cased identifiers (unquoted),
 everytime a wildcard is used, the delivered names of the identifiers are
@@ -429,12 +431,12 @@ The following SQL commands modify the default SQL syntax:
   CREATE/DROP TYPE
   CREATE/DROP OPERATOR
 
-A simple example would be a situation in which you have a table named 'TABLE'.
-Since table is an ANSI reserved key word, by default SQL::Statement will
-produce an error when you attempt to create or access it.  You could put the
-table name inside double quotes since quoted identifiers can validly be
-reserved words, or you could rename the table.  But if those aren't options,
-you would do this:
+A simple example would be a situation in which you have a table named
+'TABLE'.  Since table is an ANSI reserved key word, by default
+SQL::Statement will produce an error when you attempt to create or
+access it.  You could put the table name inside double quotes since
+quoted identifiers can validly be reserved words, or you could rename
+the table.  If neither of those are options, you would do this:
 
   DROP KEYWORD table
 
@@ -446,18 +448,17 @@ parsing the statement.
 In the reverse situation, suppose you want to parse some SQL that defines a
 column as type BIG_BLOB.  Since 'BIG_BLOB' isn't a recognized ANSI data type,
 an error will be produced by default.  To make the parser treat it as a valid
-data type, you'd do this:
+data type, you do this:
 
  CREATE TYPE big_blob
 
-Keywords and types are case-insensitive, so it doesn't matter what case you
-define it or use it with.
+Keywords and types are case-insensitive.
 
-Suppose you're working with some SQL that contains the cosh() function (an
-Oracle function for hyperbolic cosine, whatever that is :-).  The cosh()
-function isn't currently implemented in SQL::Statement so the parser would
-die with an error.  But you can easily trick the parser into accepting
-the function:
+Suppose you are working with some SQL that contains the cosh()
+function (an Oracle function for hyperbolic cosine, whatever that is
+:-).  The cosh() function is not currently implemented in
+SQL::Statement so the parser would die with an error.  But you can
+easily trick the parser into accepting the function:
 
  CREATE FUNCTION cosh
 
@@ -502,7 +503,7 @@ The operator could just as well have been written as a function:
   SELECT * FROM x WHERE c1=7 AND REVERSE_OF(c3,'foo')
 
 Like functions, if you want to actually execute a user-defined operator
-as distinct form just parsing it, you need to assign the operator to a
+as distinct from just parsing it, you need to assign the operator to a
 perl subroutine.  This is done exactly like assigning functions:
 
   CREATE OPERATOR reverse_of AS perl_subroutine_name

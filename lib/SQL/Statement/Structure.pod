@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-SQL::Statement::Structure - parse & examine structure of SQL queries
+SQL::Statement::Structure - parse and examine structure of SQL queries
 
 =head1 SYNOPSIS
 
@@ -26,21 +26,21 @@ SQL::Statement::Structure - parse & examine structure of SQL queries
 =head1 DESCRIPTION
 
 The L<SQL::Statement> module can be used by itself, without DBI and without
-a subclass to parse SQL statements and allow you to examine the structure
+a subclass to parse SQL statements and to allow you to examine the structure
 of the statement (table names, column names, where clause predicates, etc.).
 It will also execute statements using in-memory tables.  That means that
 you can create and populate some tables, then query them and fetch the
 results of the queries as well as examine the differences between statement
 metadata during different phases of prepare, execute, fetch. See the
 remainder of this document for a description of how to create and modify
-a parser object, how to use it to parse and examine SQL statements.
-See L<SQL::Statement> for other usages of the module.
+a parser object and how to use it to parse and examine SQL statements.
+See L<SQL::Statement> for other uses of the module.
 
 =head1 B<Creating a parser object>
 
-The parser object only needs to be created once per script. It can then be
-reused to parse any number of SQL statements. The basic creation of a parser
-is this:
+The parser object only needs to be created once per script. It can
+then be reused to parse any number of SQL statements. The basic
+creation of a parser is this:
 
     my $parser = SQL::Parser->new();
 
@@ -67,14 +67,14 @@ for methods of extending the syntax.
 
 While you only need to define a new SQL::Parser object once per script, you
 need to define a new SQL::Statment object once for each statement you want
-to parse. 
+to parse.
 
     my $stmt = SQL::Statement->new($sql, $parser);
 
 The call to new() takes two arguments - the SQL string you want to parse,
 and the SQL::Parser object you previously created.  The call to new is the
 equivalent of a DBI call to prepare() - it parses the SQL into a structure
-but doesn't attempt to execute the SQL unless you explicitly call execute().
+but does not attempt to execute the SQL unless you explicitly call execute().
 
 =head1 Examining the structure of SQL statements
 
@@ -103,7 +103,7 @@ the query command:
 
 When used without arguments, the method returns a list of the columns
 C<$col1>, C<$col2>, ..., C<$colN>, you may alternatively use a column number
-as argument. Note that the column list may be empty, like in
+as argument. Note that the column list may be empty as in
 
     INSERT INTO $table VALUES (...)
 
@@ -206,7 +206,7 @@ the statements above).
 
 If no C<LIMIT> clause is used, then the method C<$stmt-E<gt>limit> returns
 I<undef>. Otherwise it returns the offset number (the index of the first row
-to be inlcuded in the limit clause).
+to be included in the limit clause).
 
 =head2 B<where_hash>
 
@@ -236,7 +236,7 @@ defined).
 
 =item arg2
 
-contains the left-hand side of the operator. This can be a scalar value, a
+contains the right-hand side of the operator. This can be a scalar value, a
 hash containing column or function definition, a parameter definition (hash has
 attribute C<type> defined) or another operation (hash has attribute C<op>
 defined).
@@ -274,8 +274,8 @@ Of course there's a ready-for-use method for WHERE clause evaluation:
 
 The WHERE clause evaluation depends on an object being used for
 fetching parameter and column values. Usually this can be an
-SQL::Statement::RAM::Table object or SQL::Eval object, but in fact it can be any object that supplies
-the methods
+SQL::Statement::RAM::Table object or SQL::Eval object, but in fact it
+can be any object that supplies the methods
 
     $val = $eval->param($paramNum);
     $val = $eval->column($table, $column);
@@ -296,10 +296,10 @@ The where clause is evaluated automatically on the current selected row of
 the table currently worked on when it's C<value()> method is invoked.
 
 C<SQL::Statement> creates the object tree for where clause evaluation
-directly after successful parsing a statement from the given C<where_clause>,
-if any.
+directly after successfully parsing a statement from the given
+C<where_clause>, if any.
 
-=head1 Executing & fetching data from SQL statements
+=head1 Executing and fetching data from SQL statements
 
 =head2 execute
 

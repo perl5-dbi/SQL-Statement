@@ -157,7 +157,8 @@ SQL::Statement::RAM
 
 =head1 DESCRIPTION
 
-This package contains support for the internally used SQL::Statement::RAM::Table.
+This package contains support for the internally used
+SQL::Statement::RAM::Table.
 
 =head1 INHERITANCE
 
@@ -185,7 +186,7 @@ Fetches the next row
 
 =item push_row
 
-Similar for writing
+As fetch_row except for writing
 
 =item delete_current_row
 
@@ -221,7 +222,7 @@ This table has following capabilities:
 
 =item update_current_row
 
-By providing method C<update_current_row> and capability C<inplace_update>.
+Using provided method C<update_current_row> and capability C<inplace_update>.
 
 =item rowwise_update
 
@@ -233,7 +234,7 @@ By definition (appropriate flag set in constructor).
 
 =item delete_current_row
 
-By providing method C<delete_current_row> and capability C<inplace_delete>.
+Using provided method C<delete_current_row> and capability C<inplace_delete>.
 
 =item rowwise_delete
 

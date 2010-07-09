@@ -25,7 +25,7 @@ SQL::Statement::Functions - built-in & user-defined SQL functions
 
 This module contains the built-in functions for SQL::Parser and SQL::Statement.  All of the functions are also available in any DBDs that subclass those modules (e.g. DBD::CSV, DBD::DBM, DBD::File, DBD::AnyData, DBD::Excel, etc.).
 
-This documentation covers built-in functions and also explains how to create your own functions to supplement the built-in ones.  It's easy!  If you create one that is generally useful, see below for how to submit it to become a built-in function.
+This documentation covers built-in functions and also explains how to create your own functions to supplement the built-in ones.  It's easy.  If you create one that is generally useful, see below for how to submit it to become a built-in function.
 
 =head1 Function syntax
 
@@ -48,7 +48,7 @@ When using SQL::Statement/SQL::Parser directly to parse SQL, functions (either b
 
 In addition to the built-in functions, you can create any number of your own user-defined functions (UDFs).  In order to use a UDF in a script, you first have to create a perl subroutine (see below), then you need to make the function available to your database handle with the CREATE FUNCTION or LOAD commands:
 
- # load a single function "foo"from a subroutine
+ # load a single function "foo" from a subroutine
  # named "foo" in the current package
 
       $dbh->do(" CREATE FUNCTION foo EXTERNAL ");

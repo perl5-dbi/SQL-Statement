@@ -7,7 +7,7 @@ Jens Rehsack - June 2010
 =head1 SYNOPSIS
 
 This document gives a high level overview of the future of SQL::Statement,
-SQL::Parser and it's impact.
+SQL::Parser and its impact.
 
 The planned enhancements cover testing, performance, reliability,
 extensibility and more.
@@ -21,39 +21,40 @@ may help us to design SQL::Statement 2.xx much better.
 
 =head3 CREATE and DROP of FUNCTION, KEYWORD, OPERATOR, TYPE
 
-SQL::Statement misses some functions, types, operators etc. It's supported
-to add missing functionality - but the implementation wasn't picked up
-during the modernizing of column evaluation. See RT#52397 for some more
-information.
+SQL::Statement is missing some functions, types, operators etc. It's
+supported to add missing functionality - but the implementation wasn't
+picked up during the modernizing of column evaluation. See RT#52397
+for some more information.
 
-This should be done before SQL::Statement 1.xx reaches the end of it's
+This should be done before SQL::Statement 1.xx reaches the end of its
 road.
 
 =head3 Parser improvements
 
-The SQL::Parser is implemented based on a lot of regular expressions and
-some manual developed logic. This creates some issues like RT#53416 or
-RT#55190. Further, trailing C<;> makes SQL::Parser croaking. It should
-be proved what can be fixed without deep changes and what has to wait.
+The SQL::Parser is implemented based on a lot of regular expressions
+and some manually developed logic. This creates some issues like
+RT#53416 or RT#55190. Further, trailing C<;> causes SQL::Parser to
+croak. We need to decide what can be fixed without internal design
+changes and what has to wait.
 
 =head3 Performance
 
-SQL::Statement 1.xx will not receive additional time to improve it's
-performance. The performance is good as it is and improvement requires
-design changes.
+There is no intention to work on performance improvements in
+SQL::Statement 1.xx. The performance is good as it is and improvement
+requires design changes.
 
 =head3 Reliability
 
-Bugs will be fixed - when possible. SQL::Statement 1.28 is much more
-reliable than SQL::Statement 1.15. And even if no extra effort will put
-into increase reliability, all remarked issues are thankful taken to learn
-how to design SQL::Statement 2.xx better.
+Bugs will be fixed - where possible. SQL::Statement 1.28 is much more
+reliable than SQL::Statement 1.15. Even if a bug cannot be fixed all
+issues are gratefully received as they will be considered in the
+design process for SQL::Statement 2.xx better.
 
 =head3 Extensibility
 
 SQL::Statement 1.xx is highly extensible, even if a more object oriented
-design would improve that. The 1.xx branch will not receive redesign to
-reach higher extensibility on coding level.
+design would improve that. The 1.xx branch will not be redesigned for
+greater extensibility on a coding level.
 
 =head2 Enhancements in SQL::Statement 2.xx
 
@@ -63,10 +64,10 @@ basic components is required.
 =head3 SQL::Parser rewrite
 
 The SQL::Parser needs to be modified to be able to use a
-L<http://en.wikipedia.org/wiki/Backus_Naur_Form|Backus Naur Form>. This
-would allow users and developers to rely on many different SQL dialects.
-It further allows better extensibility from feature point of view without
-loosing ANSI SQL compatibility.
+L<http://en.wikipedia.org/wiki/Backus_Naur_Form|Backus Naur
+Form>. This would allow users and developers to rely on many different
+SQL dialects.  This will allow better extensibility from a feature
+point of view without losing ANSI SQL compatibility.
 
 =head3 SQL::Statement rewrite
 
@@ -77,10 +78,10 @@ reliability improvements or sub-selects (or other calculated tables).
 
 =head3 Features
 
-There are a bigger amount of missing features, and not all table backends
-will be able to support each new feature. The most of the wanted features
-need additional discussing and everyone is welcome to do it on the
-L<mailto:dbi-dev@perl.org|DBI Development Mailing List>.
+There is a large list of missing features but not all table backends
+will be able to support each new feature. The most popular requested
+features need additional discussion and everyone is welcome to do it
+on the L<mailto:dbi-dev@perl.org|DBI Development Mailing List>.
 
 =head4 LOCK TABLE
 
@@ -96,36 +97,36 @@ The easiest way to implement this would be to create a
 L<SQL::Statement::RAM|SQL::Statement::RAM::Table> on C<BEGIN TRANSACTION>
 and write the entire table back on C<COMMIT> or discard on C<ROLLBACK>.
 
-Better performance could be reached when the implementation allows to
+Better performance could be acheived when the implementation allows to
 memorize the single modification and apply them at C<COMMIT>. This needs
 more discussion.
 
 =head4 ALTER TABLE
 
-Adding, removing or modifying columns isn't supported for once created
-tables. A generic C<ALTER TABLE> seems to rely on the implementation of
-the transaction support - until better ideas are provided.
+Adding, removing or modifying columns is not supported for created
+tables. A generic C<ALTER TABLE> seems to rely on the implementation
+of the transaction support - until better ideas are provided.
 
 =head4 Indices
 
-Currently some table backends have implicitely support to access defined
-rows quicker than fetching each row and evaluating the where clause against
-the row data.
+Currently some table backends have implicit support to access
+specified rows quicker than fetching each row and evaluating the where
+clause against the row data.
 
-An interface would be required to configure fetching to return only rows
-matching a restricted where clause. Another (probably better) way to support
-indices would be to fetch index entries at first and have an interface to
-the table fetching lines based on an index key.
+An interface would be required to configure fetching to return only
+rows matching a restricted where clause. Another (probably better) way
+to support indices would be to fetch index entries at first and have
+an interface to the table fetching lines based on an index key.
 
 =head4 Sub-Selects
 
 In most cases queries can be re-expressed without using sub-selects. But
-anyway, there are circumstances where sub-selects are required.
+in any case, there are circumstances where sub-selects are required.
 
 The first implementation will do the sub-select before the primary
-statement will be executed without any further optimization. Hopefully
+statement is executed without any further optimization. Hopefully
 a later version will provide better L<Performance> with some
-optimizations.
+optimization.
 
 =head4 Query based variables
 
@@ -138,8 +139,8 @@ In SQL::Statement 1.xx the function C<RUN ()> provides SQL script
 execution. This function may have limitations and side effects (at least
 when the executed SQL touched the same tables as the primary statement).
 
-I plan to improve the SQL script support to remove the side effects one
-the one hand and have more flexible and easier way to execute them.
+I plan to improve the SQL script support to remove the side effects on
+the one hand and have a more flexible and easier way to execute them.
 
 Finally it should be possible to execute a script via:
 
@@ -147,26 +148,29 @@ Finally it should be possible to execute a script via:
 
 =head4 Trigger support
 
-Most important when doing complicated things is having callback functions
-for several events. While real triggers won't be possible for SQL::Statement
-and underlying pseudo-databases, callbacks could be provided via triggers.
+Most important when doing complicated things is having callback
+functions for several events. While real triggers will not be possible
+for SQL::Statement and underlying pseudo-databases, callbacks could be
+provided via triggers.
 
 =head3 Performance
 
-There are several performance optimizations wanted for SQL::Statement 2.xx.
+There are several performance optimizations required for
+SQL::Statement 2.xx.
 
-The first one should be done on a very high level (query optimization) by
-implementing algebraic evaluation of queries and clean implementation of
-typical database algorithms. With respect to the basic optimization rule
-I<premature optimization is the root of all evil>, it's primarily targeted
-to have adequate fast, reliable implemtation of many algorithms (e.g. early
-incomplete evaluation to reduce amount of rows, transpose where clause to
-evaluate constants first) and a clever controller choosing the right
-algorithm for a specific query.
+The first one should be done on a very high level (query optimization)
+by implementing algebraic evaluation of queries and clean
+implementation of typical database algorithms. With respect to the
+basic optimization rule I<premature optimization is the root of all
+evil>, it is primarily targeted to have an adequately fast, reliable
+implementation of many algorithms (e.g. early incomplete evaluation to
+reduce amount of rows, transpose where clause to evaluate constants
+first) and a clever controller choosing the right algorithm for a
+specific query.
 
 The second optimization goal means: implementing most expensive methods
 in XS. This requires a good performance test suite as well as some real
-world use cases.
+world useage cases.
 
 =head3 Reliability
 
@@ -176,9 +180,9 @@ users for this.
 
 =head3 Extensibility
 
-The currently high level of extensibility should be increased on coding
-level. This will be done by redesigning the entire parser and executing
-engine using object oriented techniques and design patterns.
+The currently high level of extensibility should be increased on a
+coding level. This will be done by redesigning the entire parser and
+execution engine using object oriented techniques and design patterns.
 
 =head3 Testing
 
@@ -189,8 +193,8 @@ reorganized into several parts:
 
 =item Basic API
 
-This part shall test the entire basic API of SQL::Statement, SQL::Parser
-and probably the entire engine command classes.
+This part should test the entire basic API of SQL::Statement,
+SQL::Parser and probably the entire engine command classes.
 
 =item DBI / Table API
 
@@ -204,8 +208,8 @@ SQL::Statement engine.
 
 =item Performance
 
-This part should be used to implement full use cases (ideally got from
-real world projects) to allow doing optimizations.
+This part should be used to implement full useage cases (ideally from
+real world projects) to allow for testing optimizations.
 
 =back
 
