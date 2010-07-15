@@ -1,3 +1,4 @@
+.aspell.local.pws
 Changes
 lib/SQL/Dialects/ANSI.pm
 lib/SQL/Dialects/AnyData.pm
