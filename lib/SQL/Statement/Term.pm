@@ -121,6 +121,7 @@ package SQL::Statement::ColumnValue;
 use vars qw(@ISA);
 @ISA = qw(SQL::Statement::Term);
 
+use Carp qw(croak);
 use Params::Util qw(_INSTANCE _ARRAY0 _SCALAR);
 use Scalar::Util qw(looks_like_number);
 
