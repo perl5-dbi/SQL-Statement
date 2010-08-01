@@ -40,7 +40,8 @@ sub new
     # USE THE ANYDATA DIALECT RATHER THAN THE CSV DIALECT
     # WITH DBD::CSV
 
-    if ( ( defined($main::extend_csv) && $main::extend_csv ) || ( defined($main::extend_sql) && $main::extend_sql ) )
+    if (    ( defined($main::extend_csv) && $main::extend_csv )
+         || ( defined($main::extend_sql) && $main::extend_sql ) )
     {
         $flags = SQL::Parser->new('AnyData');
     }
@@ -49,14 +50,14 @@ sub new
     $flags->{PrintError}    = 1 unless defined $flags->{PrintError};
     $flags->{text_numbers}  = 1 unless defined $flags->{text_numbers};
     $flags->{alpha_compare} = 1 unless defined $flags->{alpha_compare};
-    
-    unless( blessed( $flags ) ) # avoid copying stale data from earlier parsing sessions
+
+    unless ( blessed($flags) )    # avoid copying stale data from earlier parsing sessions
     {
-        %$self = ( %$self, %{ clone( $flags ) } );
+        %$self = ( %$self, %{ clone($flags) } );
     }
     else
     {
-	$self->{$_} = $flags->{$_} for qw(RaiseError PrintError opts);
+        $self->{$_} = $flags->{$_} for qw(RaiseError PrintError opts);
     }
 
     $self->{dlm} = '~';
@@ -80,14 +81,15 @@ sub prepare
 {
     my ( $self, $sql, $parser ) = @_;
     return $self if ( $self->{already_prepared}->{$sql} );
-    $self->{already_prepared} = {};    # delete earlier preparations, they're overwritten after this prepare run
+    $self->{already_prepared} =
+      {};    # delete earlier preparations, they're overwritten after this prepare run
     my $rv = $parser->parse($sql);
     if ($rv)
     {
-	while( my ($k,$v) = each(%{$parser->{struct}}) )
-	{
-	    $self->{$k} = $v;
-	}
+        while ( my ( $k, $v ) = each( %{ $parser->{struct} } ) )
+        {
+            $self->{$k} = $v;
+        }
         undef $self->{where_terms};
         undef $self->{columns};
         $self->{argnum} = 0;
@@ -114,7 +116,8 @@ sub prepare
             $self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
             if ( $self->{where_clause}->{combiners} )
             {
-                $self->{has_OR} = 1 if ( first { -1 != index( $_, 'OR' ) } @{ $self->{where_clause}->{combiners} } );
+                $self->{has_OR} = 1
+                  if ( first { -1 != index( $_, 'OR' ) } @{ $self->{where_clause}->{combiners} } );
             }
         }
 
@@ -139,8 +142,9 @@ sub execute
     my ( $table, $msg );
     my ($command) = $self->command();
     return $self->do_err('No command found!') unless ($command);
-    ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) = $self->$command( $data, $params );
-    return unless( defined( $self->{NUM_OF_ROWS} ) );
+    ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) =
+      $self->$command( $data, $params );
+    return unless ( defined( $self->{NUM_OF_ROWS} ) );
 
     @{ $self->{NAME} } = map { $_->display_name() } @{ $self->{columns} };
 
@@ -241,7 +245,9 @@ sub DROP ($$$)
         local $SIG{__WARN__} = sub { push @err, @_ };
         ($eval) = $self->open_tables( $data, 0, 1 );
     };
-    if ( $self->{ignore_missing_table} and ( $@ or @err ) and grep { $_ =~ $enoentrx } ( @err, $@ ) )
+    if (     $self->{ignore_missing_table}
+         and ( $@ or @err )
+         and grep { $_ =~ $enoentrx } ( @err, $@ ) )
     {
         $@ = '';
         return ( -1, 0 );
@@ -365,7 +371,8 @@ sub DELETE ($$$)
 
     if (@rows)
     {
-        if ( $table->capability('rowwise_delete') )    # @rows is empty in case of inplace_delete capability
+        if ( $table->capability('rowwise_delete')
+          )    # @rows is empty in case of inplace_delete capability
         {
             foreach my $array (@rows)
             {
@@ -468,7 +475,8 @@ sub UPDATE ($$$)
             elsif ( $table->capability('rowwise_update') )
             {
                 push( @rows, $array ) unless ( $table->capability('update_specific_row') );
-                push( @rows, [ $array, $originalValues ] ) if ( $table->capability('update_specific_row') );
+                push( @rows, [ $array, $originalValues ] )
+                  if ( $table->capability('update_specific_row') );
             }
         }
 
@@ -477,7 +485,8 @@ sub UPDATE ($$$)
 
     if (@rows)
     {
-        if ( $table->capability('rowwise_update') )    # @rows is empty in case of inplace_update capability
+        if ( $table->capability('rowwise_update')
+          )    # @rows is empty in case of inplace_update capability
         {
             foreach my $array (@rows)
             {
@@ -605,7 +614,8 @@ sub JOIN
          and ( scalar( @{ $self->{join}->{table_order} } ) == 0 ) )
     {
         $self->{join}->{table_order} = $self->order_joins( $self->{join}->{keycols} );
-        $self->{join}->{table_order} = $self->{table_names} unless ( defined( $self->{join}->{table_order} ) );
+        $self->{join}->{table_order} = $self->{table_names}
+          unless ( defined( $self->{join}->{table_order} ) );
     }
     my @tables = $self->tables;
 
@@ -653,7 +663,8 @@ sub join_2_tables
     $share_type = 'NATURAL' if ( -1 != index( $self->{join}->{type},   'NATURAL' ) );
     $share_type = 'USING'   if ( -1 != index( $self->{join}->{clause}, 'USING' ) );
     $share_type = 'ON'      if ( -1 != index( $self->{join}->{clause}, 'ON' ) );
-    $share_type = 'USING' if ( ( $share_type eq 'ON' ) && ( scalar( @{ $self->{join}->{keycols} } ) == 1 ) );
+    $share_type = 'USING'
+      if ( ( $share_type eq 'ON' ) && ( scalar( @{ $self->{join}->{keycols} } ) == 1 ) );
     my $join_type = 'INNER';
     $join_type = 'LEFT'  if ( -1 != index( $self->{join}->{type}, 'LEFT' ) );
     $join_type = 'RIGHT' if ( -1 != index( $self->{join}->{type}, 'RIGHT' ) );
@@ -666,10 +677,12 @@ sub join_2_tables
         $tableBobj = $tmpTbl;
     }
 
-    my $tableA = ( 0 == index( $tableAobj->{NAME}, '"' ) ) ? $tableAobj->{NAME} : lc( $tableAobj->{NAME} );
-    my $tableB = ( 0 == index( $tableBobj->{NAME}, '"' ) ) ? $tableBobj->{NAME} : lc( $tableBobj->{NAME} );
-    my @colsA  = @{ $tableAobj->col_names };
-    my @colsB  = @{ $tableBobj->col_names };
+    my $tableA =
+      ( 0 == index( $tableAobj->{NAME}, '"' ) ) ? $tableAobj->{NAME} : lc( $tableAobj->{NAME} );
+    my $tableB =
+      ( 0 == index( $tableBobj->{NAME}, '"' ) ) ? $tableBobj->{NAME} : lc( $tableBobj->{NAME} );
+    my @colsA = @{ $tableAobj->col_names };
+    my @colsB = @{ $tableBobj->col_names };
     my %isunqualA;
     my %isunqualB = map { $_ => 1 } @colsB;
     my @shared_cols;
@@ -747,8 +760,10 @@ sub join_2_tables
             $k1 = $whichqual{$k1} if ( $whichqual{$k1} );
             $k2 = $whichqual{$k2} if ( $whichqual{$k2} );
 
-            push( @shared_cols, $k1, $k2 ) if ( defined( $col_numsA{$k1} ) && defined( $col_numsB{$k2} ) );
-            push( @shared_cols, $k2, $k1 ) if ( defined( $col_numsA{$k2} ) && defined( $col_numsB{$k1} ) );
+            push( @shared_cols, $k1, $k2 )
+              if ( defined( $col_numsA{$k1} ) && defined( $col_numsB{$k2} ) );
+            push( @shared_cols, $k2, $k1 )
+              if ( defined( $col_numsA{$k2} ) && defined( $col_numsB{$k1} ) );
 
         }
     }
@@ -810,7 +825,10 @@ sub join_2_tables
         {
             if ( $join_type ne 'UNION' )
             {
-                my @newRow = ( $join_type ne 'RIGHT' ) ? ( @{$arrayA}, @{$arrayB} ) : ( @{$arrayB}, @{$arrayA} );
+                my @newRow =
+                    ( $join_type ne 'RIGHT' )
+                  ? ( @{$arrayA}, @{$arrayB} )
+                  : ( @{$arrayB}, @{$arrayA} );
 
                 push( @$joined_table, \@newRow );
             }
@@ -847,7 +865,8 @@ sub join_2_tables
     undef $tableAobj;
     undef $tableBobj;
     $self->{join}->{table} =
-      SQL::Statement::TempTable->new( $self->{dlm} . 'tmp', \@all_cols, $self->{join}->{display_cols}, $joined_table );
+      SQL::Statement::TempTable->new( $self->{dlm} . 'tmp',          \@all_cols,
+                                      $self->{join}->{display_cols}, $joined_table );
 
     return;
 }
@@ -1171,7 +1190,8 @@ sub open_tables
         {
             $t->{$name} = $data->{Database}->{sql_ram_tables}->{$name};
             $t->{$name}->seek( $data, 0, 0 );
-            $t->{$name}->init_table( $data, $name, $createMode, $lockMode ) if ( $t->{$name}->can('init_table') );
+            $t->{$name}->init_table( $data, $name, $createMode, $lockMode )
+              if ( $t->{$name}->can('init_table') );
         }
         elsif ( $self->{is_ram_table} )
         {
@@ -1183,7 +1203,7 @@ sub open_tables
             undef $@;
             eval {
                 my $open_name = $self->{org_table_names}->[$count];
-		$t->{$name} = $self->open_table( $data, $open_name, $createMode, $lockMode );
+                $t->{$name} = $self->open_table( $data, $open_name, $createMode, $lockMode );
             };
             my $err = $t->{$name}->{errstr};
             return $self->do_err($err) if ($err);
@@ -1262,7 +1282,8 @@ sub getColumnObject($)
         if ( $newcol->{value} =~ m/^(.+)\.\*$/ )
         {
             $tbl = $1;
-            return $self->do_err("No table name given in '$newcol->{value}'") unless ( defined( _STRING($tbl) ) );
+            return $self->do_err("No table name given in '$newcol->{value}'")
+              unless ( defined( _STRING($tbl) ) );
             @tables = ($tbl);
         }
         else
@@ -1279,7 +1300,8 @@ sub getColumnObject($)
         {
             return $self->do_err("Can't find table '$table'") unless ( defined( $t->{$table} ) );
             my $tcols = $t->{$table}->{col_names};
-            return $self->do_err("Couldn't find column names for table '$table'!") unless ( _ARRAY($tcols) );
+            return $self->do_err("Couldn't find column names for table '$table'!")
+              unless ( _ARRAY($tcols) );
             foreach my $colName ( @{$tcols} )
             {
                 next if ( $join && $shared_cols{$colName}++ );
@@ -1287,7 +1309,7 @@ sub getColumnObject($)
                     $colName,    # column name
                     $table,      # table name
                     SQL::Statement::ColumnValue->new( $self, $table . '.' . $colName ),    # term
-                    $colName,                                                              # display name
+                    $colName,    # display name
                     $colName,
                     $newcol,
                              ];
@@ -1297,14 +1319,15 @@ sub getColumnObject($)
     }
     elsif ( ( 'CREATE' eq $self->command() ) || ( 'DROP' eq $self->command() ) )
     {
-        return $self->do_err("Invalid column type '$newcol->{type}'") unless ( 'column' eq $newcol->{type} );
+        return $self->do_err("Invalid column type '$newcol->{type}'")
+          unless ( 'column' eq $newcol->{type} );
         my $expcol = [
-                       $newcol->{value},                                                              # column name
-                       undef,                                                                         # table name
-                       undef,                                                                         # term
-                       $newcol->{value},                                                              # display name
-                       $newcol->{value},                                                              # original name
-                       $newcol,                                                                       # coldef
+                       $newcol->{value},    # column name
+                       undef,               # table name
+                       undef,               # term
+                       $newcol->{value},    # display name
+                       $newcol->{value},    # original name
+                       $newcol,             # coldef
                      ];
         push( @columns, $expcol );
     }
@@ -1330,13 +1353,14 @@ sub getColumnObject($)
                                                       );
                 @cols = map { $_->[2], $colSep } @cols;
                 pop(@cols);
-                $col = $self->{termFactory}->buildCondition(
-                                                             {
-                                                               type  => 'function',
-                                                               name  => 'str_concat',
-                                                               value => \@cols,
-                                                             }
-                                                           );
+                $col =
+                  $self->{termFactory}->buildCondition(
+                                                        {
+                                                          type  => 'function',
+                                                          name  => 'str_concat',
+                                                          value => \@cols,
+                                                        }
+                                                      );
             }
         }
         else
@@ -1395,7 +1419,8 @@ sub buildSortSpecList()
     {
         for my $i ( 0 .. scalar @{ $self->{sort_spec_list} } - 1 )
         {
-            next if ( defined( _INSTANCE( $self->{sort_spec_list}->[$i], 'SQL::Statement::Order' ) ) );
+            next
+              if ( defined( _INSTANCE( $self->{sort_spec_list}->[$i], 'SQL::Statement::Order' ) ) );
             my ( $newcol, $direction ) = each %{ $self->{sort_spec_list}->[$i] };
             undef $direction unless ( $direction && $direction eq 'DESC' );
 
@@ -1483,7 +1508,7 @@ sub verify_columns
     my %col_exists = map { $_ => 1 } @tmp_cols;
 
     my ( %is_member, @duplicates, %is_duplicate );
-    foreach (@$all_cols) { $_ =~ s/[^.]*\.(.*)/$1/; }    # XXX we're modifying $all_cols from caller!
+    foreach (@$all_cols) { $_ =~ s/[^.]*\.(.*)/$1/; }   # XXX we're modifying $all_cols from caller!
     @duplicates = grep( $is_member{$_}++, @$all_cols );
     %is_duplicate = map { $_ => 1 } @duplicates;
     if ( exists( $self->{join} ) && defined( _HASH( $self->{join} ) ) )
@@ -1514,7 +1539,8 @@ sub verify_columns
     my $num_tables = $self->tables();
     for my $c (@tmpcols)
     {
-        my ( $table, $col ) = $self->verify_expand_column( $c, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+        my ( $table, $col ) =
+          $self->verify_expand_column( $c, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
         return if ( $self->{errstr} );
         next unless ( $table && $col );
 
@@ -1540,10 +1566,12 @@ sub verify_columns
             {
                 $i = -2;
                 my ( $table, $col ) =
-                  $self->verify_expand_column( $grpby, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+                  $self->verify_expand_column( $grpby, \$i, \@usr_cols, \%is_duplicate,
+                                               \%col_exists );
                 return if ( $self->{errstr} );
                 $col ||= $grpby;
-                ( $table, $col ) = $self->full_qualified_column_name($col) if ( defined($col) && !defined($table) );
+                ( $table, $col ) = $self->full_qualified_column_name($col)
+                  if ( defined($col) && !defined($table) );
                 next unless ( defined($table) && defined($col) );
                 delete $set_fully->{"$table.$col"};
             }
@@ -1553,12 +1581,12 @@ sub verify_columns
         {
             return
               $self->do_err(
-                        sprintf(
-                                 "Column%s '%s' must appear in the GROUP BY clause or be used in an aggregate function",
-                                 scalar( keys( %{$set_fully} ) ) > 1 ? 's' : '',
-                                 join( "', '", keys( %{$set_fully} ) )
-                               )
-                           );
+                sprintf(
+                    "Column%s '%s' must appear in the GROUP BY clause or be used in an aggregate function",
+                    scalar( keys( %{$set_fully} ) ) > 1 ? 's' : '',
+                    join( "', '", keys( %{$set_fully} ) )
+                )
+              );
         }
     }
 
@@ -1601,7 +1629,10 @@ sub row_values(;$$)
         return 0 unless ( defined( $_[0]->{values}->[ $_[1] ] ) );
         return $_[0]->{values}->[ $_[1] ]->[ $_[2] ] if ( defined $_[2] );
 
-        return wantarray ? map { $_->{value} } @{ $_[0]->{values}->[ $_[1] ] } : scalar @{ $_[0]->{values}->[ $_[1] ] };
+        return
+          wantarray
+          ? map { $_->{value} } @{ $_[0]->{values}->[ $_[1] ] }
+          : scalar @{ $_[0]->{values}->[ $_[1] ] };
     }
     else
     {
@@ -1814,7 +1845,8 @@ sub order_joins
             next if ( $in_order{$tbl} );
             push( @missing, $tbl );
         }
-        return $self->do_err( sprintf( 'Unconnected tables (%s) in equijoin statement!', join( ', ', @missing ) ) );
+        return $self->do_err(
+              sprintf( 'Unconnected tables (%s) in equijoin statement!', join( ', ', @missing ) ) );
     }
     $self->{join}->{table_order} = \@order;
     return \@order;
@@ -1952,17 +1984,22 @@ sub do_calc()
 
             if ( $coldef->{type} eq 'setfunc' )
             {
-                next if ( ( $coldef->{distinct} eq 'DISTINCT' ) && defined( $result->{uniq}->[$colidx]->{$colval} ) );
+                next
+                  if ( ( $coldef->{distinct} eq 'DISTINCT' )
+                       && defined( $result->{uniq}->[$colidx]->{$colval} ) );
 
-                $result->{agg}->[$colidx] = clone($empty_agg) unless ( defined( _HASH( $result->{agg}->[$colidx] ) ) );
+                $result->{agg}->[$colidx] = clone($empty_agg)
+                  unless ( defined( _HASH( $result->{agg}->[$colidx] ) ) );
                 my $agg = $result->{agg}->[$colidx];
 
                 ++$agg->{count};
-                unless ( defined( $agg->{max} ) && ( SQL::Statement::_anycmp( $colval, $agg->{max} ) < 0 ) )
+                unless ( defined( $agg->{max} )
+                         && ( SQL::Statement::_anycmp( $colval, $agg->{max} ) < 0 ) )
                 {
                     $agg->{max} = $colval;
                 }
-                unless ( defined( $agg->{min} ) && ( SQL::Statement::_anycmp( $colval, $agg->{min} ) > 0 ) )
+                unless ( defined( $agg->{min} )
+                         && ( SQL::Statement::_anycmp( $colval, $agg->{min} ) > 0 ) )
                 {
                     $agg->{min} = $colval;
                 }
@@ -1970,7 +2007,8 @@ sub do_calc()
             }
             else
             {
-                $result->{pure}->[$colidx] = $colval unless ( defined( $result->{pure}->[$colidx] ) );
+                $result->{pure}->[$colidx] = $colval
+                  unless ( defined( $result->{pure}->[$colidx] ) );
             }
         }
     }
@@ -2090,7 +2128,8 @@ sub getAffectedResult    # (\@)
 
     my $rowkey = join( "\0", @$row[ @{ $self->{keycols} } ] );
 
-    $self->{final_rows}->{$rowkey} = {} unless ( defined( _HASH( $self->{final_rows}->{$rowkey} ) ) );
+    $self->{final_rows}->{$rowkey} = {}
+      unless ( defined( _HASH( $self->{final_rows}->{$rowkey} ) ) );
 
     return $self->{final_rows}->{$rowkey};
 }

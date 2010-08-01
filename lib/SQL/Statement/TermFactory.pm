@@ -50,7 +50,8 @@ sub _getOpClass($)
     {
         my $opBase = 'SQL::Statement::Operation';
         my $opDialect = join( '::', $opBase, $self->{OWNER}->{dialect}, $oplist{$op} );
-        $opClasses{$op} = $opDialect->isa( $opBase ) ? $opDialect : join( '::', $opBase, $oplist{$op} );
+        $opClasses{$op} =
+          $opDialect->isa($opBase) ? $opDialect : join( '::', $opBase, $oplist{$op} );
     }
 
     return $opClasses{$op};
@@ -85,9 +86,11 @@ sub buildCondition
             my $right = $self->buildCondition( $pred->{arg2} );
 
             $term =
-              SQL::Statement::Function::UserFunc->new( $self->{OWNER}, $op,
-                                                       $self->{OWNER}->{opts}->{function_names}->{$op},
-                                                       [ $left, $right ] );
+              SQL::Statement::Function::UserFunc->new(
+                $self->{OWNER}, $op,
+                $self->{OWNER}->{opts}->{function_names}->{$op},
+                [ $left, $right ]
+                                                     );
         }
         else
         {
@@ -124,7 +127,8 @@ sub buildCondition
 
             if ( $pred->{name} eq 'numeric_exp' )
             {
-                $term = SQL::Statement::Function::NumericEval->new( $self->{OWNER}, $pred->{str}, \@params );
+                $term = SQL::Statement::Function::NumericEval->new( $self->{OWNER}, $pred->{str},
+                                                                    \@params );
             }
             elsif ( $pred->{name} eq 'str_concat' )
             {
@@ -132,19 +136,21 @@ sub buildCondition
             }
             elsif ( $pred->{name} eq 'TRIM' )
             {
-                $term = SQL::Statement::Function::Trim->new( $self->{OWNER}, $pred->{trim_spec}, $pred->{trim_char},
-                                                             \@params );
+                $term = SQL::Statement::Function::Trim->new( $self->{OWNER}, $pred->{trim_spec},
+                                                             $pred->{trim_char}, \@params );
             }
             elsif ( $pred->{name} eq 'SUBSTRING' )
             {
-                my $start = $self->buildCondition( $pred->{start} );
-                my $length = $self->buildCondition( $pred->{length} ) if ( _HASH( $pred->{length} ) );
-                $term = SQL::Statement::Function::SubString->new( $self->{OWNER}, $start, $length, \@params );
+                my $start  = $self->buildCondition( $pred->{start} );
+                my $length = $self->buildCondition( $pred->{length} )
+                  if ( _HASH( $pred->{length} ) );
+                $term = SQL::Statement::Function::SubString->new( $self->{OWNER}, $start, $length,
+                                                                  \@params );
             }
             else
             {
-                $term =
-                  SQL::Statement::Function::UserFunc->new( $self->{OWNER}, $pred->{name}, $pred->{subname}, \@params );
+                $term = SQL::Statement::Function::UserFunc->new( $self->{OWNER}, $pred->{name},
+                                                                 $pred->{subname}, \@params );
             }
         }
         else

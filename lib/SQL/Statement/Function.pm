@@ -209,7 +209,8 @@ sub value($)
 {
     my ( $self, $eval ) = @_;
     my $expr = $self->{EXPR};
-    my @vals = map { _INSTANCE( $_, 'SQL::Statement::Term' ) ? $_->value($eval) : $_ } @{ $self->{PARAMS} };
+    my @vals =
+      map { _INSTANCE( $_, 'SQL::Statement::Term' ) ? $_->value($eval) : $_ } @{ $self->{PARAMS} };
     foreach my $val (@vals)
     {
         return $self->do_err(qq~Bad numeric expression '$val'!~)
@@ -395,9 +396,10 @@ sub new
 
 sub value($)
 {
-    my $val    = $_[0]->{PARAMS}->[0]->value( $_[1] );
-    my $start  = $_[0]->{START}->value( $_[1] ) - 1;
-    my $length = defined( $_[0]->{LENGTH} ) ? $_[0]->{LENGTH}->value( $_[1] ) : length($val) - $start;
+    my $val   = $_[0]->{PARAMS}->[0]->value( $_[1] );
+    my $start = $_[0]->{START}->value( $_[1] ) - 1;
+    my $length =
+      defined( $_[0]->{LENGTH} ) ? $_[0]->{LENGTH}->value( $_[1] ) : length($val) - $start;
     return substr( $val, $start, $length );
 }
 

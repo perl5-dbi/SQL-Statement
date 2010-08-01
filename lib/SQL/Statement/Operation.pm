@@ -83,14 +83,19 @@ sub new
     return $self;
 }
 
-sub op { return $_[0]->{OP}; }
-sub left { return $_[0]->{LEFT}; }
+sub op    { return $_[0]->{OP}; }
+sub left  { return $_[0]->{LEFT}; }
 sub right { return $_[0]->{RIGHT}; }
 
 sub operate($)
 {
     Carp::confess(
-          sprintf( q{pure virtual function 'operate' called on %s for %s}, ref( $_[0] ) || __PACKAGE__, $_[0]->{OP} ) );
+                   sprintf(
+                            q{pure virtual function 'operate' called on %s for %s},
+                            ref( $_[0] ) || __PACKAGE__,
+                            $_[0]->{OP}
+                          )
+                 );
 }
 
 sub DESTROY
@@ -401,7 +406,9 @@ sub operate($)
 
     foreach my $r (@right)
     {
-        last if $expr |= ( looks_like_number($left) && looks_like_number($r) ) ? $left == $r : $left eq $r;
+        last
+          if $expr |=
+              ( looks_like_number($left) && looks_like_number($r) ) ? $left == $r : $left eq $r;
     }
 
     return $expr;
@@ -457,7 +464,9 @@ sub operate($)
     my @right = map { $_->value($eval); } @{ $self->{RIGHT} };
     my $expr  = 0;
 
-    if ( looks_like_number($left) && looks_like_number( $right[0] ) && looks_like_number( $right[1] ) )
+    if (    looks_like_number($left)
+         && looks_like_number( $right[0] )
+         && looks_like_number( $right[1] ) )
     {
         $expr = ( $left >= $right[0] ) && ( $left <= $right[1] );
     }
@@ -535,13 +544,23 @@ sub operate($)
 sub numcmp($)
 {
     Carp::confess(
-           sprintf( q{pure virtual function 'numcmp' called on %s for %s}, ref( $_[0] ) || __PACKAGE__, $_[0]->{OP} ) );
+                   sprintf(
+                            q{pure virtual function 'numcmp' called on %s for %s},
+                            ref( $_[0] ) || __PACKAGE__,
+                            $_[0]->{OP}
+                          )
+                 );
 }
 
 sub strcmp($)
 {
     Carp::confess(
-           sprintf( q{pure virtual function 'strcmp' called on %s for %s}, ref( $_[0] ) || __PACKAGE__, $_[0]->{OP} ) );
+                   sprintf(
+                            q{pure virtual function 'strcmp' called on %s for %s},
+                            ref( $_[0] ) || __PACKAGE__,
+                            $_[0]->{OP}
+                          )
+                 );
 }
 
 package SQL::Statement::Operation::Equal;
@@ -886,7 +905,12 @@ sub right($)
 sub regexp($)
 {
     Carp::confess(
-           sprintf( q{pure virtual function 'regexp' called on %s for %s}, ref( $_[0] ) || __PACKAGE__, $_[0]->{OP} ) );
+                   sprintf(
+                            q{pure virtual function 'regexp' called on %s for %s},
+                            ref( $_[0] ) || __PACKAGE__,
+                            $_[0]->{OP}
+                          )
+                 );
 }
 
 sub operate($)

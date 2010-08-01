@@ -65,7 +65,7 @@ sub fetch_row
 sub insert_new_row
 {
     my ( $self, $data, $fields ) = @_;
-    push @{$self->{records}}, clone($fields);
+    push @{ $self->{records} }, clone($fields);
     return 1;
 }
 ##################################

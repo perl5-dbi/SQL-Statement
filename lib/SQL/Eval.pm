@@ -93,12 +93,15 @@ sub capability($)
     my ( $self, $capname ) = @_;
     return $self->{capabilities}->{$capname} if ( defined( $self->{capabilities}->{$capname} ) );
 
-    $capname eq "insert_new_row" and $self->{capabilities}->{insert_new_row} = $self->can("insert_new_row");
-    $capname eq "delete_one_row" and $self->{capabilities}->{delete_one_row} = $self->can("delete_one_row");
+    $capname eq "insert_new_row"
+      and $self->{capabilities}->{insert_new_row} = $self->can("insert_new_row");
+    $capname eq "delete_one_row"
+      and $self->{capabilities}->{delete_one_row} = $self->can("delete_one_row");
     $capname eq "delete_current_row"
       and $self->{capabilities}->{delete_current_row} =
       ( $self->can("delete_current_row") and $self->capability("inplace_delete") );
-    $capname eq "update_one_row" and $self->{capabilities}->{update_one_row} = $self->can("update_one_row");
+    $capname eq "update_one_row"
+      and $self->{capabilities}->{update_one_row} = $self->can("update_one_row");
     $capname eq "update_current_row"
       and $self->{capabilities}->{update_current_row} =
       ( $self->can("update_current_row") and $self->capability("inplace_update") );

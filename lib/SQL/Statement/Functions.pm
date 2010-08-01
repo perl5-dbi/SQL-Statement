@@ -257,7 +257,8 @@ B<CURRENT_TIMESTAMP>
 sub SQL_FUNCTION_CURRENT_TIMESTAMP
 {
     my ( $sec, $min, $hour, $day, $mon, $year ) = localtime;
-    return sprintf( '%4s-%02s-%02s %02s::%02s::%02s', $year + 1900, $mon + 1, $day, $hour, $min, $sec );
+    return
+      sprintf( '%4s-%02s-%02s %02s::%02s::%02s', $year + 1900, $mon + 1, $day, $hour, $min, $sec );
 }
 
 =pod

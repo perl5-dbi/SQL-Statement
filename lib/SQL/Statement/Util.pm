@@ -26,7 +26,8 @@ sub new
     $display_name ||= $col_name;
 
     # print " $col_name !\n";
-    if ( $col_name && ( ( $col_name =~ m/^(".+")\.(.*)$/ ) || ( $col_name =~ m/^([^.]*)\.(.*)$/ ) ) )
+    if ( $col_name
+         && ( ( $col_name =~ m/^(".+")\.(.*)$/ ) || ( $col_name =~ m/^([^.]*)\.(.*)$/ ) ) )
     {
         $table_name = $1;
         $col_name   = $2;

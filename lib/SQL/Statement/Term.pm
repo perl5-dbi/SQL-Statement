@@ -6,6 +6,7 @@ use warnings;
 our $VERSION = '1.29';
 
 use Scalar::Util qw(weaken);
+use Carp ();
 
 =pod
 
@@ -64,7 +65,11 @@ sub DESTROY
     undef $self->{OWNER};
 }
 
-sub value($) { Carp::confess( sprintf( q{pure virtual function '%s->value' called}, ref( $_[0] ) || __PACKAGE__ ) ); }
+sub value($)
+{
+    Carp::confess(
+              sprintf( q{pure virtual function '%s->value' called}, ref( $_[0] ) || __PACKAGE__ ) );
+}
 
 package SQL::Statement::ConstantTerm;
 
