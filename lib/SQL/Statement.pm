@@ -2520,6 +2520,8 @@ Gives the error string of the last error, if any.
 
 =head2 where_hash
 
+=head2 column_defs
+
 =end undocumented
 
 =head1 SUPPORT
