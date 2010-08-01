@@ -5,7 +5,7 @@ use warnings;
 
 use base qw(Exporter);
 our @EXPORT  = qw(get_config_as_hash);
-our $VERSION = '1.29';
+our $VERSION = '1.30';
 
 sub get_config_as_hash
 {

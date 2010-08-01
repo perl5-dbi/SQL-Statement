@@ -20,7 +20,7 @@ use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.29';
+$VERSION = '1.30';
 
 BEGIN
 {

@@ -1,5 +1,11 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.30, released August 1st, 2010
+----------------------------------------------
+
+[Bug fixes]
+* remove blib directory from distfile
+
 Version 1.29, released August 1st, 2010
 ----------------------------------------------
 

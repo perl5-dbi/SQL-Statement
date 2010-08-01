@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SQL-Statement
-version:            1.29
+version:            1.30
 abstract:           SQL parsing and processing engine
 author:
     - Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>
@@ -27,7 +27,7 @@ no_index:
     directory:
         - t
         - inc
-generated_by:       ExtUtils::MakeMaker version 6.5601
+generated_by:       ExtUtils::MakeMaker version 6.56
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4
