@@ -6,22 +6,21 @@ SQL::Statement::Structure - parse and examine structure of SQL queries
 
 =head1 SYNOPSIS
 
- use SQL::Statement;
- my $sql    = "SELECT a FROM b JOIN c WHERE c=? AND e=7 ORDER BY f DESC LIMIT 5,2";
- my $parser = SQL::Parser->new();
- $parser->{RaiseError}=1;
- $parser->{PrintError}=0;
- $parser->parse("LOAD 'MyLib::MySyntax' ");
- my $stmt = SQL::Statement->new($sql,$parser);
- printf "Command             %s\n",$stmt->command;
- printf "Num of Placeholders %s\n",scalar $stmt->params;
- printf "Columns             %s\n",join( ',', map {$_->name} $stmt->column_defs() );
- printf "Tables              %s\n",join( ',', map {$_->name} $stmt->tables() );
- printf "Where operator      %s\n",join( ',', $stmt->where->op() );
- printf "Limit               %s\n",$stmt->limit();
- printf "Offset              %s\n",$stmt->offset();
- printf "Order Columns       %s\n",join(',', map {$_->column} $stmt->order() );
- __END__
+    use SQL::Statement;
+    my $sql    = "SELECT a FROM b JOIN c WHERE c=? AND e=7 ORDER BY f DESC LIMIT 5,2";
+    my $parser = SQL::Parser->new();
+    $parser->{RaiseError}=1;
+    $parser->{PrintError}=0;
+    $parser->parse("LOAD 'MyLib::MySyntax' ");
+    my $stmt = SQL::Statement->new($sql,$parser);
+    printf "Command             %s\n",$stmt->command;
+    printf "Num of Placeholders %s\n",scalar $stmt->params;
+    printf "Columns             %s\n",join( ',', map {$_->name} $stmt->column_defs() );
+    printf "Tables              %s\n",join( ',', map {$_->name} $stmt->tables() );
+    printf "Where operator      %s\n",join( ',', $stmt->where->op() );
+    printf "Limit               %s\n",$stmt->limit();
+    printf "Offset              %s\n",$stmt->offset();
+    printf "Order Columns       %s\n",join(',', map {$_->column} $stmt->order() );
 
 =head1 DESCRIPTION
 

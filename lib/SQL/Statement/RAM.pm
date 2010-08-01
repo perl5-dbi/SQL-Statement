@@ -2,12 +2,18 @@
 package SQL::Statement::RAM;
 ############################
 
+use strict;
+use warnings;
+
 use vars qw($VERSION);
 $VERSION = '1.29';
 
 ####################################
 package SQL::Statement::RAM::Table;
 ####################################
+
+use strict;
+use warnings;
 
 require SQL::Eval;
 

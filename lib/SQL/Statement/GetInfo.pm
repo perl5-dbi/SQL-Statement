@@ -1,10 +1,12 @@
 package SQL::Statement::GetInfo;
 
-use vars qw($VERSION);
+use strict;
+use warnings;
+
+use vars qw($VERSION %info);
 $VERSION = '1.29';
 
 use SQL::Statement();
-use vars qw(%info);
 
 my @Keywords = qw(
   INTEGERVAL STRING REALVAL IDENT NULLVAL PARAM OPERATOR IS AND OR ERROR

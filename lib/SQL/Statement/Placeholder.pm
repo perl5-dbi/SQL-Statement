@@ -1,5 +1,8 @@
 package SQL::Statement::Placeholder;
 
+use strict;
+use warnings;
+
 use vars qw(@ISA);
 require Carp;
 

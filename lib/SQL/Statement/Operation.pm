@@ -1,5 +1,8 @@
 package SQL::Statement::Operation;
 
+use strict;
+use warnings;
+
 use vars qw(@ISA);
 require Carp;
 
@@ -49,6 +52,18 @@ Return the result of the operation of the term by calling L<operate>
 I<Abstract> method which will do the operation of the term. Must be
 overridden by derived classes.
 
+=head2 op
+
+Returns the name of the executed operation.
+
+=head2 left
+
+Returns the left operand (if any).
+
+=head2 right
+
+Returns the right operand (if any).
+
 =head2 DESTROY
 
 Destroys the term and undefines the weak reference to the owner as well
@@ -67,6 +82,10 @@ sub new
 
     return $self;
 }
+
+sub op { return $_[0]->{OP}; }
+sub left { return $_[0]->{LEFT}; }
+sub right { return $_[0]->{RIGHT}; }
 
 sub operate($)
 {

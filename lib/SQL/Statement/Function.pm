@@ -1,9 +1,13 @@
 package SQL::Statement::Function;
 
+use strict;
+use warnings;
+use vars qw(@ISA $VERSION);
+
 require SQL::Statement::Term;
 @ISA = qw(SQL::Statement::Term);
 
-our $VERSION = '1.29';
+$VERSION = '1.29';
 
 =pod
 

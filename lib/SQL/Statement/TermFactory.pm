@@ -1,5 +1,8 @@
 package SQL::Statement::TermFactory;
 
+use strict;
+use warnings;
+
 require SQL::Statement::Term;
 require SQL::Statement::Operation;
 require SQL::Statement::Placeholder;
@@ -47,7 +50,7 @@ sub _getOpClass($)
     {
         my $opBase = 'SQL::Statement::Operation';
         my $opDialect = join( '::', $opBase, $self->{OWNER}->{dialect}, $oplist{$op} );
-        $opClasses{$op} = UNIVERSAL::isa( $opDialect, $opBase ) ? $opDialect : join( '::', $opBase, $oplist{$op} );
+        $opClasses{$op} = $opDialect->isa( $opBase ) ? $opDialect : join( '::', $opBase, $oplist{$op} );
     }
 
     return $opClasses{$op};

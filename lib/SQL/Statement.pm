@@ -84,7 +84,10 @@ sub prepare
     my $rv = $parser->parse($sql);
     if ($rv)
     {
-        %$self = ( %$self, %{ clone( $parser->{struct} ) } );
+	while( my ($k,$v) = each(%{$parser->{struct}}) )
+	{
+	    $self->{$k} = $v;
+	}
         undef $self->{where_terms};
         undef $self->{columns};
         $self->{argnum} = 0;
@@ -1841,6 +1844,8 @@ sub do_err
 sub errstr() { return $_[0]->{errstr}; }
 
 sub where_hash() { return $_[0]->{where_clause}; }
+
+sub column_defs() { return $_[0]->{column_defs}; }
 
 sub where()
 {
