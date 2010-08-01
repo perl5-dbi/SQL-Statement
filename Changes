@@ -1,7 +1,13 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.29, released 
+Version 1.29, released August 1st, 2010
 ----------------------------------------------
+
+[Bug fixes]
+* add some getters as documented in SQL::Statement::Structure
+  (fixes RT#59834, thanks John Wiersba)
+* add missing import of function croak to SQL::Statement::Term::ColumnValue
+* fix assignment of parser result (doesn't run with perl-5.13.3)
 
 Version 1.28, released July 15th, 2010
 ----------------------------------------------
