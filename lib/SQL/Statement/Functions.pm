@@ -198,7 +198,7 @@ Table-Returning functions are a way to turn *anything* that can be modeled as an
 =cut
 
 use vars qw($VERSION);
-$VERSION = '1.30';
+$VERSION = '1.31';
 
 =pod
 
