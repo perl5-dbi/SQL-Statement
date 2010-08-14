@@ -49,11 +49,10 @@ Destroys the term and undefines the weak reference to the owner.
 
 sub new
 {
-    my ( $class, $owner ) = @_;
+    my $class = $_[0];
+    my $owner = $_[1];
 
-    my %instance = ( OWNER => $owner );
-
-    my $self = bless( \%instance, $class );
+    my $self = bless( { OWNER => $owner }, $class );
     weaken( $self->{OWNER} );
 
     return $self;

@@ -325,6 +325,42 @@ TODO: {
     }
 }
 
+if( $ENV{SQL_STATEMENT_JOIN_SPEED_TEST} )
+{
+    for my $i (0 .. 100)
+    {
+	$sth = $dbh->prepare("SELECT * FROM t1 CROSS JOIN t2");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 INNER JOIN t2 ON t1.num = t2.num" );
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 INNER JOIN t2 USING (num)");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 LEFT JOIN t2 ON t1.num = t2.num");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 LEFT JOIN t2 USING (num)");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 RIGHT JOIN t2 ON t1.num = t2.num");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t2 LEFT JOIN t1 ON t1.num = t2.num");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 FULL JOIN t2 ON t1.num = t2.num");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 LEFT JOIN t2 ON t1.num = t2.num AND t2.wert = 'xxx'");
+	$sth->execute();
+
+	$sth = $dbh->prepare( "SELECT * FROM t1 LEFT JOIN t2 ON t1.num = t2.num WHERE (t2.wert = 'xxx' OR t2.wert IS NULL)");
+	$sth->execute();
+    }
+}
+
 __DATA__
 CREATE TEMP TABLE t1    (num INT, name TEXT);
 CREATE TEMP TABLE t2    (num INT, wert TEXT);

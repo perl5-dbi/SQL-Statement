@@ -1,5 +1,16 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.31, released August 
+----------------------------------------------
+
+[Bug fixes]
+* Fix misbehaviour of DELETE/UPDATE for tables with only basic capabilities
+  and no matching where clause (reported by H.Merijn Brand and Drew ...)
+* Fix some column identifier splits to respect quoted tables
+
+[Improvements]
+* Optimized some core routines between 25% and 50%.
+
 Version 1.30, released August 1st, 2010
 ----------------------------------------------
 

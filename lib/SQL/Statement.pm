@@ -86,12 +86,14 @@ sub prepare
     my $rv = $parser->parse($sql);
     if ($rv)
     {
-        while ( my ( $k, $v ) = each( %{ $parser->{struct} } ) )
+        my $parser_struct = clone( $parser->{struct} );
+        while ( my ( $k, $v ) = each( %{$parser_struct} ) )
         {
             $self->{$k} = $v;
         }
         undef $self->{where_terms};
         undef $self->{columns};
+        undef $self->{splitted_all_cols};
         $self->{argnum} = 0;
 
         my $values    = $self->{values};
@@ -218,6 +220,7 @@ sub CREATE ($$$)
         push( @{$row}, $col->name() );
     }
     $table->push_names( $data, $row );
+
     return ( 0, 0 );
 }
 
@@ -263,7 +266,7 @@ sub DROP ($$$)
     $table->drop($data);
 
     #use mylibs; zwarn $self->{sql_stmt};
-    ( -1, 0 );
+    return ( -1, 0 );
 }
 
 sub INSERT ($$$)
@@ -326,7 +329,8 @@ sub INSERT ($$$)
     {
         return $self->do_err("Bad col names in INSERT");
     }
-    ( $k, 0 );
+
+    return ( $k, 0 );
 }
 
 sub DELETE ($$$)
@@ -337,9 +341,9 @@ sub DELETE ($$$)
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
     return if ( $self->{errstr} );
-    my $tname      = $self->tables(0)->name();
-    my ($table)    = $eval->table($tname);
-    my ($affected) = 0;
+    my $tname    = $self->tables(0)->name();
+    my ($table)  = $eval->table($tname);
+    my $affected = 0;
     my ( @rows, $array );
 
     while ( $array = $table->fetch_row($data) )
@@ -369,11 +373,10 @@ sub DELETE ($$$)
         push( @rows, $array ) unless ( $table->capability('rowwise_delete') );
     }
 
-    if (@rows)
+    if ($affected)
     {
-        if ( $table->capability('rowwise_delete')
-          )    # @rows is empty in case of inplace_delete capability
-        {
+        if ( $table->capability('rowwise_delete') )
+        {    # @rows is empty in case of inplace_delete capability
             foreach my $array (@rows)
             {
                 $table->delete_one_row( $data, $array );
@@ -408,9 +411,9 @@ sub UPDATE ($$$)
     $self->verify_columns( $data, $eval, $all_cols );
     return if ( $self->{errstr} );
 
-    my $tname      = $self->tables(0)->name();
-    my ($table)    = $eval->table($tname);
-    my ($affected) = 0;
+    my $tname    = $self->tables(0)->name();
+    my ($table)  = $eval->table($tname);
+    my $affected = 0;
     my @rows;
 
     while ( my $array = $table->fetch_row($data) )
@@ -483,11 +486,10 @@ sub UPDATE ($$$)
         push( @rows, $array ) unless ( $table->capability('rowwise_update') );
     }
 
-    if (@rows)
+    if ($affected)
     {
-        if ( $table->capability('rowwise_update')
-          )    # @rows is empty in case of inplace_update capability
-        {
+        if ( $table->capability('rowwise_update') )
+        {    # @rows is empty in case of inplace_update capability
             foreach my $array (@rows)
             {
                 if ( $table->capability('update_specific_row') )
@@ -670,36 +672,35 @@ sub join_2_tables
     $join_type = 'RIGHT' if ( -1 != index( $self->{join}->{type}, 'RIGHT' ) );
     $join_type = 'FULL'  if ( -1 != index( $self->{join}->{type}, 'FULL' ) );
 
-    if ( $join_type eq 'RIGHT' )
+    my $right_join = $join_type eq 'RIGHT';
+    if ($right_join)
     {
         my $tmpTbl = $tableAobj;
         $tableAobj = $tableBobj;
         $tableBobj = $tmpTbl;
     }
 
-    my $tableA =
-      ( 0 == index( $tableAobj->{NAME}, '"' ) ) ? $tableAobj->{NAME} : lc( $tableAobj->{NAME} );
-    my $tableB =
-      ( 0 == index( $tableBobj->{NAME}, '"' ) ) ? $tableBobj->{NAME} : lc( $tableBobj->{NAME} );
-    my @colsA = @{ $tableAobj->col_names };
-    my @colsB = @{ $tableBobj->col_names };
-    my %isunqualA;
-    my %isunqualB = map { $_ => 1 } @colsB;
-    my @shared_cols;
-    my %is_shared;
+    my $tableA = $tableAobj->{NAME};
+    ( 0 != index( $tableA, '"' ) ) and $tableA = lc $tableA;
+    my $tableB = $tableBobj->{NAME};
+    ( 0 != index( $tableB, '"' ) ) and $tableB = lc $tableB;
+    my @colsA = @{ $tableAobj->col_names() };
+    my @colsB = @{ $tableBobj->col_names() };
+    my ( %isunqualA, %isunqualB, @shared_cols );
+    $isunqualB{ $colsB[$_] } = 1 for ( 0 .. $#colsB );
     my @tmpshared = @{ $self->{join}->{shared_cols} };
 
     if ( $share_type eq 'ON' )
     {
-        @tmpshared = reverse @tmpshared if ( $join_type eq 'RIGHT' );
+        $right_join and @tmpshared = reverse @tmpshared;
     }
     elsif ( $share_type eq 'USING' )
     {
-        for (@tmpshared)
+        foreach my $c (@tmpshared)
         {
-            $_ =~ s/\w+$self->{dlm}//;
-            push( @shared_cols, $tableA . $self->{dlm} . $_ );
-            push( @shared_cols, $tableB . $self->{dlm} . $_ );
+            substr( $c, 0, index( $c, $self->{dlm} ) + 1 ) = '';
+            push( @shared_cols, $tableA . $self->{dlm} . $c );
+            push( @shared_cols, $tableB . $self->{dlm} . $c );
         }
     }
     elsif ( $share_type eq 'NATURAL' )
@@ -717,37 +718,55 @@ sub join_2_tables
             }
         }
     }
-    my @all_cols;
-    if ( $join_type eq 'RIGHT' )
+
+    my %whichqual;
+    if ( $share_type eq 'ON' || $share_type eq 'IMPLICIT' )
     {
-        @all_cols = map { $tableB . $self->{dlm} . $_ } @colsB;
-        @all_cols = ( @all_cols, map { $tableA . $self->{dlm} . $_ } @colsA );
+        foreach my $colb (@colsB)
+        {
+            $colb = $whichqual{$colb} = $tableB . $self->{dlm} . $colb;
+        }
     }
     else
     {
-        @all_cols = map { $tableA . $self->{dlm} . $_ } @colsA;
-        @all_cols = ( @all_cols, map { $tableB . $self->{dlm} . $_ } @colsB );
+        @colsB = map { $tableB . $self->{dlm} . $_ } @colsB;
     }
-    foreach (@all_cols) { $_ =~ s/$self->{dlm}tmp$self->{dlm}//; }
-    my $colrx = qr/^([^$self->{dlm}]+)$self->{dlm}(.+)$/;
+
+    my @all_cols = map { $tableA . $self->{dlm} . $_ } @colsA;
+    @all_cols = $right_join ? ( @colsB, @all_cols ) : ( @all_cols, @colsB );
+    {
+        my $str = $self->{dlm} . "tmp" . $self->{dlm};
+        foreach (@all_cols)
+        {
+            my $pos = index( $_, $str );
+            $pos >= 0 and substr( $_, $pos, length($str) ) = '';
+        }
+    }
     if ( $tableA eq $self->{dlm} . 'tmp' )
     {
-        %isunqualA = map { $_ => 1 } map { my ( $t, $c ) = $_ =~ $colrx; $c } @colsA;
+        foreach my $colA (@colsA)
+        {
+            my $c = substr( $colA, index( $colA, $self->{dlm} ) + 1 );
+            $isunqualA{$c} = $colA;
+        }
+        #%isunqualA =
+        #  map { my ($c) = $_ =~ m/^(?:[^$self->{dlm}]+)$self->{dlm}(.+)$/; $c => $_ } @colsA;
     }
     else
     {
-        %isunqualA = map { $_ => 1 } @colsA;
-        @colsA = map { $tableA . $self->{dlm} . $_ } @colsA;
+        foreach my $cola (@colsA)
+        {
+            $cola = $isunqualA{$cola} = $tableA . $self->{dlm} . $cola;
+        }
     }
-    @colsB = map { $tableB . $self->{dlm} . $_ } @colsB;
-    my $i = 0;                                   # FIXME -1 and pre-inc?
-    my %col_numsA = map { $_ => $i++ } @colsA;
-    $i = 0;
-    my %col_numsB = map { $_ => $i++ } @colsB;
+
+    my ( %col_numsA, %col_numsB );
+    $col_numsA{ $colsA[$_] } = $_ for ( 0 .. $#colsA );
+    $col_numsB{ $colsB[$_] } = $_ for ( 0 .. $#colsB );
 
     if ( $share_type eq 'ON' || $share_type eq 'IMPLICIT' )
     {
-        my %whichqual = map { my ( $t, $c ) = $_ =~ $colrx; $c => $_ } ( @colsA, @colsB );
+        %whichqual = ( %whichqual, %isunqualA );
 
         while (@tmpshared)
         {
@@ -757,82 +776,81 @@ sub join_2_tables
             next if ( $isunqualA{$k1} && $isunqualA{$k2} );
             next if ( $isunqualB{$k1} && $isunqualB{$k2} );
 
-            $k1 = $whichqual{$k1} if ( $whichqual{$k1} );
-            $k2 = $whichqual{$k2} if ( $whichqual{$k2} );
+            defined( $whichqual{$k1} ) and $k1 = $whichqual{$k1};
+            defined( $whichqual{$k2} ) and $k2 = $whichqual{$k2};
 
-            push( @shared_cols, $k1, $k2 )
-              if ( defined( $col_numsA{$k1} ) && defined( $col_numsB{$k2} ) );
-            push( @shared_cols, $k2, $k1 )
-              if ( defined( $col_numsA{$k2} ) && defined( $col_numsB{$k1} ) );
-
+            if ( defined( $col_numsA{$k1} ) && defined( $col_numsB{$k2} ) )
+            {
+                push( @shared_cols, $k1, $k2 );
+            }
+            elsif ( defined( $col_numsA{$k2} ) && defined( $col_numsB{$k1} ) )
+            {
+                push( @shared_cols, $k2, $k1 );
+            }
         }
     }
-    %is_shared = map { $_ => 1 } @shared_cols;
+
+    my %is_shared;
     for my $c (@shared_cols)
     {
-        unless ( defined( $col_numsA{$c} ) or defined( $col_numsB{$c} ) )
-        {
-            $self->do_err("Can't find shared columns!");
-        }
+        $is_shared{$c} = 1;
+        defined( $col_numsA{$c} )
+          or defined( $col_numsB{$c} )
+          or return $self->do_err("Can't find shared columns!");
     }
     my ( $posA, $posB ) = ( [], [] );
     for my $f (@shared_cols)
     {
-        push( @{$posA}, $col_numsA{$f} ) if ( defined( $col_numsA{$f} ) );
-        push( @{$posB}, $col_numsB{$f} ) if ( defined( $col_numsB{$f} ) );
+        defined( $col_numsA{$f} ) and push( @{$posA}, $col_numsA{$f} );
+        defined( $col_numsB{$f} ) and push( @{$posB}, $col_numsB{$f} );
     }
 
+    my $is_inner_join = $join_type eq "INNER";
     #use mylibs; zwarn $self->{join};
     # CYCLE THROUGH TABLE B, CREATING A HASH OF ITS VALUES
     #
     my $hashB = {};
-    while ( my $array = $tableBobj->fetch_row($data) )
+  TBLBFETCH: while ( my $array = $tableBobj->fetch_row($data) )
     {
-        my $has_null_key = 0;
-        my @key_vals     = @$array[@$posB];
-        for (@key_vals)
+        my @key_vals = @$array[@$posB];
+        if ($is_inner_join)
         {
-            next if ( defined($_) );
-            ++$has_null_key;
-            last;
+            defined($_) or next TBLBFETCH for (@key_vals);
         }
-        next if ( $has_null_key and $join_type eq 'INNER' );
         my $hashkey = join( ' ', @key_vals );
         push( @{ $hashB->{$hashkey} }, $array );
     }
 
     # CYCLE THROUGH TABLE A
     #
-    my @blankRow     = (undef) x scalar(@colsB);
+    my $blankRow;
     my $joined_table = [];
     my %visited;
-    while ( my $arrayA = $tableAobj->fetch_row($data) )    # use tbl1st & tbl2nd
+  TBLAFETCH: while ( my $arrayA = $tableAobj->fetch_row($data) )    # use tbl1st & tbl2nd
     {
-        my $has_null_key = 0;
-        my @key_vals     = @$arrayA[@$posA];
-        for (@key_vals)
+        my @key_vals = @$arrayA[@$posA];
+        if ($is_inner_join)
         {
-            unless ( defined($_) ) { ++$has_null_key; last; }
+            defined($_) or next TBLAFETCH for (@key_vals);
         }
-        next if ( $has_null_key and $join_type eq 'INNER' );
         my $hashkey = join( ' ', @key_vals );
         my $rowsB = $hashB->{$hashkey};
         if ( !defined($rowsB) && ( $join_type ne 'INNER' ) )
         {
-            push( @{$rowsB}, \@blankRow );
+            defined($blankRow) or $blankRow = [ (undef) x scalar(@colsB) ];
+            $rowsB = [$blankRow];
         }
-        for my $arrayB ( @{$rowsB} )
-        {
-            if ( $join_type ne 'UNION' )
-            {
-                my @newRow =
-                    ( $join_type ne 'RIGHT' )
-                  ? ( @{$arrayA}, @{$arrayB} )
-                  : ( @{$arrayB}, @{$arrayA} );
 
-                push( @$joined_table, \@newRow );
+        if ( $join_type ne 'UNION' )
+        {
+            for my $arrayB ( @{$rowsB} )
+            {
+                my $newRow = $right_join ? [ @{$arrayB}, @{$arrayA} ] : [ @{$arrayA}, @{$arrayB} ];
+
+                push( @$joined_table, $newRow );
             }
         }
+
         ++$visited{$hashkey};
     }
 
@@ -856,14 +874,16 @@ sub join_2_tables
                     push( @tmpB,   $rowhash->{$c} ) if ( $table eq $tableB );
                 }
                 @arrayA[@$posA] = @tmpB[@$posB] if ($st_is_NaturalOrUsing);
-                my @newRow = ( @arrayA, @tmpB );
-                push( @{$joined_table}, \@newRow );
+                my $newRow = [ @arrayA, @tmpB ];
+                push( @{$joined_table}, $newRow );
             }
         }
     }
+
     undef $hashB;
     undef $tableAobj;
     undef $tableBobj;
+
     $self->{join}->{table} =
       SQL::Statement::TempTable->new( $self->{dlm} . 'tmp',          \@all_cols,
                                       $self->{join}->{display_cols}, $joined_table );
@@ -889,12 +909,12 @@ sub SELECT($$)
     my ( $self, $data, $params ) = @_;
 
     $self->{params} ||= $params;
-    return $self->run_functions( $data, $params ) unless ( _ARRAY( $self->{table_names} ) );
+    defined( _ARRAY( $self->{table_names} ) ) or return $self->run_functions( $data, $params );
 
     my ( $eval, $all_cols, $tableName, $table );
     if ( defined( $self->{join} ) )
     {
-        return $self->JOIN( $data, $params ) if ( !defined $self->{join}->{table} );
+        defined $self->{join}->{table} or return $self->JOIN( $data, $params );
         $tableName = $self->{dlm} . 'tmp';
         $table     = $self->{join}->{table};
     }
@@ -1160,33 +1180,28 @@ sub open_table ($$$$$) { croak "Abstract method " . ref( $_[0] ) . "::open_table
 sub open_tables
 {
     my ( $self, $data, $createMode, $lockMode ) = @_;
-    my @call   = caller 4;
-    my $caller = $call[3];
-    if ($caller)
-    {
-        $caller =~ s/^([^:]*::[^:]*)::.*$/$1/;
-    }
     my @c;
-    my $t;
-    my $is_col;
+    my $t      = {};
     my @tables = $self->tables();
     my $count  = -1;
-    for (@tables)
+    for my $tbl (@tables)
     {
         ++$count;
-        my $name = $_->name();
+        my $name = $tbl->name();
         if ( $name =~ m/^(.+)\.([^\.]+)$/ )
         {
             my $schema = $1;    # ignored
-            $name = $_->{name} = $2;
+            $name = $tbl->{name} = $2;
         }
 
-        my $u_func = $self->{table_func}->{ uc $name };
-        if ($u_func)
+        if ( defined( $self->{table_func} ) && defined( $self->{table_func}->{ uc $name } ) )
         {
+            my $u_func = $self->{table_func}->{ uc $name };
             $t->{$name} = $self->get_user_func_table( $name, $u_func );
         }
-        elsif ( $data->{Database}->{sql_ram_tables}->{$name} )
+        elsif (    defined( $data->{Database}->{sql_ram_tables} )
+                && defined( $data->{Database}->{sql_ram_tables}->{$name} )
+                && $data->{Database}->{sql_ram_tables}->{$name} )
         {
             $t->{$name} = $data->{Database}->{sql_ram_tables}->{$name};
             $t->{$name}->seek( $data, 0, 0 );
@@ -1244,7 +1259,7 @@ sub open_tables
         @c = ( @c, @newcols );
     }
 
-    $self->buildColumnObjects($t);
+    $self->buildColumnObjects( $t, \@tables );
     return $self->do_err( $self->{errstr} ) if ( $self->{errstr} );
 
     ##################################################
@@ -1272,7 +1287,7 @@ sub open_tables
 
 sub getColumnObject($)
 {
-    my ( $self, $newcol, $t ) = @_;
+    my ( $self, $newcol, $t, $tables ) = @_;
     my @columns;
 
     if ( ( $newcol->{type} eq 'column' ) && ( -1 != index( $newcol->{value}, '*' ) ) )
@@ -1288,7 +1303,7 @@ sub getColumnObject($)
         }
         else
         {
-            @tables = map { $_->name() } $self->tables();
+            @tables = map { $_->name() } @{$tables};
         }
 
         my $join = defined( _HASH( $self->{join} ) )
@@ -1384,7 +1399,7 @@ sub getColumnObject($)
 
 sub buildColumnObjects($)
 {
-    my ( $self, $t ) = @_;
+    my ( $self, $t, $tables ) = @_;
 
     return unless ( defined( _ARRAY0( $self->{column_defs} ) ) );
     return if ( defined( _ARRAY0( $self->{columns} ) ) );
@@ -1396,7 +1411,7 @@ sub buildColumnObjects($)
     {
         my $colentry = $coldefs->[$i];
 
-        my @columns = $self->getColumnObject( $colentry, $t );
+        my @columns = $self->getColumnObject( $colentry, $t, $tables );
         return if ( $self->{errstr} );
 
         foreach my $col (@columns)
@@ -1508,13 +1523,17 @@ sub verify_columns
     my %col_exists = map { $_ => 1 } @tmp_cols;
 
     my ( %is_member, @duplicates, %is_duplicate );
-    foreach (@$all_cols) { $_ =~ s/[^.]*\.(.*)/$1/; }   # XXX we're modifying $all_cols from caller!
+    # $_ =~ s/[^.]*\.(.*)/$1/;
+    foreach (@$all_cols)
+    {
+        substr( $_, 0, index( $_, '.' ) + 1 ) = '';
+    }    # XXX we're modifying $all_cols from caller!
     @duplicates = grep( $is_member{$_}++, @$all_cols );
     %is_duplicate = map { $_ => 1 } @duplicates;
     if ( exists( $self->{join} ) && defined( _HASH( $self->{join} ) ) )
     {
         my $join = $self->{join};
-        if ( $join->{type} =~ m/NATURAL/i )
+        if ( -1 != index( uc $join->{type}, 'NATURAL' ) )
         {
             %is_duplicate = ();
         }
@@ -1629,8 +1648,7 @@ sub row_values(;$$)
         return 0 unless ( defined( $_[0]->{values}->[ $_[1] ] ) );
         return $_[0]->{values}->[ $_[1] ]->[ $_[2] ] if ( defined $_[2] );
 
-        return
-          wantarray
+        return wantarray
           ? map { $_->{value} } @{ $_[0]->{values}->[ $_[1] ] }
           : scalar @{ $_[0]->{values}->[ $_[1] ] };
     }
@@ -1716,21 +1734,32 @@ sub full_qualified_column_name($)
     return undef unless ( defined($col_name) );
 
     my ( $tbl, $col );
-    if ( $col_name =~ m/^(.+)\.(.+)$/ )
-    {
-        ( $tbl, $col ) = ( $1, $2 );
-    }
-    else
+    unless ( ( $tbl, $col ) = $col_name =~ m/^((?:"[^"]+")|(?:[^.]+))\.(.*)$/ )
     {
         $col = $col_name;
     }
 
-    for my $full_col ( @{ $self->{all_cols} } )
+    unless ( defined( $self->{splitted_all_cols} ) )
     {
-        my ( $stbl, $scol ) = $full_col =~ m/^(.+)\.(.+)$/;
-        next unless ( $scol || '' ) eq $col;
-        next if ( defined($tbl) && ( $tbl ne $stbl ) );
-        return ( $stbl, $scol );
+        my @rc;
+        for my $full_col ( @{ $self->{all_cols} } )
+        {
+            if ( my ( $stbl, $scol ) = $full_col =~ m/^((?:"[^"]+")|(?:[^.]+))\.(.*)$/ )
+            {
+                push( @{ $self->{splitted_all_cols} }, [ $stbl, $scol ] );
+                defined($tbl) and ( $tbl ne $stbl ) and next;
+                ( $scol eq $col ) and @rc = ( $stbl, $scol );
+            }
+        }
+        @rc and return @rc;
+    }
+    else
+    {
+        for my $splitted_col ( @{ $self->{splitted_all_cols} } )
+        {
+            defined($tbl) and ( $tbl ne $splitted_col->[0] ) and next;
+            ( $splitted_col->[1] eq $col ) and return @$splitted_col;
+        }
     }
 
     return ( $tbl, $col );
@@ -1779,12 +1808,10 @@ sub order
 
 sub tables
 {
-    if ( looks_like_number( $_[1] ) )
-    {
-        return $_[0]->{tables}->[ $_[1] ];
-    }
-
-    return wantarray ? @{ $_[0]->{tables} } : scalar @{ $_[0]->{tables} };
+    return
+        defined( $_[1] ) && looks_like_number( $_[1] ) ? $_[0]->{tables}->[ $_[1] ]
+      : wantarray ? @{ $_[0]->{tables} }
+      :             scalar @{ $_[0]->{tables} };
 }
 
 sub order_joins
@@ -2148,17 +2175,13 @@ BEGIN
 sub new
 {
     my ( $class, $name, $col_names, $table_cols, $table ) = @_;
-    my $col_nums;
-    for my $i ( 0 .. scalar @$col_names - 1 )
-    {
-        $col_names->[$i] = $col_names->[$i];
-        $col_nums->{ $col_names->[$i] } = $i;
-    }
-    my @display_order = map { $col_nums->{$_} } @$table_cols;
+    my %col_nums;
+    $col_nums{ $col_names->[$_] } = $_ for ( 0 .. scalar @$col_names - 1 );
+    my @display_order = @col_nums{@$table_cols};
     my $self = {
                  col_names  => $col_names,
                  table_cols => \@display_order,
-                 col_nums   => $col_nums,
+                 col_nums   => \%col_nums,
                  table      => $table,
                  NAME       => $name,
                  rowpos     => 0,
@@ -2186,9 +2209,13 @@ sub column_num($)
 
 sub fetch_row()
 {
-    return $_[0]->{row} = undef if ( $_[0]->{rowpos} >= $_[0]->{maxrow} );
-    return $_[0]->{row} = $_[0]->{table}->[ $_[0]->{rowpos}++ ];
+    return $_[0]->{row} =
+      ( $_[0]->{rowpos} >= $_[0]->{maxrow} )
+      ? undef
+      : $_[0]->{table}->[ $_[0]->{rowpos}++ ];
 }
+
+sub column($) { return $_[0]->{row}->[ $_[0]->{col_nums}->{ $_[1] } ]; }
 
 package SQL::Statement::Order;
 

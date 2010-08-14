@@ -2830,7 +2830,7 @@ sub clean_sql
     $sql =~ s~(?<!')'(([^'$e]|$e.|'')+)'~push(@$fields,$1);$i++;"?$i?"~ge;
 
     #
-    @$fields = map { s/''/\\'/g; $_ } @$fields;
+    foreach (@$fields) { $_ =~ s/''/\\'/g; }
     if ( $sql =~ tr/[^\\]'// % 2 == 1 )
     {
         $sql =~ s/^.*\?(.+)$/$1/;
@@ -2841,13 +2841,13 @@ sub clean_sql
         $sql = $fields->[$1];
         $self->do_err("Mismatched single quote: '$sql");
     }
-    @$fields = map { s/$e'/'/g; s/^'(.*)'$/$1/; $_ } @$fields;
+    foreach (@$fields) { $_ =~ s/$e'/'/g; s/^'(.*)'$/$1/; }
 
     #
     # From Steffen G. to correctly return newlines from $dbh->quote;
     #
-    @$fields = map { s/([^\\])\\r/$1\r/g; $_ } @$fields;
-    @$fields = map { s/([^\\])\\n/$1\n/g; $_ } @$fields;
+    foreach (@$fields) { $_ =~ s/([^\\])\\r/$1\r/g; }
+    foreach (@$fields) { $_ =~ s/([^\\])\\n/$1\n/g; }
 
     $self->{struct}->{literals} = $fields;
 

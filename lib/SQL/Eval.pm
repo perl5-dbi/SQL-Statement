@@ -74,11 +74,7 @@ sub _map_colnums
 {
     my $col_names = $_[0];
     my %col_nums;
-    for my $i ( 0 .. $#$col_names )
-    {
-        next unless $col_names->[$i];
-        $col_nums{ $col_names->[$i] } = $i;
-    }
+    $col_nums{ $col_names->[$_] } = $_ for ( 0 .. scalar @$col_names - 1 );
     return \%col_nums;
 }
 

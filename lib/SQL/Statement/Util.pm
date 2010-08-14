@@ -25,14 +25,12 @@ sub new
     my ( $class, $col_name, $table_name, $term, $display_name, $full_orig_name, $coldef ) = @_;
     $display_name ||= $col_name;
 
-    # print " $col_name !\n";
-    if ( $col_name
-         && ( ( $col_name =~ m/^(".+")\.(.*)$/ ) || ( $col_name =~ m/^([^.]*)\.(.*)$/ ) ) )
+    if ( $col_name && ( $col_name =~ m/^((?:"[^"]+")|(?:[^.]*))\.(.*)$/ ) )
     {
         $table_name = $1;
         $col_name   = $2;
     }
-    elsif ( _ARRAY($table_name) && ( scalar( @{$table_name} ) == 1 ) )
+    elsif ( defined( _ARRAY($table_name) ) && ( scalar( @{$table_name} ) == 1 ) )
     {
         $table_name = $table_name->[0];
     }

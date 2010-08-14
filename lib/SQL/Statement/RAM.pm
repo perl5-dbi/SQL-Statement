@@ -21,7 +21,6 @@ use vars qw(@ISA);
 @ISA = qw(SQL::Eval::Table);
 
 use Carp qw(croak);
-use Clone qw(clone);
 
 sub new
 {
@@ -45,29 +44,23 @@ sub new
 sub fetch_row
 {
     my ( $self, $data ) = @_;
-    return $self->{row} = undef unless ( $self->{records} );
-    return $self->{row} = undef if ( $self->{index} >= scalar( @{ $self->{records} } ) );
-    # clone before return, otherwise modifications in fetched result will modify table
-    return $self->{row} = clone( $self->{records}->[ $self->{index}++ ] );
+
+    return $self->{row} =
+        ( $self->{records} and ( $self->{index} < scalar( @{ $self->{records} } ) ) )
+      ? [ @{ $self->{records}->[ $self->{index}++ ] } ]
+      : undef;
 }
-####################################
-# push_row()
-####################################
-#sub push_row
-#{
-#    my ( $self, $data, $fields ) = @_;
-#    $self->{records}->[ $self->{index}++ ] = clone($fields);
-#    return 1;
-#}
+
 ####################################
 # insert_new_row()
 ####################################
 sub insert_new_row
 {
     my ( $self, $data, $fields ) = @_;
-    push @{ $self->{records} }, clone($fields);
+    push @{ $self->{records} }, [ @{$fields} ];
     return 1;
 }
+
 ##################################
 # delete_current_row()
 ##################################
@@ -80,6 +73,7 @@ sub delete_current_row
     --$self->{index};
     return 1;
 }
+
 ##################################
 # update_current_row()
 ##################################
@@ -88,9 +82,10 @@ sub update_current_row
     my ( $self, $data, $fields ) = @_;
     my $currentRow = $self->{index} - 1;
     croak "No current row" unless ( $currentRow >= 0 );
-    $self->{records}->[$currentRow] = clone($fields);
+    $self->{records}->[$currentRow] = [ @{$fields} ];
     return 1;
 }
+
 ##################################
 # truncate()
 ##################################
@@ -98,6 +93,7 @@ sub truncate
 {
     return splice @{ $_[0]->{records} }, $_[0]->{index};
 }
+
 #####################################
 # push_names()
 #####################################
@@ -105,9 +101,10 @@ sub push_names
 {
     my ( $self, $data, $names ) = @_;
     $self->{col_names}     = $names;
-    $self->{org_col_names} = clone($names);
+    $self->{org_col_names} = [ @{$names} ];
     $self->{col_nums}      = SQL::Eval::Table::_map_colnums($names);
 }
+
 #####################################
 # drop()
 #####################################
@@ -118,6 +115,7 @@ sub drop
     delete $data->{Database}->{sql_ram_tables}->{$tname};
     return 1;
 }
+
 #####################################
 # seek()
 #####################################
@@ -148,7 +146,7 @@ sub seek
     }
     $self->{index} = $currentRow;
 }
-############################################################################
+
 1;
 
 =pod
