@@ -16,11 +16,10 @@ use warnings;
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join( '|', qw(TRIM SUBSTRING) );
 use Carp qw(carp croak);
-use Data::Dumper;
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.31';
+$VERSION = '1.32';
 
 BEGIN
 {
@@ -2208,7 +2207,6 @@ sub ROW_VALUE
                 my $now = pos($str);
                 ++$i;
                 $term = substr( $str, $start, $now - $start, "?$i?" );
-                print( STDERR Data::Dumper::Dumper( \$str, \$term ) );
                 push( @vals, $term );
                 pos($str) = $start + length("?$i?");
             }
@@ -2831,15 +2829,16 @@ sub clean_sql
 
     #
     foreach (@$fields) { $_ =~ s/''/\\'/g; }
-    if ( $sql =~ tr/[^\\]'// % 2 == 1 )
+    my @a = $sql =~ m/(?:^')|(?:(?:\G|[^\\])')/g;
+    if ( (scalar(@a) % 2) == 1 )
     {
         $sql =~ s/^.*\?(.+)$/$1/;
-        $self->do_err("Mismatched single quote before: '$sql'");
+        $self->do_err("Mismatched single quote before: <$sql>");
     }
     if ( $sql =~ m/\?\?(\d)\?/ )
     {
         $sql = $fields->[$1];
-        $self->do_err("Mismatched single quote: '$sql");
+        $self->do_err("Mismatched single quote: <$sql>");
     }
     foreach (@$fields) { $_ =~ s/$e'/'/g; s/^'(.*)'$/$1/; }
 
