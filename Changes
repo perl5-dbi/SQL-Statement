@@ -1,6 +1,16 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.31, released August 
+Version 1.32
+----------------------------------------------
+
+[Bug fixes]
+* Fixed invalid check for escaped single quotes
+
+[Improvements]
+* renamed fetch-method into fetch_row (keep fetch() as alias) and
+  add a fetch_rows() to fetch all rows at once
+
+Version 1.31, released August 16th, 2010
 ----------------------------------------------
 
 [Bug fixes]
