@@ -20,6 +20,8 @@ SQL::Statement::Structure - parse and examine structure of SQL queries
     printf "Where operator      %s\n",join( ',', $stmt->where->op() );
     printf "Limit               %s\n",$stmt->limit();
     printf "Offset              %s\n",$stmt->offset();
+
+    # these will work not before $stmt->execute()
     printf "Order Columns       %s\n",join(',', map {$_->column} $stmt->order() );
 
 =head1 DESCRIPTION

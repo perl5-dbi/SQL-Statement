@@ -30,7 +30,7 @@ use Params::Util qw(_INSTANCE _STRING _ARRAY _ARRAY0 _HASH0 _HASH);
 
 #use locale;
 
-$VERSION = '1.31';
+$VERSION = '1.32';
 
 sub new
 {
@@ -1166,13 +1166,26 @@ sub eval_where
     return $self->{where_terms}->value($eval);
 }
 
-sub fetch
+sub fetch_row
 {
     my ($self) = @_;
     $self->{data} ||= [];
     my $row = shift @{ $self->{data} };
-    return undef unless $row and scalar @$row;
+    return unless $row and scalar @$row;
     return $row;
+}
+
+no warnings 'once';
+*fetch = \&fetch_row;
+
+use warnings;
+
+sub fetch_rows
+{
+    my $self = $_[0];
+    my $rows = $self->{data} || [];
+    $self->{data} = [];
+    return $rows;
 }
 
 sub open_table ($$$$$) { croak "Abstract method " . ref( $_[0] ) . "::open_table called" }
@@ -1434,8 +1447,7 @@ sub buildSortSpecList()
     {
         for my $i ( 0 .. scalar @{ $self->{sort_spec_list} } - 1 )
         {
-            next
-              if ( defined( _INSTANCE( $self->{sort_spec_list}->[$i], 'SQL::Statement::Order' ) ) );
+            defined( _INSTANCE( $self->{sort_spec_list}->[$i], 'SQL::Statement::Order' ) ) and next;
             my ( $newcol, $direction ) = each %{ $self->{sort_spec_list}->[$i] };
             undef $direction unless ( $direction && $direction eq 'DESC' );
 
@@ -1795,15 +1807,12 @@ sub offset ($) { $_[0]->{limit_clause}->{offset}; }
 
 sub order
 {
-    if ( !defined $_[0]->{sort_spec_list} ) { return (); }
-    if ( looks_like_number( $_[1] ) )
-    {
-        return $_[0]->{sort_spec_list}->[ $_[1] ];
-    }
+    return unless ( defined $_[0]->{sort_spec_list} );
 
-    return wantarray
-      ? @{ $_[0]->{sort_spec_list} }
-      : scalar @{ $_[0]->{sort_spec_list} };
+    return
+        defined( $_[1] ) && looks_like_number( $_[1] ) ? $_[0]->{sort_spec_list}->[ $_[1] ]
+      : wantarray ? @{ $_[0]->{sort_spec_list} }
+      :             scalar @{ $_[0]->{sort_spec_list} };
 }
 
 sub tables

@@ -7,7 +7,7 @@ use vars qw(@ISA $VERSION);
 require SQL::Statement::Term;
 @ISA = qw(SQL::Statement::Term);
 
-$VERSION = '1.31';
+$VERSION = '1.32';
 
 =pod
 
