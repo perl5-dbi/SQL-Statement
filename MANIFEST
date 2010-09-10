@@ -45,8 +45,11 @@ t/16morejoins.t
 t/17quoting.t
 t/18bigjoin.t
 t/19idents.t
-t/20pod.t
-t/21pod_coverage.t
 t/22calc.t
 t/23dialects.t
+t/24delete.t
 t/SQLtest.pm
+t/TestLib.pm
+xt/pod-cm.t
+xt/pod.t
+xt/pod_coverage.t
