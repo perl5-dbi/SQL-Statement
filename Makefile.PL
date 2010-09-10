@@ -66,6 +66,7 @@ WriteMakefile1(
         'DBD::File' => '0.39',
                       },
     AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
+    test => { TESTS => 't/*.t xt/*.t' },
               );
 
 sub CheckConflicts
