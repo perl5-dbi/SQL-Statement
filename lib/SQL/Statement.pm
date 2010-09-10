@@ -2492,6 +2492,15 @@ Bound params via DBI ...
 
 Gives the error string of the last error, if any.
 
+=head2 fetch_row
+
+Fetches the next row from the result data set (implies removing the fetched
+row from the result data set).
+
+=head2 fetch_rows
+
+Fetches all (remaining) rows from the result data set.
+
 =begin undocumented
 
 =head2 _anycmp
