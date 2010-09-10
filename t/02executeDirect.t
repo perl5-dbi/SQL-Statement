@@ -1,21 +1,26 @@
 #!/usr/bin/perl -w
-$| = 1;
 use strict;
-use lib qw' ./ ./t ';
-use SQLtest;
-use Test::More tests => 57;
+use warnings;
+use lib qw(t);
+
+use Test::More;
+use TestLib qw(connect prove_reqs show_reqs);
+
+use Data::Dumper;
 use Params::Util qw(_INSTANCE);
-my $DEBUG;
+my $parser;
+
+my ( $required, $recommended ) = prove_reqs({});
 
 eval { $parser = SQL::Parser->new() };
-ok( !$@, '$parser->new' );
+ok( !$@, "SQL::Parser->new(): $@" );
 $parser->{PrintError} = 0;
 $parser->{RaiseError} = 1;
-for my $sql (<DATA>)
-{
+SKIP: {
+    my $sql = "SELECT a FROM b JOIN c WHERE c=? AND e=7 ORDER BY f ASC, g DESC LIMIT 5,2";
     my $stmt;
     eval { $stmt = SQL::Statement->new( $sql, $parser ) };
-    ok( !$@, '$stmt->new' );
+    ok( !$@, '$stmt->new' ) or skip("Can't instantiate SQL::Statement: $@");
     cmp_ok( $stmt->command,           'eq', 'SELECT', '$stmt->command' );
     cmp_ok( scalar( $stmt->params ),  '==', 1,        '$stmt->params' );
     cmp_ok( $stmt->tables(1)->name(), 'eq', 'c',      '$stmt->tables' );
@@ -28,25 +33,27 @@ for my $sql (<DATA>)
     cmp_ok( $stmt->limit(),  '==', 2, '$stmt->limit' );
     cmp_ok( $stmt->offset(), '==', 5, '$stmt->offset' );
 
-    next unless $DEBUG;
-    printf "Command      %s\n", $stmt->command();
-    printf "Num Pholders %s\n", scalar $stmt->params();
-    printf "Columns      %s\n", join ',', map { $_->name } $stmt->columns();
-    printf "Tables       %s\n", join ',', $stmt->tables();
-    printf "Where op     %s\n", join ',', $stmt->where->op();
-    printf "Limit        %s\n", $stmt->limit();
-    printf "Offset       %s\n", $stmt->offset;
-    printf "Order Cols   %s\n", join ',', map { $_->column } $stmt->order();
+    note( "Command      ". $stmt->command() );
+    note( "Num Pholders ". scalar $stmt->params() );
+    note( "Columns      ". join ',', map { $_->name } $stmt->columns() );
+    note( "Tables       ". join ',', $stmt->tables() );
+    note( "Where op     ". join ',', $stmt->where->op() );
+    note( "Limit        ". $stmt->limit() );
+    note( "Offset       ". $stmt->offset );
+    my @order_cols = $stmt->order();
+    note( "Order Cols   ". join(',', map { keys %$_ } @order_cols) );
 }
+
 my $stmt = SQL::Statement->new( "INSERT a VALUES(3,7)", $parser );
 cmp_ok( scalar( $stmt->row_values() ),  '==', 1, '$stmt->row_values()' );
 cmp_ok( scalar( $stmt->row_values(0) ), '==', 2, '$stmt->row_values(0)' );
 cmp_ok( scalar( $stmt->row_values( 0, 1 ) )->{value}, '==', 7, '$stmt->row_values(0,1)' );
 cmp_ok( ref( $parser->structure ), 'eq', 'HASH',   'structure' );
 cmp_ok( $parser->command(),        'eq', 'INSERT', 'command' );
-ok( SQL::Statement->new( "SELECT DISTINCT c1 FROM tbl", $parser ), 'distinct' );
-my $cache = {};
 
+ok( SQL::Statement->new( "SELECT DISTINCT c1 FROM tbl", $parser ), 'distinct' );
+
+my $cache = {};
 for my $sql (
     split /\n/,
     "   CREATE TEMP TABLE a (b INT, c CHAR)
@@ -62,7 +69,7 @@ for my $sql (
     SELECT b,c FROM a WHERE c LIKE '%b%' ORDER BY c DESC"
             )
 {
-    # print "<$sql>\n";
+    note("<$sql>");
     $stmt = SQL::Statement->new( $sql, $parser );
     eval { $stmt->execute($cache) };
     warn $@ if $@;
@@ -107,5 +114,5 @@ while ( my ( $sql, $result ) = each(%gen_inbtw) )
     }
     is( $result, join( '^', @res ), $sql );
 }
-__DATA__
-SELECT a FROM b JOIN c WHERE c=? AND e=7 ORDER BY f DESC LIMIT 5,2
+
+done_testing();

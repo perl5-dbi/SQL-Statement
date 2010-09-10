@@ -1,16 +1,11 @@
-#!perl -w
+#!/usr/bin/perl -w
 use strict;
-$|=1;
-use lib qw' ./ ./t ';
-use SQLtest;
-use Test::More tests => 113;
+use warnings;
+use lib qw(t);
 
-$SQLtest::DEBUG = 1;
+use Test::More;
+use TestLib qw(connect prove_reqs show_reqs);
 
-$parser = new_parser();
-$parser->{PrintError}=1;
-$parser->{RaiseError}=1;
-my $count;
 my @data;
 for (<DATA>) {
     chomp;
@@ -19,9 +14,31 @@ for (<DATA>) {
     next if /^\s*$/;
     push @data,$_;
 }
-for my $sql(@data) {
-    ok( parse($sql), "parse '$sql'" );
+
+my ( $required, $recommended ) = prove_reqs();
+my @test_dsns = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
+
+foreach my $test_dsn (@test_dsns)
+{
+    my $dbh;
+
+    # Test RaiseError for prepare errors
+    #
+    $dbh = connect(
+                    $test_dsn,
+                    {
+                       PrintError => 0,
+                       RaiseError => 0,
+                    }
+                  );
+
+    for my $sql(@data) {
+	ok( eval { $dbh->prepare($sql); }, "parse '$sql'" );
+    }
 }
+
+done_testing();
+
 __DATA__
   /* DROP TABLE */
 DROP TABLE foo

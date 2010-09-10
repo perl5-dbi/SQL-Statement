@@ -1,26 +1,52 @@
 #!/usr/bin/perl -w
-$| = 1;
 use strict;
-use Test::More tests => 6;
-use lib qw' ./ ./t ';
-use SQLtest;
+use warnings;
+use lib qw(t);
 
-# Test RaiseError for prepare errors
-#
-$parser = new_parser();
-$parser->{PrintError} = 0;
-ok( parse("Junk"), 'Parse RaiseError=0 (default)' );
-$parser->{RaiseError} = 1;
-ok( !parse("Junk"), 'Parse RaiseError=1' );
+use Test::More;
+use TestLib qw(connect prove_reqs show_reqs);
 
-# Test RaiseError for execute errors
-#
-$parser = new_parser();
-$parser->{PrintError} = 0;
-do_("SELECT UPPER('a')");
-ok( !defined( $SQLtest::stmt->errstr() ), '$stmt->errstr with no error' );
-my $sql = 'SELECT * FROM nonexistant';
-ok( do_($sql), 'Execute RaiseError=0 (default)' );
-$parser->{RaiseError} = 1;
-ok( !do_($sql),                          'Execute RaiseError=1' );
-ok( defined( $SQLtest::stmt->errstr() ), '$stmt->errstr with error' );
+my ( $required, $recommended ) = prove_reqs();
+show_reqs( $required, $recommended );
+my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
+
+foreach my $test_dbd (@test_dbds)
+{
+    my $dbh;
+    diag("Running tests for $test_dbd");
+
+    # Test RaiseError for prepare errors
+    #
+    $dbh = connect(
+                    $test_dbd,
+                    {
+                       PrintError => 0,
+                       RaiseError => 0,
+                    }
+                  );
+    eval { $dbh->prepare("Junk"); };
+    ok( !$@, 'Parse "Junk" RaiseError=0 (default)' ) or diag($@);
+    eval { $dbh->do("SELECT UPPER('a')"); };
+    ok( !$@, 'Execute function succeeded' ) or diag($@);
+    ok( !$dbh->errstr(), 'Execute function no errstr' ) or diag($dbh->errstr());
+    eval { $dbh->do( "SELECT * FROM nonexistant" ); };
+    ok( !$@, 'Execute RaiseError=0' ) or diag($@);
+
+    $dbh = connect(
+                    $test_dbd,
+                    {
+                       PrintError => 0,
+                       RaiseError => 1,
+                    }
+                  );
+    eval { $dbh->prepare("Junk"); };
+    ok( $@, 'Parse "Junk" RaiseError=1' );
+    {
+	local $TODO = "Bug in DBD::DBM 0.39 (DBI before 1.614)" if( $test_dbd eq "DBD::DBM" and DBD::DBM->VERSION() lt "0.40" );
+	eval { $dbh->do( "SELECT * FROM nonexistant" ); };
+	ok( $@, 'Execute RaiseError=1' );
+	ok( $dbh->errstr(), 'Execute "SELECT * FROM nonexistant" has errstr' );
+    }
+}
+
+done_testing();
