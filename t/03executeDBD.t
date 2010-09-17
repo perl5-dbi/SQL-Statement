@@ -7,27 +7,13 @@ use Test::More;
 use TestLib qw(connect prove_reqs show_reqs test_dir default_recommended);
 
 my ( $required, $recommended ) = prove_reqs( { default_recommended(), ( MLDBM => 0 ) } );
-my @test_dbds = ( grep { /^dbd:/i } keys %{$recommended} );
+my ( undef, $extra_recommended ) = prove_reqs( { 'DBD::SQLite' => 0, } );
+show_reqs( $required, { %$recommended, %$extra_recommended } );
+my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
 my $testdir = test_dir();
 
-sub external_sth
-{
-    my $dbh    = $_[0];
-    my $xb_dbh = DBI->connect('dbi:XBase:./');
-    unlink 'xb' if -e 'xb';
-    $xb_dbh->do($_) for split /\n/, <<"";
-    CREATE TABLE xb (id INTEGER, xphrase VARCHAR(30))
-    INSERT INTO xb VALUES(1,'foo')
-
-    my $xb_sth = $xb_dbh->prepare('SELECT * FROM xb');
-    $xb_sth->execute();
-    my $sth = $dbh->prepare('SELECT * FROM IMPORT(?)');
-    $sth->execute($xb_sth);
-    my $str = '';
-    while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
-    $xb_dbh->do("DROP TABLE xb");
-    return ( $str eq '1 foo^' );
-}
+my @external_dbds =
+  ( keys %$extra_recommended, grep { /^dbd::(?:dbm|csv)/i } keys %{$recommended} );
 
 foreach my $test_dbd (@test_dbds)
 {
@@ -37,7 +23,8 @@ foreach my $test_dbd (@test_dbds)
     # XXX
     # my $test_dbd_tbl = "${test_dbd}::Table";
     # $test_dbd_tbl->can("fetch") or $temp = "$temp";
-    $test_dbd eq "DBD::File" and $temp = "TEMP";
+    $test_dbd eq "DBD::File"      and $temp = "TEMP";
+    $test_dbd eq "SQL::Statement" and $temp = "TEMP";
 
     my %extra_args;
     if ( $test_dbd eq "DBD::DBM" and $recommended->{MLDBM} )
@@ -54,13 +41,39 @@ foreach my $test_dbd (@test_dbds)
                     }
                   );
 
+    my $external_dsn;
+    if (%$extra_recommended)
+    {
+        if ( $extra_recommended->{'DBD::SQLite'} )
+        {
+            $external_dsn = "DBI:SQLite:dbname=" . File::Spec->catfile( $testdir, 'sqlite.db' );
+        }
+    }
+    elsif (@external_dbds)
+    {
+        if ( $test_dbd eq $external_dbds[0] and @external_dbds > 1 )
+        {
+            $external_dsn = $external_dbds[1];
+        }
+        else
+        {
+            $external_dsn = $external_dbds[0];
+        }
+        $external_dsn =~ s/^dbd::(\w+)$/dbi:$1:/i;
+        my @valid_dsns = DBI->data_sources( $external_dsn, { f_dir => $testdir } );
+        $external_dsn = $valid_dsns[0];
+    }
+
     my ( $sth, $str );
 
-    $dbh->do(qq{ CREATE $temp TABLE Tmp (id INT,phrase VARCHAR(30)) });
+    ok( $dbh->do(qq{ CREATE $temp TABLE Tmp (id INT,phrase VARCHAR(30)) }), 'CREATE Tmp' )
+      or diag( $dbh->errstr() );
     ok( $dbh->do( qq{ INSERT INTO Tmp (id,phrase) VALUES (?,?) }, {}, 9, 'yyy' ),
-        'placeholder insert with named cols' );
+        'placeholder insert with named cols' )
+      or diag( $dbh->errstr() );
     ok( $dbh->do( qq{ INSERT INTO Tmp VALUES(?,?) }, {}, 2, 'zzz' ),
-        'placeholder insert without named cols' );
+        'placeholder insert without named cols' )
+      or diag( $dbh->errstr() );
     $dbh->do( qq{ INSERT INTO Tmp (id,phrase) VALUES (?,?) }, {}, 3, 'baz' );
     ok( $dbh->do( qq{ DELETE FROM Tmp WHERE id=? or phrase=? }, {}, 3, 'baz' ),
         'placeholder delete' );
@@ -86,22 +99,16 @@ foreach my $test_dbd (@test_dbds)
     cmp_ok( $str, 'eq', '1 foo^2 bar^3 baz^4 fob^5 zab^', 'verify table contents' );
     ok( $dbh->do(qq{ DROP TABLE IF EXISTS Tmp }), 'DROP TABLE' );
 
-########################################
+    ########################################
     # CREATE, INSERT, UPDATE, DELETE, SELECT
-########################################
-    for (
-        split /\n/,
-        qq{  CREATE $temp TABLE phrase (id INT,phrase VARCHAR(30))
-      INSERT INTO phrase VALUES(1,UPPER(TRIM(' foo ')))
-      INSERT INTO phrase VALUES(2,'baz')
-      INSERT INTO phrase VALUES(3,'qux')
-      UPDATE phrase SET phrase=UPPER(TRIM(LEADING 'z' FROM 'zbar')) WHERE id=3
-      DELETE FROM phrase WHERE id = 2                   }
-        )
-    {
-        $sth = $dbh->prepare($_);
-        ok( $sth->execute(), $sth->{sth}->{sql_stmt}->command );
-    }
+    ########################################
+    ok( $dbh->do($_), $dbh->command() ) for split /\n/, <<"";
+        CREATE $temp TABLE phrase (id INT,phrase VARCHAR(30))
+	INSERT INTO phrase VALUES(1,UPPER(TRIM(' foo ')))
+	INSERT INTO phrase VALUES(2,'baz')
+	INSERT INTO phrase VALUES(3,'qux')
+	UPDATE phrase SET phrase=UPPER(TRIM(LEADING 'z' FROM 'zbar')) WHERE id=3
+	DELETE FROM phrase WHERE id = 2
 
     $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
     $sth->execute;
@@ -110,22 +117,22 @@ foreach my $test_dbd (@test_dbds)
     ok( $str eq 'A FOO^A BAR^', 'SELECT' );
     cmp_ok( scalar $dbh->selectrow_array("SELECT COUNT(*) FROM phrase"), '==', 2, 'COUNT *' );
 
-#################################
+    #################################
     # COMPUTED COLUMNS IN SELECT LIST
-#################################
+    #################################
     cmp_ok( $dbh->selectrow_array("SELECT UPPER('b')"),
             'eq', 'B', 'COMPUTED COLUMNS IN SELECT LIST' );
 
-###########################
+    ###########################
     # CREATE function in script
-###########################
+    ###########################
     $dbh->do("CREATE FUNCTION froog");
     sub froog { 99 }
     ok( '99' eq $dbh->selectrow_array("SELECT froog"), 'CREATE FUNCTION from script' );
 
-###########################
+    ###########################
     # CREATE function in module
-###########################
+    ###########################
     BEGIN
     {
         eval "package Foo; sub foo { 88 } 1;";
@@ -133,9 +140,9 @@ foreach my $test_dbd (@test_dbds)
     $dbh->do(qq{CREATE FUNCTION foo NAME "Foo::foo"});
     ok( 88 == $dbh->selectrow_array("SELECT foo"), 'CREATE FUNCTION from module' );
 
-################
+    ################
     # LOAD functions
-################
+    ################
     unlink 'Bar.pm' if -e 'Bar.pm';
     open( O, '>Bar.pm' ) or die $!;
     print O "package Bar; sub SQL_FUNCTION_BAR{77};1;";
@@ -144,9 +151,9 @@ foreach my $test_dbd (@test_dbds)
     ok( 77 == $dbh->selectrow_array("SELECT bar"), 'LOAD FUNCTIONS' );
     unlink 'Bar.pm' if -e 'Bar.pm';
 
-####################
+    ####################
     # IMPORT($AoA)
-####################
+    ####################
     $sth = $dbh->prepare("SELECT word FROM IMPORT(?) ORDER BY id DESC");
     my $AoA = [
                 [qw( id word    )], [qw( 4  Just    )], [qw( 3  Another )], [qw( 2  Perl    )],
@@ -156,32 +163,112 @@ foreach my $test_dbd (@test_dbds)
     $sth->execute($AoA);
     $str = '';
     while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
-    ok( $str eq 'Just^Another^Perl^Hacker^', 'IMPORT($AoA)' );
+    cmp_ok( $str, 'eq', 'Just^Another^Perl^Hacker^', 'IMPORT($AoA)' );
 
-#######################
+    #######################
+    # IMPORT($AoH)
+    #######################
+    my $aoh = [
+                {
+                   c1 => 1,
+                   c2 => 9
+                },
+                {
+                   c1 => 2,
+                   c2 => 8
+                }
+              ];
+    $sth = $dbh->prepare("SELECT C1,c2 FROM IMPORT(?)");
+    $sth->execute($aoh);
+    $str = '';
+    while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+    cmp_ok( $str, 'eq', '1 9^2 8^', 'IMPORT($AoH)' );
+
+    #######################
     # IMPORT($internal_sth)
-#######################
-    $dbh->do($_) for split /\n/, <<"";
+    #######################
+  SKIP:
+    {
+        skip( "Need DBI statement handle - can't use when executing direct", 7 )
+          if ( $dbh->isa('TestLib::Direct') );
+
+        ok( $dbh->do( "CREATE $temp TABLE aoh AS IMPORT(?)", {}, $aoh ), 'CREATE AS IMPORT($aoh)' )
+          or diag( $dbh->errstr() );
+        $sth = $dbh->prepare("SELECT C1,c2 FROM aoh");
+        $sth->execute();
+        $str = '';
+        while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+        cmp_ok( $str, 'eq', '1 9^2 8^', 'SELECT FROM IMPORTED($AoH)' );
+
+        ok( $dbh->do( "CREATE $temp TABLE aoa AS IMPORT(?)", {}, $AoA ), 'CREATE AS IMPORT($aoa)' )
+          or diag( $dbh->errstr() );
+        $sth = $dbh->prepare("SELECT word FROM aoa ORDER BY id DESC");
+        $sth->execute();
+        $str = '';
+        while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+        cmp_ok( $str, 'eq', 'Just^Another^Perl^Hacker^', 'SELECT FROM IMPORTED($AoA)' );
+
+        ok( $dbh->do("CREATE $temp TABLE tbl_copy AS SELECT * FROM aoa"), 'CREATE AS SELECT *' )
+          or diag( $dbh->errstr() );
+        $sth = $dbh->prepare("SELECT * FROM tbl_copy ORDER BY id ASC");
+        $sth->execute();
+        $str = '';
+        while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+        cmp_ok( $str, 'eq', '1 Hacker^2 Perl^3 Another^4 Just^', 'SELECT FROM "SELECTED(*)"' );
+
+        $dbh->do($_) for split /\n/, <<"";
         CREATE $temp TABLE tmp (id INTEGER, xphrase VARCHAR(30))
         INSERT INTO tmp VALUES(1,'foo')
 
-    my $internal_sth = $dbh->prepare('SELECT * FROM tmp')->{sth};    # XXX breaks abstraction
-    $internal_sth->execute();
-    $sth = $dbh->prepare('SELECT * FROM IMPORT(?)');
-    $sth->execute($internal_sth);
-    $str = '';
-    while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
-    cmp_ok( $str, 'eq', '1 foo^', 'IMPORT($internal_sth)' );
+        my $internal_sth = $dbh->prepare('SELECT * FROM tmp')->{sth};    # XXX breaks abstraction
+        $internal_sth->execute();
+        $sth = $dbh->prepare('SELECT * FROM IMPORT(?)');
+        $sth->execute($internal_sth);
+        $str = '';
+        while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+        cmp_ok( $str, 'eq', '1 foo^', 'IMPORT($internal_sth)' );
+    }
 
-#######################
+    #######################
     # IMPORT($external_sth)
-#######################
-    eval { require DBD::XBase };
+    #######################
   SKIP:
     {
-        skip( 'No XBase installed', 1 ) if $@;
-        skip( "No DBH",             1 ) if $@;
-        ok( external_sth($dbh), 'IMPORT($external_sth)' );
+        skip( 'No external usable data source installed', 2 ) unless ($external_dsn);
+
+        my $xb_dbh = DBI->connect($external_dsn);
+        $xb_dbh->do($_) for split /\n/, <<"";
+    CREATE TABLE xb (id INTEGER, xphrase VARCHAR(30))
+    INSERT INTO xb VALUES(1,'foo')
+
+        my $xb_sth = $xb_dbh->prepare('SELECT * FROM xb');
+        $xb_sth->execute();
+
+        $sth = $dbh->prepare('SELECT * FROM IMPORT(?)');
+        $sth->execute($xb_sth);
+        $str = '';
+        while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+        cmp_ok( $str, 'eq', '1 foo^', 'SELECT IMPORT($external_sth)' );
+
+      SKIP:
+        {
+            skip( "Need DBI statement handle - can't use when executing direct", 2 )
+              if ( $dbh->isa('TestLib::Direct') );
+
+            $xb_sth = $xb_dbh->prepare('SELECT * FROM xb');
+            $xb_sth->execute();
+
+            ok( $dbh->do( "CREATE $temp TABLE xbi AS IMPORT(?)", {}, $xb_sth ),
+                'CREATE AS IMPORT($sth)' )
+              or diag( $dbh->errstr() );
+            $sth = $dbh->prepare('SELECT * FROM xbi');
+            $sth->execute();
+            $str = '';
+            while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+            cmp_ok( $str, 'eq', '1 foo^', 'SELECT FROM IMPORTED ($external_sth)' );
+        }
+
+        $xb_dbh->do("DROP TABLE xb");
     }
 
     #my $foo=0;
@@ -200,7 +287,7 @@ foreach my $test_dbd (@test_dbds)
     {
         if ( $test_dbd eq "DBD::DBM" and !$recommended->{MLDBM} )
         {
-            skip( "DBD::DBM Update test wont run without MLDBM", 2 );
+            skip( "DBD::DBM Update test won't run without MLDBM", 3 );
         }
         my $pauli = [
                       [ 1, 'H',   19 ],
@@ -210,7 +297,9 @@ foreach my $test_dbd (@test_dbds)
                       [ 5, 'KK',  13 ],
                       [ 6, 'MMM', 25 ],
                     ];
-        $dbh->do(qq{CREATE $temp TABLE pauli (id INT, column1 TEXT, column2 INTEGER)});
+        ok( $dbh->do(qq{CREATE $temp TABLE pauli (id INT, column1 VARCHAR, column2 INTEGER)}),
+            'CREATE pauli test table' )
+          or diag( $dbh->errstr() );
         $sth = $dbh->prepare("INSERT INTO pauli VALUES (?, ?, ?)");
         foreach my $line ( @{$pauli} )
         {

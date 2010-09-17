@@ -5,6 +5,8 @@ Version 1.32
 
 [Bug fixes]
 * Fixed invalid check for escaped single quotes
+* Fixed unpermitted modification of array source for table creation
+  (CREATE TABLE AS IMPORT(?),[[..],[..]])
 
 [Improvements]
 * renamed fetch-method into fetch_row (keep fetch() as alias) and
@@ -304,10 +306,10 @@ Version 1.16_04, released 4 January, 2009
 * Fixed Bugs:
   * 14217	Does not correctly handle SQL statements with comments
   * 15686	Join syntax is case-sensitive, and common columns in natural
-            joins are "ambiguous" [patch]
+                joins are "ambiguous" [patch]
   * 13080	Cannot update a field based on its previous value
   * 26058	functions on computed columns aliased to the underlying column
-            name are not called
+                name are not called
 
 Version 1.16_03, released 1 January, 2009
 ------------------------------------------

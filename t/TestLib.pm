@@ -56,6 +56,7 @@ my %defaultRecommended = (
 	      'DBD::File' => '0.39',
               'DBD::CSV'  => '0.30',
               'DBD::DBM'  => '0.05',
+	      'DBD::AnyData' => '0.110',
             );
 
 sub default_recommended
@@ -149,19 +150,29 @@ sub connect
 
 package TestLib::Direct;
 
+use Carp qw(croak);
+use Params::Util qw(_ARRAY0 _ARRAY _HASH0 _HASH);
+use Scalar::Util qw(blessed);
+
 sub new
 {
     my ( $class, $flags ) = @_;
     $flags ||= {};
     my $parser = SQL::Parser->new( 'ANSI', $flags );
-    my %instance = ( parser => $parser, );
+    my %instance = ( parser => $parser, cache => {}, );
     my $self = bless( \%instance, $class );
     return $self;
 }
 
+sub command
+{
+    my $self = $_[0];
+    return $self->{stmt}->command();
+}
+
 sub prepare
 {
-    my ( $self, $sql ) = @_;
+    my ( $self, $sql, $attrs ) = @_;
     my $stmt = SQL::Statement->new( $sql, $self->{parser} );
     $self->{stmt} = $stmt;
     return $self;
@@ -170,21 +181,47 @@ sub prepare
 sub execute
 {
     my $self = shift;
-    return $self->{stmt}->execute(@_);
+    my @params = @_; # bind params
+    my @args;
+    $args[0] = defined(_HASH0($params[0])) && !blessed($params[0]) ? shift(@params) : $self->{cache};
+    $args[1] = \@params;
+    return $self->{stmt}->execute(@args);
 }
 
 sub do
 {
-    my $self = shift;
-    my $sql  = shift;
-    return $self->prepare($sql)->execute(@_);
+    my ($self, $sql, $attrs, @args) = @_;
+    return $self->prepare($sql,$attrs)->execute(@args);
+}
+
+sub col_names
+{
+    my $self = $_[0];
+    defined( $self->{stmt}->{NAME} ) and
+	defined( _ARRAY($self->{stmt}->{NAME}) ) and
+	return $self->{stmt}->{NAME};
+    my @col_names = map { $_->{name} || $_->{value} } @{$self->{stmt}->{column_defs}};
+    return \@col_names;
+}
+
+sub all_cols
+{
+    my $self = $_[0];
+    return $self->{stmt}->{all_cols};
+}
+
+sub tbl_names
+{
+    my $self = $_[0];
+    my @tables = sort map { $_->name() } $self->{stmt}->tables();
+    return \@tables;
 }
 
 sub selectrow_array
 {
     my $self  = shift;
     $self->do(@_);
-    my $result = $self->{sth}->fetchrow_arrayref();
+    my $result = $self->{stmt}->fetch_row();
     return wantarray ? @$result : $result->[0];
 }
 
@@ -198,6 +235,34 @@ sub fetch_rows
 {
     my $self = $_[0];
     return $self->{stmt}->fetch_rows();
+}
+
+# clone DBI function
+sub fetchall_hashref
+{
+    my ($self, $key_field) = @_;
+
+    my $i = 0;
+    my $names_hash = { map { $_ => $i++ } @{$self->{stmt}->{NAME}} };
+    my @key_fields = (ref $key_field) ? @$key_field : ($key_field);
+    my @key_indexes;
+    my $num_of_fields = $self->{stmt}->{'NUM_OF_FIELDS'};
+    foreach (@key_fields) {
+       my $index = $names_hash->{$_};  # perl index not column
+       $index = $_ - 1 if !defined $index && DBI::looks_like_number($_) && $_>=1 && $_ <= $num_of_fields;
+       croak("Field '$_' does not exist (not one of @{[keys %$names_hash]})")
+	    unless defined $index;
+       push @key_indexes, $index;
+    }
+    my $rows = {};
+    my $all_rows = $self->{stmt}->fetch_rows();
+    my $NAME = $self->{stmt}->{NAME};
+    foreach my $row (@{$all_rows}) {
+	my $ref = $rows;
+	$ref = $ref->{$row->[$_]} ||= {} for @key_indexes;
+	@{$ref}{@$NAME} = @$row;
+    }
+    return $rows;
 }
 
 sub errstr
@@ -223,6 +288,12 @@ sub new
     return $self;
 }
 
+sub command
+{
+    my $self = $_[0];
+    return $self->{sth}->{sql_stmt}->command();
+}
+
 sub prepare
 {
     my ( $self, $sql, $attr ) = @_;
@@ -239,10 +310,8 @@ sub execute
 
 sub do
 {
-    my $self  = shift;
-    my $sql   = shift;
-    my $attrs = shift;
-    return $self->prepare($sql, $attrs)->execute(@_);
+    my ($self, $sql, $attrs, @args) = @_;
+    return $self->prepare($sql,$attrs)->execute(@args);
 }
 
 sub selectrow_array
@@ -251,6 +320,25 @@ sub selectrow_array
     $self->do(@_);
     my $result = $self->{sth}->fetchrow_arrayref();
     return wantarray ? @$result : $result->[0];
+}
+
+sub col_names
+{
+    my $self = $_[0];
+    return $self->{sth}->{NAME};
+}
+
+sub all_cols
+{
+    my $self = $_[0];
+    return $self->{sth}->{sql_stmt}->{all_cols};
+}
+
+sub tbl_names
+{
+    my $self = $_[0];
+    my @tables = sort map { $_->name() } $self->{sth}->{sql_stmt}->tables();
+    return \@tables;
 }
 
 sub fetch_row

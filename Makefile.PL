@@ -64,6 +64,10 @@ WriteMakefile1(
         # means: DBI >= 1.612
         'DBI::DBD::SqlEngine' => '0.01',
         'DBD::File' => '0.39',
+	'DBD::AnyData' => '0.110',
+	'DBD::CSV' => '0.30',
+	'DBD::DBM' => '0.06',
+	'DBD::SQLite' => '0',
                       },
     AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
     test => { TESTS => 't/*.t xt/*.t' },
