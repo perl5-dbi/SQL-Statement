@@ -1926,13 +1926,13 @@ sub get_user_func_table
     my ( $self, $name, $u_func ) = @_;
     my $term = $self->{termFactory}->buildCondition($u_func);
 
-    my ($data_aryref) = $term->value(undef);
-    my $col_names = shift @$data_aryref;
+    my @data_aryref = @{$term->value(undef)};
+    my $col_names = shift @data_aryref;
 
     # my $tempTable = SQL::Statement::TempTable->new(
     #     $name, $col_names, $col_names, $data_aryref
     # );
-    my $tempTable = SQL::Statement::RAM::Table->new( $name, $col_names, $data_aryref );
+    my $tempTable = SQL::Statement::RAM::Table->new( $name, $col_names, \@data_aryref );
     $tempTable->{all_cols} ||= $col_names;
     return $tempTable;
 }
