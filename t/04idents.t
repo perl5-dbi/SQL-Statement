@@ -195,6 +195,7 @@ foreach my $test_dbd (@test_dbds)
 
         my $xb_sth = $xb_dbh->prepare("SELECT * FROM pg WHERE 1=0");
         $xb_sth->execute();
+	my $nameOfCol = $xb_sth->{NAME}->[1];
         $dbh->do("CREATE $temp TABLE tbl AS IMPORT(?)",{},$xb_sth);
 
 	for my $query_case(qw(lower upper mixed asterisked)) {
@@ -205,7 +206,7 @@ foreach my $test_dbd (@test_dbds)
 	    is($col, 'col',$msg) if $query_case eq 'lower';
 	    is($col, 'COL',$msg) if $query_case eq 'upper';
 	    is($col, 'cOl',$msg) if $query_case eq 'mixed';
-	    is($col, 'COL',$msg) if $query_case eq 'asterisked';
+	    is($col, $nameOfCol,$msg) if $query_case eq 'asterisked';
 	}
 	$xb_dbh->do("DROP TABLE pg");
 	$dbh->do("DROP TABLE IF EXISTS tbl");
@@ -240,73 +241,3 @@ S::S 1.12
   TEMP table       :  same, except upper cases on asterisked queries
   imported table   :  same, except upper cases on asterisked queries
 
-
-=============================================================================
-work in 0.1021
-  all asterisked (l*,m*,u*)
-  all where create is same as query (ll,uu,mm)
-die in 0.1021
-  all where query case is specified and different from create case
-    (mu,ml,um,ul,lm,lu)
-
-
-        is($col, 'COL',$msg) if $query_case eq 'asterisked';
-exit;
-my $tbl = 'case';
-$dbh->do("CREATE TEMP TABLE $tbl (lower INT)");
-my $sth = $dbh->prepare("SELECT * FROM $tbl WHERE 1=0");
-$sth->execute;
-printf "%s\n",join',',@{$sth->{NAME}};
-$sth->finish;
-
-$sth = $dbh->prepare("SELECT lower FROM $tbl WHERE 1=0");
-$sth->execute;
-printf "%s\n",join',',@{$sth->{NAME}};
-$sth->finish;
-
-$sth = $dbh->prepare("SELECT LOWER FROM $tbl WHERE 1=0");
-$sth->execute;
-printf "%s\n",join',',@{$sth->{NAME}};
-$sth->finish;
-$sth = $dbh->prepare("SELECT LoweR FROM $tbl WHERE 1=0");
-$sth->execute;
-printf "%s\n",join',',@{$sth->{NAME}};
-$sth->finish;
-$dbh->do($_) for <DATA>;
-
-$sth=$dbh->prepare("
-    SELECT SUM(sales), MAX(sales) FROM biz
-");
-is( query2str($sth), '2700~1000^', 'AGGREGATE FUNCTIONS WITHOUT GROUP BY');
-
-$sth=$dbh->prepare("
-    SELECT region,SUM(sales), MAX(sales) FROM biz GROUP BY region
-");
-is( query2str($sth), 'West~2000~1000^East~700~700^' ,'GROUP BY one column');
-
-$sth=$dbh->prepare("
-    SELECT region,store,SUM(sales), MAX(sales) FROM biz GROUP BY region,store
-");
-is(query2str($sth),
-   'West~Los Angeles~1500~1000^West~San Diego~500~500^East~Boston~700~700^',
-   'GROUP BY several columns');
-
-
-sub query2str {
-    my($sth)=@_;
-    $sth->execute;
-    my $str='';
-    while (my $r=$sth->fetch) {
-        $str .= sprintf "%s^",join('~',map { defined $_ ? $_ : 'undef' } @$r);
-    }
-    return $str unless $DEBUG;
-    printf "%s\n",join',',@{$sth->{NAME}};
-    print "<$str>\n";
-    return $str;
-}
-__END__
-CREATE TEMP TABLE biz (region TEXT, store TEXT, sales INTEGER)
-INSERT INTO biz VALUES ('West','Los Angeles',1000 )
-INSERT INTO biz VALUES ('West','San Diego'  ,500  )
-INSERT INTO biz VALUES ('West','Los Angeles',500  )
-INSERT INTO biz VALUES ('East','Boston'     ,700  )
