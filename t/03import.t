@@ -12,8 +12,7 @@ show_reqs( $required, { %$recommended, %$extra_recommended } );
 my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
 my $testdir = test_dir();
 
-my @external_dbds =
-  ( keys %$extra_recommended, grep { /^dbd::(?:dbm|csv)/i } keys %{$recommended} );
+my @external_dbds = ( keys %$extra_recommended, grep { /^dbd::(?:dbm|csv)/i } keys %{$recommended} );
 
 foreach my $test_dbd (@test_dbds)
 {
@@ -65,91 +64,6 @@ foreach my $test_dbd (@test_dbds)
     }
 
     my ( $sth, $str );
-
-    ok( $dbh->do(qq{ CREATE $temp TABLE Tmp (id INT,phrase VARCHAR(30)) }), 'CREATE Tmp' )
-      or diag( $dbh->errstr() );
-    ok( $dbh->do( qq{ INSERT INTO Tmp (id,phrase) VALUES (?,?) }, {}, 9, 'yyy' ),
-        'placeholder insert with named cols' )
-      or diag( $dbh->errstr() );
-    ok( $dbh->do( qq{ INSERT INTO Tmp VALUES(?,?) }, {}, 2, 'zzz' ),
-        'placeholder insert without named cols' )
-      or diag( $dbh->errstr() );
-    $dbh->do( qq{ INSERT INTO Tmp (id,phrase) VALUES (?,?) }, {}, 3, 'baz' );
-    ok( $dbh->do( qq{ DELETE FROM Tmp WHERE id=? or phrase=? }, {}, 3, 'baz' ),
-        'placeholder delete' );
-    ok( $dbh->do( qq{ UPDATE Tmp SET phrase=? WHERE id=?}, {}, 'bar', 2 ), 'placeholder update' );
-    ok(
-        $dbh->do(
-                  qq{ UPDATE Tmp SET phrase=?,id=? WHERE id=? and phrase=?},
-                  {}, 'foo', 1, 9, 'yyy'
-                ),
-        'placeholder update'
-      );
-    ok(
-        $dbh->do(
-            qq{INSERT INTO Tmp VALUES (3, 'baz'), (4, 'fob'),
-(5, 'zab')}
-                ),
-        'multiline insert'
-      );
-    $sth = $dbh->prepare('SELECT id,phrase FROM Tmp ORDER BY id');
-    $sth->execute();
-    $str = '';
-    while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
-    cmp_ok( $str, 'eq', '1 foo^2 bar^3 baz^4 fob^5 zab^', 'verify table contents' );
-    ok( $dbh->do(qq{ DROP TABLE IF EXISTS Tmp }), 'DROP TABLE' );
-
-    ########################################
-    # CREATE, INSERT, UPDATE, DELETE, SELECT
-    ########################################
-    ok( $dbh->do($_), $dbh->command() ) for split /\n/, <<"";
-        CREATE $temp TABLE phrase (id INT,phrase VARCHAR(30))
-	INSERT INTO phrase VALUES(1,UPPER(TRIM(' foo ')))
-	INSERT INTO phrase VALUES(2,'baz')
-	INSERT INTO phrase VALUES(3,'qux')
-	UPDATE phrase SET phrase=UPPER(TRIM(LEADING 'z' FROM 'zbar')) WHERE id=3
-	DELETE FROM phrase WHERE id = 2
-
-    $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
-    $sth->execute;
-    $str = '';
-    while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
-    ok( $str eq 'A FOO^A BAR^', 'SELECT' );
-    cmp_ok( scalar $dbh->selectrow_array("SELECT COUNT(*) FROM phrase"), '==', 2, 'COUNT *' );
-
-    #################################
-    # COMPUTED COLUMNS IN SELECT LIST
-    #################################
-    cmp_ok( $dbh->selectrow_array("SELECT UPPER('b')"),
-            'eq', 'B', 'COMPUTED COLUMNS IN SELECT LIST' );
-
-    ###########################
-    # CREATE function in script
-    ###########################
-    $dbh->do("CREATE FUNCTION froog");
-    sub froog { 99 }
-    ok( '99' eq $dbh->selectrow_array("SELECT froog"), 'CREATE FUNCTION from script' );
-
-    ###########################
-    # CREATE function in module
-    ###########################
-    BEGIN
-    {
-        eval "package Foo; sub foo { 88 } 1;";
-    }
-    $dbh->do(qq{CREATE FUNCTION foo NAME "Foo::foo"});
-    ok( 88 == $dbh->selectrow_array("SELECT foo"), 'CREATE FUNCTION from module' );
-
-    ################
-    # LOAD functions
-    ################
-    unlink 'Bar.pm' if -e 'Bar.pm';
-    open( O, '>Bar.pm' ) or die $!;
-    print O "package Bar; sub SQL_FUNCTION_BAR{77};1;";
-    close O;
-    $dbh->do("LOAD Bar");
-    ok( 77 == $dbh->selectrow_array("SELECT bar"), 'LOAD FUNCTIONS' );
-    unlink 'Bar.pm' if -e 'Bar.pm';
 
     ####################
     # IMPORT($AoA)
@@ -269,51 +183,6 @@ foreach my $test_dbd (@test_dbds)
         }
 
         $xb_dbh->do("DROP TABLE xb");
-    }
-
-    #my $foo=0;
-    #sub test2 {$foo = 6;}
-    #open(O,'>','tmpss.sql') or die $!;
-    #print O "SELECT test2";
-    #close O;
-    #$dbh->do("CREATE FUNCTION test2");
-    #ok($dbh->do(qq{CALL RUN('tmpss.sql')}),'run');
-    #ok(6==$foo,'call run');
-    #unlink 'tmpss.sql' if -e 'tmpss.sql';
-
-    ok( $dbh->do("DROP TABLE phrase"), "DROP $temp TABLE" );
-
-  SKIP:
-    {
-        if ( $test_dbd eq "DBD::DBM" and !$recommended->{MLDBM} )
-        {
-            skip( "DBD::DBM Update test won't run without MLDBM", 3 );
-        }
-        my $pauli = [
-                      [ 1, 'H',   19 ],
-                      [ 2, 'H',   21 ],
-                      [ 3, 'KK',  1 ],
-                      [ 4, 'KK',  2 ],
-                      [ 5, 'KK',  13 ],
-                      [ 6, 'MMM', 25 ],
-                    ];
-        ok( $dbh->do(qq{CREATE $temp TABLE pauli (id INT, column1 VARCHAR, column2 INTEGER)}),
-            'CREATE pauli test table' )
-          or diag( $dbh->errstr() );
-        $sth = $dbh->prepare("INSERT INTO pauli VALUES (?, ?, ?)");
-        foreach my $line ( @{$pauli} )
-        {
-            $sth->execute( @{$line} );
-        }
-        $sth = $dbh->prepare("UPDATE pauli SET column1 = ? WHERE column1 = ?");
-        my $cnt = $sth->execute( "XXXX", "KK" );
-        cmp_ok( $cnt, '==', 3, 'UPDATE with placeholders' );
-        $sth->finish();
-
-        $sth = $dbh->prepare("SELECT column1, COUNT(column1) FROM pauli GROUP BY column1");
-        $sth->execute();
-        my $hres = $sth->fetchall_hashref('column1');
-        cmp_ok( $hres->{XXXX}->{'COUNT'}, '==', 3, 'UPDATE with placeholder updates correct' );
     }
 }
 

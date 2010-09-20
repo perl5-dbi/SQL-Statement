@@ -42,7 +42,6 @@ foreach my $test_dbd (@test_dbds)
     eval { $dbh->prepare("Junk"); };
     ok( $@, 'Parse "Junk" RaiseError=1' );
     {
-	local $TODO = "Bug in DBD::DBM 0.39 (DBI before 1.614)" if( $test_dbd eq "DBD::DBM" and DBD::DBM->VERSION() lt "0.40" );
 	eval { $dbh->do( "SELECT * FROM nonexistant" ); };
 	ok( $@, 'Execute RaiseError=1' );
 	ok( $dbh->errstr(), 'Execute "SELECT * FROM nonexistant" has errstr' );
