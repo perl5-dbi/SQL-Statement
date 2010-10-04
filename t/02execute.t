@@ -7,13 +7,9 @@ use Test::More;
 use TestLib qw(connect prove_reqs show_reqs test_dir default_recommended);
 
 my ( $required, $recommended ) = prove_reqs( { default_recommended(), ( MLDBM => 0 ) } );
-my ( undef, $extra_recommended ) = prove_reqs( { 'DBD::SQLite' => 0, } );
-show_reqs( $required, { %$recommended, %$extra_recommended } );
+show_reqs( $required, $recommended );
 my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
 my $testdir = test_dir();
-
-my @external_dbds =
-  ( keys %$extra_recommended, grep { /^dbd::(?:dbm|csv)/i } keys %{$recommended} );
 
 foreach my $test_dbd (@test_dbds)
 {
@@ -104,7 +100,7 @@ foreach my $test_dbd (@test_dbds)
 
     for my $sql (
 	split /\n/, <<""
-	CREATE TEMP TABLE a (b INT, c CHAR)
+	CREATE $temp TABLE a (b INT, c CHAR)
 	INSERT INTO a VALUES(1,'abc')
 	INSERT INTO a VALUES(2,'efg')
 	INSERT INTO a VALUES(3,'hij')

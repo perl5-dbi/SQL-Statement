@@ -187,7 +187,8 @@ sub prepare
     my ( $self, $sql, $attrs ) = @_;
     my $stmt = SQL::Statement->new( $sql, $self->{parser} );
     $self->{stmt} = $stmt;
-    return $self;
+    $self->{stmt}->{errstr} or return $self;
+    return;
 }
 
 sub execute
@@ -335,6 +336,11 @@ sub fetchall_hashref
     return $rows;
 }
 
+sub rows
+{
+    return $_[0]->{stmt}->{NUM_OF_ROWS};
+}
+
 sub errstr
 {
     defined( $_[0]->{stmt} ) and return $_[0]->{stmt}->errstr();
@@ -373,8 +379,8 @@ sub prepare
 {
     my ( $self, $sql, $attr ) = @_;
     my $sth = $self->{dbh}->prepare( $sql, $attr );
-    $self->{sth} = $sth;
-    return $self;
+    $self->{sth} = $sth and return $self;
+    return;
 }
 
 sub execute
@@ -486,6 +492,11 @@ sub fetchall_hashref
 {
     my $self = shift;
     return $self->{sth}->fetchall_hashref(@_);
+}
+
+sub rows
+{
+    return $_[0]->{sth}->rows();
 }
 
 sub errstr
