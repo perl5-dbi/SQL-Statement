@@ -7,6 +7,7 @@ Version 1.32
 * Fixed invalid check for escaped single quotes
 * Fixed unpermitted modification of array source for table creation
   (CREATE TABLE AS IMPORT(?),[[..],[..]])
+* Fixing alias used in ORDER BY (RT#61384, thanks jvm)
 
 [Improvements]
 * renamed fetch-method into fetch_row (keep fetch() as alias) and
