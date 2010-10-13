@@ -302,7 +302,8 @@ sub fetch_row
 sub fetch_rows
 {
     my $self = $_[0];
-    return $self->{stmt}->fetch_rows();
+    my $rc = $self->{stmt}->fetch_rows();
+    return $rc;
 }
 
 # clone DBI function

@@ -967,14 +967,15 @@ sub SELECT($$)
                 $col = $val;
                 $tbl = $tableName;
             }
+            $tbl ||= '';
+            $columns{$tbl}->{$col} = $numFields++;
         }
         else
         {
             ( $col, $tbl ) = ( $column->name(), $column->table() );
+            $tbl ||= '';
+            $columns{$tbl}->{ $column->display_name() } = $columns{$tbl}->{$col} = $numFields++;
         }
-
-        $tbl ||= '';
-        $columns{$tbl}->{$col} = $numFields++;
 
         #
         # handle functions in select list
@@ -1453,12 +1454,13 @@ sub buildSortSpecList()
 
             # XXX parse order by like group by and select list
             my ( $tbl, $col ) = $self->full_qualified_column_name($newcol);
+            defined($tbl) and $col = $tbl . "." . $col;
             $self->{sort_spec_list}->[$i] = SQL::Statement::Order->new(
                 col => SQL::Statement::Util::Column->new(
                     $col,    # column name
                     $tbl,    # table name
-                    SQL::Statement::ColumnValue->new( $self, $tbl . '.' . $col ),    # term
-                                                                                     # display name
+                    SQL::Statement::ColumnValue->new( $self, $col ),    # term
+                                                                        # display name
                                                         ),
                 desc => $direction,
                                                                       );
@@ -1926,8 +1928,8 @@ sub get_user_func_table
     my ( $self, $name, $u_func ) = @_;
     my $term = $self->{termFactory}->buildCondition($u_func);
 
-    my @data_aryref = @{$term->value(undef)};
-    my $col_names = shift @data_aryref;
+    my @data_aryref = @{ $term->value(undef) };
+    my $col_names   = shift @data_aryref;
 
     # my $tempTable = SQL::Statement::TempTable->new(
     #     $name, $col_names, $col_names, $data_aryref

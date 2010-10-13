@@ -217,10 +217,104 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT COUNT(*) FROM trick",
            result => [ [2] ],
         },
+	{
+           test   => 'char_length',
+           sql    => "SELECT CHAR_LENGTH('foo')",
+           result => [ [3] ],
+	},
+	{
+           test   => 'position',
+           sql    => "SELECT POSITION('a','bar')",
+           result => [ [2] ],
+	},
+	{
+           test   => 'lower',
+           sql    => "SELECT LOWER('A')",
+           result => [ ['a'] ],
+	},
+	{
+           test   => 'upper',
+           sql    => "SELECT UPPER('a')",
+           result => [ ['A'] ],
+	},
+	{
+           test   => 'concat good',
+           sql    => "SELECT CONCAT('A','B')",
+           result => [ ['AB'] ],
+	},
+	{
+           test   => 'concat bad',
+           sql    => "SELECT CONCAT('A',NULL)",
+	   result => [ [ undef ] ],
+	},
+	{
+           test   => 'coalesce',
+           sql    => "SELECT COALESCE(NULL,'z')",
+           result => [ ['z'] ],
+	},
+	{
+           test   => 'nvl',
+           sql    => "SELECT NVL(NULL,'z')",
+           result => [ ['z'] ],
+	},
+	{
+           test   => 'decode',
+           sql    => q{SELECT DISTINCT DECODE(color,'White','W','Red','R','B') AS cfc FROM biz ORDER BY cfc},
+           result => [ ['B'], ['R'], ['W'] ],
+	},
+	{
+           test   => 'replace',
+           sql    => q{SELECT REPLACE('zfunkY','s/z(.+)ky/$1/i')},
+           result => [ ['fun'] ],
+	},
+	{
+           test   => 'substitute',
+           sql    => q{SELECT SUBSTITUTE('zfunkY','s/z(.+)ky/$1/i')},
+           result => [ ['fun'] ],
+	},
+	{
+           test   => 'substr',
+           sql    => q{SELECT SUBSTR('zfunkY',2,3)},
+           result => [ ['fun'] ],
+	},
+	{
+           test   => 'substring',
+           sql    => "SELECT DISTINCT color FROM biz WHERE SUBSTRING(class FROM 1 FOR 1)='T'",
+           result => [ ['White'] ],
+	},
+	{
+           test   => 'trim',
+           sql    => q{SELECT TRIM(' fun ')},
+           result => [ ['fun'] ],
+	},
+	{
+           test   => 'soundex match',
+           sql    => "SELECT SOUNDEX('jeff','jeph')",
+           result => [ [1] ],
+	},
+	{
+           test   => 'soundex no match',
+           sql    => "SELECT SOUNDEX('jeff','quartz')",
+           result => [ [0] ],
+	},
+	{
+           test   => 'regex match',
+           sql    => "SELECT REGEX('jeff','/EF/i')",
+           result => [ [1] ],
+	},
+	{
+           test   => 'regex no match',
+           sql    => "SELECT REGEX('jeff','/zzz/')",
+           result => [ [0] ],
+	},
     );
 
     foreach my $test (@tests)
     {
+	if( $test->{sql} =~ /DECODE/ )
+	{
+	    note("break here");
+	}
         if ( defined( $test->{prepare_err} ) )
         {
             $sth = $dbh->prepare( $test->{sql} );

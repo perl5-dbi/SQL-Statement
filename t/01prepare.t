@@ -8,19 +8,25 @@ use Params::Util qw(_INSTANCE);
 use TestLib qw(connect prove_reqs show_reqs);
 
 my ( $required, $recommended ) = prove_reqs();
-my @test_dsns = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
+my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
 
-foreach my $test_dsn (@test_dsns)
+foreach my $test_dbd (@test_dbds)
 {
     my $dbh;
 
     # Test RaiseError for prepare errors
     #
+    my %extra_args;
+    if ( $test_dbd =~ m/^DBD::/i )
+    {
+	$extra_args{sql_dialect} = "ANSI";
+    }
     $dbh = connect(
-                    $test_dsn,
+                    $test_dbd,
                     {
                        PrintError => 0,
                        RaiseError => 0,
+		       %extra_args,
                     }
                   );
 
@@ -159,7 +165,7 @@ SELECT * FROM bar WHERE foo NOT BETWEEN ('aa','bb')
 SELECT * FROM bar WHERE foo NOT BETWEEN (1.41,9.81)
 
 	       ) {
-	ok( eval { $dbh->prepare($sql); }, "parse '$sql'" );
+	ok( eval { $dbh->prepare($sql); }, "parse '$sql' using $test_dbd" ) or diag( $dbh->errstr() );
     }
 
     SKIP:
