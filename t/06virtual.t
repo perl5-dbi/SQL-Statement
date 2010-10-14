@@ -311,10 +311,6 @@ foreach my $test_dbd (@test_dbds)
 
     foreach my $test (@tests)
     {
-	if( $test->{sql} =~ /DECODE/ )
-	{
-	    note("break here");
-	}
         if ( defined( $test->{prepare_err} ) )
         {
             $sth = $dbh->prepare( $test->{sql} );
