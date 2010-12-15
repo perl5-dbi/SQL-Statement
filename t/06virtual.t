@@ -50,19 +50,48 @@ foreach my $test_dbd (@test_dbds)
                   );
 
     my ( $sth, $str );
+    my $now = time();
+    my @timelist;
+    for my $hour ( 1 .. 10 )
+    {
+        push( @timelist, $now - ( $hour * 3600 ) );
+    }
 
     for my $sql (
-        split /\n/, <<""
+        split /\n/,
+        sprintf( <<"", ($now) x 7, @timelist )
 	CREATE $temp TABLE biz (sales INTEGER, class CHAR, color CHAR, BUGNULL CHAR)
 	INSERT INTO biz VALUES (1000, 'Car',   'White', NULL)
 	INSERT INTO biz VALUES ( 500, 'Car',   'Blue',  NULL )
 	INSERT INTO biz VALUES ( 400, 'Truck', 'White', NULL )
 	INSERT INTO biz VALUES ( 700, 'Car',   'Red',   NULL )
 	INSERT INTO biz VALUES ( 300, 'Truck', 'White', NULL )
+	CREATE $temp TABLE baz (ordered INTEGER, class CHAR, color CHAR)
+	INSERT INTO baz VALUES ( 250, 'Car',   'White' ), ( 100, 'Car',   'Blue' ), ( 150, 'Car',   'Red' )
+	INSERT INTO baz VALUES (  80, 'Truck', 'White' ), (  60, 'Truck', 'Green' ) -- Yes, we introduce new cars :)
 	CREATE $temp TABLE numbers (c_foo INTEGER, foo CHAR, bar INTEGER)
 	CREATE $temp TABLE trick   (id INTEGER, foo CHAR)
 	INSERT INTO trick VALUES (1, '1foo')
 	INSERT INTO trick VALUES (11, 'foo')
+	CREATE TYPE TIMESTAMP
+	CREATE $temp TABLE log (id INT, host CHAR, signature CHAR, message CHAR, time_stamp TIMESTAMP)
+	INSERT INTO log VALUES (1, 'bert', '/netbsd', 'Copyright (c) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,', %d)
+	INSERT INTO log VALUES (2, 'bert', '/netbsd', '2006, 2007, 2008, 2009, 2010', %d)
+	INSERT INTO log VALUES (3, 'bert', '/netbsd', 'The NetBSD Foundation, Inc.  All rights reserved.', %d)
+	INSERT INTO log VALUES (4, 'bert', '/netbsd', 'Copyright (c) 1982, 1986, 1989, 1991, 1993', %d)
+	INSERT INTO log VALUES (5, 'bert', '/netbsd', 'The Regents of the University of California.  All rights reserved.', %d)
+	INSERT INTO log VALUES (6, 'bert', '/netbsd', '', %d)
+	INSERT INTO log VALUES (7, 'bert', '/netbsd', 'NetBSD 5.99.39 (BERT) #0: Fri Oct  8 06:23:03 CEST 2010', %d)
+	INSERT INTO log VALUES (8, 'ernie', 'rpc.statd', 'starting', %d)
+	INSERT INTO log VALUES (9, 'ernie', 'savecore', 'no core dump', %d)
+	INSERT INTO log VALUES (10, 'ernie', 'postfix/postfix-script', 'starting the Postfix mail system', %d)
+	INSERT INTO log VALUES (11, 'ernie', 'rpcbind', 'connect from 127.0.0.1 to dump()', %d)
+	INSERT INTO log VALUES (12, 'ernie', 'sshd', 'last message repeated 2 times', %d)
+	INSERT INTO log VALUES (13, 'ernie', 'shutdown', 'poweroff by root:', %d)
+	INSERT INTO log VALUES (14, 'ernie', 'shutdown', 'rebooted by root', %d)
+	INSERT INTO log VALUES (15, 'ernie', 'sshd', 'Server listening on :: port 22.', %d)
+	INSERT INTO log VALUES (16, 'ernie', 'sshd', 'Server listening on 0.0.0.0 port 22.', %d)
+	INSERT INTO log VALUES (17, 'ernie', 'sshd', 'Received SIGHUP; restarting.', %d)
 
                 )
     {
@@ -161,6 +190,13 @@ foreach my $test_dbd (@test_dbds)
                      },
         },
         {
+           test   => 'ORDER BY on aliased column',
+           sql    => "SELECT DISTINCT biz.class, baz.color AS foo FROM biz, baz WHERE biz.class = baz.class ORDER BY foo",
+	   result => [
+	       [ qw(Car Blue) ], [ qw(Truck Green) ], [ qw(Car Red) ], [ qw(Car White) ], [ qw(Truck White) ],
+	   ],
+        },
+        {
            test        => 'COUNT(DISTINCT *) fails',
            sql         => "SELECT class, COUNT(distinct *) FROM biz GROUP BY class",
            prepare_err => qr/Keyword DISTINCT is not allowed for COUNT/m,
@@ -217,100 +253,323 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT COUNT(*) FROM trick",
            result => [ [2] ],
         },
-	{
+        {
            test   => 'char_length',
            sql    => "SELECT CHAR_LENGTH('foo')",
            result => [ [3] ],
-	},
-	{
+        },
+        {
            test   => 'position',
            sql    => "SELECT POSITION('a','bar')",
            result => [ [2] ],
-	},
-	{
+        },
+        {
            test   => 'lower',
            sql    => "SELECT LOWER('A')",
            result => [ ['a'] ],
-	},
-	{
+        },
+        {
            test   => 'upper',
            sql    => "SELECT UPPER('a')",
            result => [ ['A'] ],
-	},
-	{
+        },
+        {
            test   => 'concat good',
            sql    => "SELECT CONCAT('A','B')",
            result => [ ['AB'] ],
-	},
-	{
+        },
+        {
            test   => 'concat bad',
            sql    => "SELECT CONCAT('A',NULL)",
-	   result => [ [ undef ] ],
-	},
-	{
+           result => [ [undef] ],
+        },
+        {
            test   => 'coalesce',
            sql    => "SELECT COALESCE(NULL,'z')",
            result => [ ['z'] ],
-	},
-	{
+        },
+        {
            test   => 'nvl',
            sql    => "SELECT NVL(NULL,'z')",
            result => [ ['z'] ],
-	},
-	{
-           test   => 'decode',
-           sql    => q{SELECT DISTINCT DECODE(color,'White','W','Red','R','B') AS cfc FROM biz ORDER BY cfc},
+        },
+        {
+           test => 'decode',
+           sql =>
+             q{SELECT DISTINCT DECODE(color,'White','W','Red','R','B') AS cfc FROM biz ORDER BY cfc},
            result => [ ['B'], ['R'], ['W'] ],
-	},
-	{
+        },
+        {
            test   => 'replace',
            sql    => q{SELECT REPLACE('zfunkY','s/z(.+)ky/$1/i')},
            result => [ ['fun'] ],
-	},
-	{
+        },
+        {
            test   => 'substitute',
            sql    => q{SELECT SUBSTITUTE('zfunkY','s/z(.+)ky/$1/i')},
            result => [ ['fun'] ],
-	},
-	{
+        },
+        {
            test   => 'substr',
            sql    => q{SELECT SUBSTR('zfunkY',2,3)},
            result => [ ['fun'] ],
-	},
-	{
+        },
+        {
            test   => 'substring',
            sql    => "SELECT DISTINCT color FROM biz WHERE SUBSTRING(class FROM 1 FOR 1)='T'",
            result => [ ['White'] ],
-	},
-	{
+        },
+        {
            test   => 'trim',
            sql    => q{SELECT TRIM(' fun ')},
            result => [ ['fun'] ],
-	},
-	{
+        },
+        {
            test   => 'soundex match',
            sql    => "SELECT SOUNDEX('jeff','jeph')",
            result => [ [1] ],
-	},
-	{
+        },
+        {
            test   => 'soundex no match',
            sql    => "SELECT SOUNDEX('jeff','quartz')",
            result => [ [0] ],
-	},
-	{
+        },
+        {
            test   => 'regex match',
            sql    => "SELECT REGEX('jeff','/EF/i')",
            result => [ [1] ],
-	},
-	{
+        },
+        {
            test   => 'regex no match',
            sql    => "SELECT REGEX('jeff','/zzz/')",
            result => [ [0] ],
-	},
+        },
+        {
+           test => 'SELECT with calculation in WHERE CLAUSE',
+           sql =>
+             sprintf(
+                   "SELECT id,host,signature,message FROM log WHERE time_stamp < (%d - ( 4 * 60 ))",
+                   $now ),
+           fetch_by => "id",
+           result   => {
+               8 => {
+                      id        => 8,
+                      host      => "ernie",
+                      signature => "rpc.statd",
+                      message   => "starting",
+                    },
+               9 => {
+                      id        => 9,
+                      host      => "ernie",
+                      signature => "savecore",
+                      message   => "no core dump",
+                    },
+               10 => {
+                       id        => 10,
+                       host      => "ernie",
+                       signature => "postfix/postfix-script",
+                       message   => "starting the Postfix mail system",
+                     },
+               11 => {
+                       id        => 11,
+                       host      => "ernie",
+                       signature => "rpcbind",
+                       message   => "connect from 127.0.0.1 to dump()",
+                     },
+               12 => {
+                       id        => 12,
+                       host      => "ernie",
+                       signature => "sshd",
+                       message   => "last message repeated 2 times",
+                     },
+               13 => {
+                       id        => 13,
+                       host      => "ernie",
+                       signature => "shutdown",
+                       message   => "poweroff by root:",
+                     },
+               14 => {
+                       id        => 14,
+                       host      => "ernie",
+                       signature => "shutdown",
+                       message   => "rebooted by root",
+                     },
+               15 => {
+                       id        => 15,
+                       host      => "ernie",
+                       signature => "sshd",
+                       message   => "Server listening on :: port 22.",
+                     },
+               16 => {
+                       id        => 16,
+                       host      => "ernie",
+                       signature => "sshd",
+                       message   => "Server listening on 0.0.0.0 port 22.",
+                     },
+               17 => {
+                       id        => 17,
+                       host      => "ernie",
+                       signature => "sshd",
+                       message   => "Received SIGHUP; restarting.",
+                     },
+
+           },
+        },
+        {
+           test => 'SELECT with calculation and logical expression in WHERE CLAUSE',
+           sql  => sprintf(
+               "SELECT id,host,signature,message FROM log WHERE (time_stamp > (%d - 5)) AND (time_stamp < (%d + 5))",
+               $now, $now
+           ),
+           fetch_by => "id",
+           result   => {
+                1 => {
+                      id        => 1,
+                      host      => "bert",
+                      signature => "/netbsd",
+                      message =>
+                        "Copyright (c) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,",
+                     },
+                2 => {
+                       id        => 2,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "2006, 2007, 2008, 2009, 2010",
+                     },
+                3 => {
+                       id        => 3,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "The NetBSD Foundation, Inc.  All rights reserved.",
+                     },
+                4 => {
+                       id        => 4,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "Copyright (c) 1982, 1986, 1989, 1991, 1993",
+                     },
+                5 => {
+                    id        => 5,
+                    host      => "bert",
+                    signature => "/netbsd",
+                    message => "The Regents of the University of California.  All rights reserved.",
+                },
+                6 => {
+                       id        => 6,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => '',
+                     },
+                7 => {
+                       id        => 7,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "NetBSD 5.99.39 (BERT) #0: Fri Oct  8 06:23:03 CEST 2010",
+                     },
+           },
+        },
+        {
+           test => 'SELECT with calculated items in BETWEEN in WHERE CLAUSE',
+           sql  => sprintf(
+               "SELECT id,host,signature,message FROM log WHERE time_stamp BETWEEN ( %d - 5, %d + 5)",
+               $now, $now
+           ),
+           fetch_by => "id",
+           result   => {
+                1 => {
+                      id        => 1,
+                      host      => "bert",
+                      signature => "/netbsd",
+                      message =>
+                        "Copyright (c) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,",
+                     },
+                2 => {
+                       id        => 2,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "2006, 2007, 2008, 2009, 2010",
+                     },
+                3 => {
+                       id        => 3,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "The NetBSD Foundation, Inc.  All rights reserved.",
+                     },
+                4 => {
+                       id        => 4,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "Copyright (c) 1982, 1986, 1989, 1991, 1993",
+                     },
+                5 => {
+                    id        => 5,
+                    host      => "bert",
+                    signature => "/netbsd",
+                    message => "The Regents of the University of California.  All rights reserved.",
+                },
+                6 => {
+                       id        => 6,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => '',
+                     },
+                7 => {
+                       id        => 7,
+                       host      => "bert",
+                       signature => "/netbsd",
+                       message   => "NetBSD 5.99.39 (BERT) #0: Fri Oct  8 06:23:03 CEST 2010",
+                     },
+           },
+        },
+        {
+           test => 'MAX() with calculated WHERE clause',
+           sql  => sprintf(
+               "SELECT MAX(time_stamp) FROM log WHERE time_stamp IN (%d - (2*3600), %d - (4*3600))",
+               $now, $now
+           ),
+           result => [ [ $now - ( 2 * 3600 ) ] ],
+        },
+        {
+           test   => 'calculation in MAX()',
+           sql    => "SELECT MAX(time_stamp - 3*3600) FROM log",
+           result => [ [ $now - ( 3 * 3600 ) ] ],
+        },
+        {
+           test   => 'Caclulation outside aggregation',
+           todo   => "Known limitation. Parser/Engine can not handle properly",
+           sql    => "SELECT MAX(time_stamp) - 3*3600 FROM log",
+           result => [ [ $now - ( 3 * 3600 ) ] ],
+        },
+        {
+           test   => 'function in MAX()',
+           sql    => "SELECT MAX( CHAR_LENGTH(message) ) FROM log",
+           result => [ [73] ],
+        },
+        {
+           test   => 'select simple calculated constant from table',
+           sql    => "SELECT 1+0 from log",
+           result => [ ( [1] ) x 17 ],
+        },
+        {
+           test   => 'select calculated constant with preceedence rules',
+           sql    => "SELECT 1+1*2",
+           result => [ [3] ],
+        },
+        {
+           test   => 'SELECT not calculated constant',
+           sql    => "SELECT 1",
+           result => [ [1] ],
+        },
     );
 
     foreach my $test (@tests)
     {
+        local $TODO;
+	if( $test->{todo} )
+	{
+	    note( "break here" );
+	}
+        defined( $test->{todo} ) and $TODO = $test->{todo};
         if ( defined( $test->{prepare_err} ) )
         {
             $sth = $dbh->prepare( $test->{sql} );
@@ -320,9 +579,10 @@ foreach my $test_dbd (@test_dbds)
         }
         $sth = $dbh->prepare( $test->{sql} );
         ok( $sth, "prepare $test->{sql} using $test_dbd" ) or diag( $dbh->errstr() );
+        $sth or next;
         if ( defined( $test->{params} ) )
         {
-	    my $params;
+            my $params;
             if ( defined( _CODE( $test->{params} ) ) )
             {
                 $params = [ &{ $test->{params} } ];
@@ -331,10 +591,10 @@ foreach my $test_dbd (@test_dbds)
             {
                 $params = [ $test->{params} ];
             }
-	    else
-	    {
-		$params = $test->{params};
-	    }
+            else
+            {
+                $params = $test->{params};
+            }
 
             my $i = 0;
             my @failed;
