@@ -131,15 +131,18 @@ sub parse
         if (    defined( $self->{struct}->{column_defs} )
              && defined( _ARRAY( $self->{struct}->{column_defs} ) ) )
         {
-            foreach my $col ( @{ $self->{struct}->{column_defs} } )
+            my $colname;
+            # FIXME SUBSTR('*')
+            my @fine_defs =
+              grep { defined( $_->{fullorg} ) && ( -1 == index( $_->{fullorg}, '*' ) ) }
+              @{ $self->{struct}->{column_defs} };
+            foreach my $col (@fine_defs)
             {
-                next
-                  unless ( defined( $col->{fullorg} ) && ( -1 == index( $col->{fullorg}, '*' ) ) );
-                my $cn = $col->{fullorg};
+                my $colname = $col->{fullorg};
                 #$cn = lc $cn unless ( $cn =~ m/^(?:\w+\.)?"/ );
                 push(
                       @{ $self->{struct}->{org_col_names} },
-                      $self->{struct}->{ORG_NAME}->{$cn} || $cn
+                      $self->{struct}->{ORG_NAME}->{$colname} || $colname
                     );
             }
 
@@ -147,19 +150,14 @@ sub parse
             {
                 $self->{struct}->{table_names} = \@tables;
                 #  For RR aliases, added quoted id protection from upper casing
-                foreach my $col ( @{ $self->{struct}->{column_defs} } )
+                foreach my $col (@fine_defs)
                 {
-                    next
-                      unless ( defined( $col->{fullorg} )
-                               && ( -1 == index( $col->{fullorg}, '*' ) ) );    # FIXME SUBSTR('*')
-                    my $orgname = $col->{fullorg};
-                    my $colname = $orgname;
-                    $colname = lc $colname unless ( $colname =~ m/^(?:\p{Word}+\.)?"/ );
-                    unless ( defined( $self->{struct}->{ORG_NAME}->{$colname} ) )
-                    {
-                        $self->{struct}->{ORG_NAME}->{$colname} =
-                          $self->{struct}->{ORG_NAME}->{$orgname};
-                    }
+                    # defined( $col->{fullorg} ) && ( -1 == index( $col->{fullorg}, '*' ) ) or next;
+                    my $orgname = $colname = $col->{fullorg};
+                    $colname =~ m/^(?:\p{Word}+\.)?"/ or $colname = lc $colname;
+                    defined( $self->{struct}->{ORG_NAME}->{$colname} ) and next;
+                    $self->{struct}->{ORG_NAME}->{$colname} =
+                      $self->{struct}->{ORG_NAME}->{$orgname};
                 }
                 #my @uCols = map { ( $_ =~ /^(\w+\.)?"/ ) ? $_ : lc $_ } @{ $self->{struct}->{column_names} };
                 #$self->{struct}->{column_names} = \@uCols;
@@ -298,6 +296,8 @@ sub dialect
     $self->create_op_regexen();
     $self->{dialect} = $dialect;
     $self->{dialect_set}++;
+
+    return $self->{dialect};
 }
 
 sub _load_class
@@ -1390,6 +1390,7 @@ sub SELECT_LIST
                 $newcol->{alias}               = $alias;
                 $aliases{ $newcol->{fullorg} } = $alias;
                 $self->{struct}->{ORG_NAME}->{ $newcol->{fullorg} } = $alias;
+                $self->{struct}->{ALIASES}->{$alias} = $newcol->{fullorg};
             }
             push( @newcols, $newcol );
         }
@@ -2830,7 +2831,7 @@ sub clean_sql
     #
     foreach (@$fields) { $_ =~ s/''/\\'/g; }
     my @a = $sql =~ m/((?<!\\)(?:(?:\\\\)*)')/g;
-    if ( (scalar(@a) % 2) == 1 )
+    if ( ( scalar(@a) % 2 ) == 1 )
     {
         $sql =~ s/^.*\?(.+)$/$1/;
         $self->do_err("Mismatched single quote before: <$sql>");
