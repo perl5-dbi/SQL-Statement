@@ -567,7 +567,7 @@ sub EXPLICIT_JOIN
     my ( $self, $remainder ) = @_;
     return undef unless ($remainder);
     my ( $tableA, $tableB, $keycols, $jtype, $natural );
-    if ( $remainder =~ m/^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|UNION|JOIN)(.+)$/is )
+    if ( $remainder =~ m/^(.+?) (NATURAL|INNER|LEFT|RIGHT|FULL|CROSS|UNION|JOIN)(.+)$/is )
     {
         $tableA    = $1;
         $remainder = $2 . $3;
@@ -582,13 +582,13 @@ sub EXPLICIT_JOIN
         $natural++;
         $remainder = $1;
     }
-    if ( $remainder =~ m/^(INNER|LEFT|RIGHT|FULL|UNION) JOIN (.+)/i )
+    if ( $remainder =~ m/^(INNER|LEFT|RIGHT|FULL|CROSS|UNION) JOIN (.+)/i )
     {
         $jtype = $self->{struct}->{join}->{clause} = uc($1);
         $remainder = $2;
         $jtype = "$jtype OUTER" if $jtype !~ /INNER|UNION/i;
     }
-    if ( $remainder =~ m/^(LEFT|RIGHT|FULL) OUTER JOIN (.+)/i )
+    if ( $remainder =~ m/^(LEFT|RIGHT|FULL|CROSS) OUTER JOIN (.+)/i )
     {
         $jtype = $self->{struct}->{join}->{clause} = uc($1) . " OUTER";
         $remainder = $2;
