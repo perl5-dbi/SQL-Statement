@@ -121,7 +121,7 @@ foreach my $test_dbd (@test_dbds)
 	cmp_ok( ref( $sth->where_hash ),  'eq', 'HASH', '$stmt->where_hash' );
 	cmp_ok( $sth->columns(0)->name(), 'eq', 'b',    '$stmt->columns' );
 	cmp_ok( join( '', @{$sth->col_names()} ), 'eq', 'bc', '$stmt->column_names' );
-	cmp_ok( $sth->order(0)->{desc}, 'eq', 'DESC', '$stmt->order' );
+	cmp_ok( $sth->order(0)->{direction}, 'eq', 'DESC', '$stmt->order' );
 
 	while ( my $row = $sth->fetch_row() )
 	{
@@ -162,21 +162,26 @@ foreach my $test_dbd (@test_dbds)
     ###########################
     BEGIN
     {
-        eval "package Foo; sub foo { 88 } 1;";
+        eval 'package Foo; sub foo { 88 } sub bar { return $_[2] * 2; } 1;';
     }
-    $dbh->do(qq{CREATE FUNCTION foo NAME "Foo::foo"});
-    ok( 88 == $dbh->selectrow_array("SELECT foo"), 'CREATE FUNCTION from module' );
+    $dbh->do(qq{CREATE FUNCTION foofoo NAME "Foo::foo"});
+    $dbh->do(qq{CREATE FUNCTION foobar NAME "Foo::bar"});
+    ok( 88 == $dbh->selectrow_array("SELECT foofoo"), 'CREATE FUNCTION from module' );
+    ok( 42 == $dbh->selectrow_array("SELECT foobar(21)"), 'CREATE FUNCTION from module with argument' );
 
     ################
     # LOAD functions
     ################
-    unlink 'Bar.pm' if -e 'Bar.pm';
-    open( O, '>Bar.pm' ) or die $!;
-    print O "package Bar; sub SQL_FUNCTION_BAR{77};1;";
-    close O;
-    $dbh->do("LOAD Bar");
-    ok( 77 == $dbh->selectrow_array("SELECT bar"), 'LOAD FUNCTIONS' );
-    unlink 'Bar.pm' if -e 'Bar.pm';
+    SKIP: {
+	-e 'Bar.pm' and unlink 'Bar.pm';
+	my $fh;
+	open( $fh, '>Bar.pm' ) or skip(1, $!);
+	print $fh "package Bar; sub SQL_FUNCTION_BAR{77};1;";
+	close $fh;
+	$dbh->do("LOAD Bar");
+	ok( 77 == $dbh->selectrow_array("SELECT bar"), 'LOAD FUNCTIONS' );
+    }
+    -e 'Bar.pm' and unlink 'Bar.pm';
 
     #my $foo=0;
     #sub test2 {$foo = 6;}

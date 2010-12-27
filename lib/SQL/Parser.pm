@@ -1494,18 +1494,19 @@ sub SORT_SPEC_LIST
         elsif ( $col =~ /^\s*(\S+)\s*$/si )
         {
             $newcol = $1;
+            $newarg = 'ASC';
         }
         else
         {
             return $self->do_err('Junk after column name in ORDER BY clause!');
         }
-        return undef if !( $newcol = $self->COLUMN_NAME($newcol) );
+        $newcol = $self->COLUMN_NAME($newcol) or return;
         if ( $newcol =~ /^(.+)\..+$/s )
         {
             my $table = $1;
             $self->_verify_tablename( $table, "ORDER BY" );
         }
-        push @ocols, { $newcol => $newarg };
+        push( @ocols, { $newcol => $newarg } );
     }
     $self->{struct}->{sort_spec_list} = \@ocols;
     return 1;

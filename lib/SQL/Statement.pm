@@ -14,6 +14,7 @@ use warnings;
 
 use 5.008;
 use vars qw($VERSION $DEBUG);
+use sort 'stable';
 
 use SQL::Parser;
 require SQL::Eval;
@@ -1035,7 +1036,7 @@ sub SELECT($$)
             {
                 $pos = $table->column_num( $tbl . $self->{dlm} . $col );
                 defined($pos)
-                 or $pos = $table->column_num( $tbl . '_' . $col );
+                  or $pos = $table->column_num( $tbl . '_' . $col );
             }
             next if ( exists( $columns{$tbl}->{$col} ) );
             $pos = $table->column_num($col) unless ( defined($pos) );
@@ -1099,24 +1100,24 @@ sub SELECT($$)
     if (@order_by)
     {
         my @sortCols = map {
-            my ($col, $tbl) = ( $_->column(), $_->table());
+            my ( $col, $tbl ) = ( $_->column(), $_->table() );
             $self->{join} and $table->is_shared($col) and $tbl = 'shared';
             $tbl ||= $self->colname2table($col) || '';
             ( $columns{$tbl}->{$col}, $_->desc() )
         } @order_by;
 
-        @{$rows} = sort {
-            my ( $result, $colNum, $desc );
-            $i = 0;
-            do
-            {
-                $colNum = $sortCols[ $i++ ];
-                $desc   = $sortCols[ $i++ ];
+        $i = scalar(@sortCols);
+        do
+        {
+            my $desc   = $sortCols[ --$i ];
+            my $colNum = $sortCols[ --$i ];
+            @{$rows} = sort {
+                my $result;
                 $result = _anycmp( $a->[$colNum], $b->[$colNum] );
-                $result = -$result if ($desc);
-            } while ( !$result && $i < @sortCols );
-            $result;
-        } @{$rows};
+                $desc and $result = -$result;
+                $result;
+            } @{$rows};
+        } while ( $i > 0 );
     }
 
     if ( defined( $self->limit() ) )
@@ -1488,7 +1489,7 @@ sub verify_expand_column
                    or $is_user_def );
     }
 
-    return ( $table, $col ) if ($is_column or ${$i} < 0);
+    return ( $table, $col ) if ( $is_column or ${$i} < 0 );
     return;
 }
 
@@ -1602,25 +1603,25 @@ sub verify_columns
         {
             defined( _INSTANCE( $self->{sort_spec_list}->[$n], 'SQL::Statement::Order' ) ) and next;
             my ( $newcol, $direction ) = each %{ $self->{sort_spec_list}->[$n] };
-            undef $direction unless ( $direction && $direction eq 'DESC' );
+            my $desc = $direction eq "DESC";
 
             # XXX parse order by like group by and select list
-	    $i = -2;
-	    my ( $table, $col ) =
-	      $self->verify_expand_column( $newcol, \$i, \@usr_cols, \%is_duplicate,
-					   \%col_exists );
-	    return if ( $self->{errstr} );
+            $i = -2;
+            my ( $table, $col ) =
+              $self->verify_expand_column( $newcol, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+            $self->{errstr} and return;
             ( $table, $col ) = $self->full_qualified_column_name($newcol)
-	      if ( defined($col) && !defined($table) );
+              if ( defined($col) && !defined($table) );
             defined($table) and $col = $table . "." . $col;
             $self->{sort_spec_list}->[$n] = SQL::Statement::Order->new(
                 col => SQL::Statement::Util::Column->new(
-                    $col,    # column name
+                    $col,      # column name
                     $table,    # table name
                     SQL::Statement::ColumnValue->new( $self, $col ),    # term
                     $newcol                                             # display name
                                                         ),
-                desc => $direction,
+                direction => $direction,
+                desc      => $desc,
                                                                       );
         }
     }
@@ -2241,9 +2242,10 @@ sub new ($$)
     my $self  = {@_};
     bless( $self, ( ref($proto) || $proto ) );
 }
-sub table ($)  { $_[0]->{col}->table(); }
-sub column ($) { $_[0]->{col}->display_name(); }
-sub desc ($)   { $_[0]->{desc}; }
+sub table ($)     { $_[0]->{col}->table(); }
+sub column ($)    { $_[0]->{col}->display_name(); }
+sub desc ($)      { $_[0]->{desc}; }
+sub direction ($) { $_[0]->{direction}; }
 
 package SQL::Statement::Limit;
 
