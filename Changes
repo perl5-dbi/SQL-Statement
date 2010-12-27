@@ -8,10 +8,14 @@ Version 1.32
 * Fixed unpermitted modification of array source for table creation
   (CREATE TABLE AS IMPORT(?),[[..],[..]])
 * Fixing alias used in ORDER BY (RT#61384, thanks jvm)
+* Fixing ORDER BY behavior for multiple sort columns
+  (slower, but guaranteed correct)
 
 [Improvements]
 * renamed fetch-method into fetch_row (keep fetch() as alias) and
   add a fetch_rows() to fetch all rows at once
+* Different accessors for direction of ORDER BY clause query part
+  and it's boolean equivalent "desc" (0 or 1, respectively)
 
 Version 1.31, released August 16th, 2010
 ----------------------------------------------
