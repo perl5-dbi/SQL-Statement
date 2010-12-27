@@ -166,103 +166,391 @@ foreach my $test_dbd (@test_dbds)
 
                 )
     {
-	$sql =~ m/^\s*--/ and next;
+        $sql =~ m/^\s*--/ and next;
         ok( $sth = $dbh->prepare($sql), "prepare $sql on $test_dbd" ) or diag( $dbh->errstr() );
         ok( $sth->execute(), "execute $sql on $test_dbd" ) or diag( $sth->errstr() );
     }
 
     my @tests = (
         {
-           test     => 'NATURAL JOIN - with named columns in select list',
-           sql      => "SELECT pname,sname FROM Prof NATURAL JOIN Subject",
-           result   => [ [qw(Sue Chem)], [qw(Bob Bio)], [qw(Bob Math)], ],
+           test   => 'NATURAL JOIN - with named columns in select list',
+           sql    => "SELECT pname,sname FROM Prof NATURAL JOIN Subject",
+           result => [ [qw(Sue Chem)], [qw(Bob Bio)], [qw(Bob Math)], ],
         },
         {
-           test     => 'NATURAL JOIN - with select list = *',
-           sql      => "SELECT * FROM Prof NATURAL JOIN Subject",
-           result   => [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], ],
+           test   => 'NATURAL JOIN - with select list = *',
+           sql    => "SELECT * FROM Prof NATURAL JOIN Subject",
+           result => [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], ],
         },
         {
-           test     => 'NATURAL JOIN - with computed columns',
-           sql      => "SELECT UPPER(pname) AS P,Prof.pid,pname,sname FROM Prof NATURAL JOIN Subject",
-           result   => [ [qw(SUE 1 Sue Chem)], [qw(BOB 2 Bob Bio)], [qw(BOB 2 Bob Math)], ],
+           test   => 'NATURAL JOIN - with computed columns',
+           sql    => "SELECT UPPER(pname) AS P,Prof.pid,pname,sname FROM Prof NATURAL JOIN Subject",
+           result => [ [qw(SUE 1 Sue Chem)], [qw(BOB 2 Bob Bio)], [qw(BOB 2 Bob Math)], ],
         },
         {
-           test     => 'NATURAL JOIN - with no specifier on join column',
-           sql      => "SELECT UPPER(pname) AS P,pid,pname,sname FROM Prof NATURAL JOIN Subject",
-           result   => [ [qw(SUE 1 Sue Chem)], [qw(BOB 2 Bob Bio)], [qw(BOB 2 Bob Math)], ],
+           test   => 'NATURAL JOIN - with no specifier on join column',
+           sql    => "SELECT UPPER(pname) AS P,pid,pname,sname FROM Prof NATURAL JOIN Subject",
+           result => [ [qw(SUE 1 Sue Chem)], [qw(BOB 2 Bob Bio)], [qw(BOB 2 Bob Math)], ],
         },
         {
-           test     => 'INNER JOIN - with no specifier on join column',
-           sql      => "SELECT UPPER(pname) AS P,pid,pname,sname FROM Prof JOIN Subject using (pid)",
-           result   => [ [qw(SUE 1 Sue Chem)], [qw(BOB 2 Bob Bio)], [qw(BOB 2 Bob Math)], ],
+           test   => 'INNER JOIN - with no specifier on join column',
+           sql    => "SELECT UPPER(pname) AS P,pid,pname,sname FROM Prof JOIN Subject using (pid)",
+           result => [ [qw(SUE 1 Sue Chem)], [qw(BOB 2 Bob Bio)], [qw(BOB 2 Bob Math)], ],
         },
         {
-           test     => 'LEFT JOIN',
-           sql      => "SELECT * FROM Prof LEFT JOIN Subject USING(pid)",
-           result   => [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], [ 'Tom', 3, undef ], ],
+           test   => 'LEFT JOIN',
+           sql    => "SELECT * FROM Prof LEFT JOIN Subject USING(pid)",
+           result => [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], [ 'Tom', 3, undef ], ],
         },
         {
-           test     => 'LEFT JOIN - enumerated columns',
-           sql      => "SELECT pid,pname,sname FROM Prof LEFT JOIN Subject USING(pid)",
-           result   => [ [qw(1 Sue Chem)], [qw(2 Bob Bio)], [qw(2 Bob Math)], [ 3, 'Tom', undef ], ],
+           test   => 'LEFT JOIN - enumerated columns',
+           sql    => "SELECT pid,pname,sname FROM Prof LEFT JOIN Subject USING(pid)",
+           result => [ [qw(1 Sue Chem)], [qw(2 Bob Bio)], [qw(2 Bob Math)], [ 3, 'Tom', undef ], ],
         },
         {
-           test     => 'LEFT JOIN - perversely intentionally mis-enumerated columns',
-           sql      => "SELECT subject.pid,pname,sname FROM Prof LEFT JOIN Subject USING(pid)",
-           result   => [ [qw(1 Sue Chem)], [qw(2 Bob Bio)], [qw(2 Bob Math)], [ undef, 'Tom', undef ], ],
+           test => 'LEFT JOIN - perversely intentionally mis-enumerated columns',
+           sql  => "SELECT subject.pid,pname,sname FROM Prof LEFT JOIN Subject USING(pid)",
+           result =>
+             [ [qw(1 Sue Chem)], [qw(2 Bob Bio)], [qw(2 Bob Math)], [ undef, 'Tom', undef ], ],
         },
         {
-           test     => 'LEFT JOIN - lower case keywords',
-           sql      => "SELECT subject.pid, pname, sname FROM prof LEFT JOIN subject USING(pid)",
-           result   => [ [qw(1 Sue Chem)], [qw(2 Bob Bio)], [qw(2 Bob Math)], [ undef, 'Tom', undef ], ],
+           test => 'LEFT JOIN - lower case keywords',
+           sql  => "SELECT subject.pid, pname, sname FROM prof LEFT JOIN subject USING(pid)",
+           result =>
+             [ [qw(1 Sue Chem)], [qw(2 Bob Bio)], [qw(2 Bob Math)], [ undef, 'Tom', undef ], ],
         },
         {
-           test     => 'RIGHT JOIN',
-           sql      => "SELECT * FROM Prof RIGHT JOIN Subject USING(pid)",
-           result   => [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], [undef, undef, 'English'], ],
+           test => 'RIGHT JOIN',
+           sql  => "SELECT * FROM Prof RIGHT JOIN Subject USING(pid)",
+           result =>
+             [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], [ undef, undef, 'English' ], ],
         },
         {
-           test     => 'RIGHT JOIN - enumerated columns',
-           sql      => "SELECT pid,sname,pname FROM Prof RIGHT JOIN Subject USING(pid)",
-           result   => [ [qw(1 Chem Sue)], [qw(2 Bio Bob)], [qw(2 Math Bob)], [undef, 'English', undef], ],
+           test => 'RIGHT JOIN - enumerated columns',
+           sql  => "SELECT pid,sname,pname FROM Prof RIGHT JOIN Subject USING(pid)",
+           result =>
+             [ [qw(1 Chem Sue)], [qw(2 Bio Bob)], [qw(2 Math Bob)], [ undef, 'English', undef ], ],
         },
         {
-           test     => 'FULL JOIN',
-           sql      => "SELECT * FROM Prof FULL JOIN Subject USING(pid)",
-           result   => [ [qw(Sue 1 Chem)], [qw(Bob 2 Bio)], [qw(Bob 2 Math)], ['Tom', 3, undef], [undef, 4, 'English'], ],
-	   todo     => 'Analyse',
+           test   => 'FULL JOIN',
+           sql    => "SELECT * FROM Prof FULL JOIN Subject USING(pid)",
+           result => [
+                      [qw(Sue 1 Chem)], [qw(Bob 2 Bio)],
+                      [qw(Bob 2 Math)], [ 'Tom', 3, undef ],
+                      [ undef, 4, 'English' ],
+                     ],
         },
         {
-           test     => 'IMPLICIT JOIN - two tables',
-           sql      => "SELECT * FROM Prof AS P,Subject AS S WHERE P.pid=S.pid",
-           result   => [ [qw(Sue 1 Chem 1)], [qw(Bob 2 Bio 2)], [qw(Bob 2 Math 2)], ],
+           test   => 'IMPLICIT JOIN - two tables',
+           sql    => "SELECT * FROM Prof AS P,Subject AS S WHERE P.pid=S.pid",
+           result => [ [qw(Sue 1 Chem 1)], [qw(Bob 2 Bio 2)], [qw(Bob 2 Math 2)], ],
         },
         {
-           test     => 'IMPLICIT JOIN - three tables',
-           sql      => "
-    SELECT *
-      FROM Prof AS P,Subject AS S,Room AS R
-     WHERE P.pid=S.pid
-       AND P.pid=R.pid
-           ",
-           result   => [ [qw(Sue 1 Chem 1 1C 1)], [qw(Bob 2 Bio 2 2B 2)], [qw(Bob 2 Math 2 2B 2)], ],
+           test => 'IMPLICIT JOIN - three tables',
+           sql  => "SELECT *
+		    FROM Prof AS P,Subject AS S,Room AS R
+		   WHERE P.pid=S.pid
+		     AND P.pid=R.pid",
+           result => [ [qw(Sue 1 Chem 1 1C 1)], [qw(Bob 2 Bio 2 2B 2)], [qw(Bob 2 Math 2 2B 2)], ],
         },
         {
-           test     => 'NATURAL JOIN - on unique id\'s with select list = *',
-           sql      => "SELECT * FROM author NATURAL JOIN book",
-	   result_cols => [qw(author_name author_id book_title)],
-           result   => [ [ 'Neal Stephenson', '1', 'Cryptonomicon' ], ],
+           test        => 'NATURAL JOIN - on unique id\'s with select list = *',
+           sql         => "SELECT * FROM author NATURAL JOIN book",
+           result_cols => [qw(author_name author_id book_title)],
+           result      => [ [ 'Neal Stephenson', '1', 'Cryptonomicon' ], ],
+        },
+        {
+           test        => 'CROSS JOIN with select list = *',
+           sql         => "SELECT * FROM t1 CROSS JOIN t2",
+           result_cols => [qw(num name num wert)],
+           result      => [
+                       [ 1, 'a', 1, 'xxx' ],
+                       [ 1, 'a', 3, 'yyy' ],
+                       [ 1, 'a', 5, 'zzz' ],
+                       [ 2, 'b', 1, 'xxx' ],
+                       [ 2, 'b', 3, 'yyy' ],
+                       [ 2, 'b', 5, 'zzz' ],
+                       [ 3, 'c', 1, 'xxx' ],
+                       [ 3, 'c', 3, 'yyy' ],
+                       [ 3, 'c', 5, 'zzz' ],
+                     ],
+           comment => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    |   1 | xxx
+   1 | a    |   3 | yyy
+   1 | a    |   5 | zzz
+   2 | b    |   1 | xxx
+   2 | b    |   3 | yyy
+   2 | b    |   5 | zzz
+   3 | c    |   1 | xxx
+   3 | c    |   3 | yyy
+   3 | c    |   5 | zzz
+	   }
+        },
+        {
+           test        => 'INNER JOIN with select list = *',
+           sql         => "SELECT * FROM t1 INNER JOIN t2 ON t1.num = t2.num",
+           result_cols => [qw(num name num wert)],
+           result      => [ [ 1, 'a', 1, 'xxx' ], [ 3, 'c', 3, 'yyy' ], ],
+           comment     => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    |   1 | xxx
+   1 | a    |   3 | yyy
+	   }
+        },
+        {
+           test        => 'INNER JOINS (USING) with select list = *',
+           sql         => "SELECT * FROM t1 INNER JOIN t2 USING (num)",
+           result_cols => [qw(num name wert)],
+           result      => [ [ 1, 'a', 'xxx' ], [ 3, 'c', 'yyy' ], ],
+           comment     => q{
+ num | name | wert
+-----+------+------
+   1 | a    | xxx
+   3 | c    | yyy
+	   },
+        },
+        {
+           test        => 'INNER JOINS (NATURAL) with select list = *',
+           sql         => "SELECT * FROM t1 NATURAL INNER JOIN t2",
+           result_cols => [qw(num name wert)],
+           result      => [ [ 1, 'a', 'xxx' ], [ 3, 'c', 'yyy' ], ],
+           comment     => q{
+ num | name | wert
+-----+------+------
+   1 | a    | xxx
+   3 | c    | yyy
+	   },
+        },
+        {
+           test        => 'LEFT JOINS (using ON condition) with select list = *',
+           sql         => "SELECT * FROM t1 LEFT JOIN t2 ON t1.num = t2.num",
+           result_cols => [qw(num name num wert)],
+           result      => [ [ 1, 'a', 1, 'xxx' ], [ 2, 'b', undef, undef ], [ 3, 'c', 3, 'yyy' ], ],
+           comment     => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    | 1   | xxx
+   2 | b    |     |
+   3 | c    | 3   | yyy
+	   },
+        },
+        {
+           test        => 'LEFT JOINS (USING (num) condition) with select list = *',
+           sql         => "SELECT * FROM t1 LEFT JOIN t2 USING (num)",
+           result_cols => [qw(num name wert)],
+           result      => [ [ 1, 'a', 'xxx' ], [ 2, 'b', undef ], [ 3, 'c', 'yyy' ], ],
+           comment     => q{
+ num | name | wert
+-----+------+------
+   1 | a    | xxx
+   2 | b    |
+   3 | c    | yyy
+	   },
+        },
+        {
+           test        => 'Right Joins (using ON condition) with select list = *',
+           sql         => "SELECT * FROM t1 RIGHT JOIN t2 ON t1.num = t2.num",
+           result_cols => [qw(num name num wert)],
+           result  => [ [ 1, 'a', 1, 'xxx' ], [ 3, 'c', 3, 'yyy' ], [ undef, undef, 5, 'zzz' ], ],
+           comment => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    | 1   | xxx
+   3 | c    | 3   | yyy
+     |      | 5   | zzz
+	   },
+        },
+        {
+           test        => 'Left Joins (reverse former Right Join) with select list = *',
+           sql         => "SELECT * FROM t2 LEFT JOIN t1 ON t1.num = t2.num",
+           result_cols => [qw(num wert num name)],
+           result  => [ [ 1, 'xxx', 1, 'a' ], [ 3, 'yyy', 3, 'c' ], [ 5, 'zzz', undef, undef ], ],
+           comment => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    | 1   | xxx
+   3 | c    | 3   | yyy
+     |      | 5   | zzz
+	   },
+        },
+        {
+           test        => 'Full Joins (using ON condition) with select list = *',
+           sql         => "SELECT * FROM t1 FULL JOIN t2 ON t1.num = t2.num",
+           result_cols => [qw(num name num wert)],
+           result      => [
+                       [ 1,     'a',   1,     'xxx' ],
+                       [ 2,     'b',   undef, undef ],
+                       [ 3,     'c',   3,     'yyy' ],
+                       [ undef, undef, 5,     'zzz' ],
+                     ],
+           comment => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    | 1   | xxx
+   2 | b    |     |
+   3 | c    | 3   | yyy
+     |      | 5   | zzz
+	   },
+        },
+        {
+           test => 'Left Joins (using ON t1.num = t2.num AND t2.wert = "xxx") with select list = *',
+           sql  => "SELECT * FROM t1 LEFT JOIN t2 ON t1.num = t2.num AND t2.wert = 'xxx'",
+           result_cols => [qw(num name num wert)],
+           result  => [ [ 1, 'a', 1, 'xxx' ], [ 2, 'b', undef, undef ], [ 3, 'c', undef, undef ], ],
+           comment => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    | 1   | xxx
+   2 | b    |     |
+   3 | c    |     |
+	   },
+           todo => 'Analyze',
+        },
+        {
+           test =>
+             'Left Joins (using ON t1.num = t2.num WHERE (t2.wert = "xxx" OR t2.wert IS NULL)) with select list = *',
+           sql =>
+             "SELECT * FROM t1 LEFT JOIN t2 ON t1.num = t2.num WHERE (t2.wert = 'xxx' OR t2.wert IS NULL)",
+           result_cols => [qw(num name num wert)],
+           result  => [ [ 1, 'a', 1, 'xxx' ], [ 2, 'b', undef, undef ], [ 3, 'c', undef, undef ], ],
+           comment => q{
+ num | name | num | wert
+-----+------+-----+------
+   1 | a    | 1   | xxx
+   2 | b    |     |
+   3 | c    |     |
+	   },
+           todo => 'Analyze',
+        },
+        {
+           test => "DEFAULT INNER (1) with named columns",
+           sql  => q{SELECT applname, appluniq, version, nodename
+			    FROM APPL, PREC, NODE
+			    WHERE appl_type LIKE '%DB'
+			      AND APPL.id=PREC.appl_id
+			      AND PREC.node_id=NODE.id},
+           result      => [
+                       [ 'ZQF',          'ZFQLIN',       '10.2.0.4', 'ernie', ],
+                       [ 'ZQF',          'ZFQLIN',       '10.2.0.4', 'bert', ],
+                       [ 'YRA',          'YRA-UX',       '10.2.0.2', 'bert', ],
+                       [ 'YRA',          'YRA-UX',       '10.2.0.2', 'ernie', ],
+                       [ 'cpan-mods',    'cpan-mods',    '8.4.1',    'statler', ],
+                       [ 'cpan-mods',    'cpan-mods',    '8.4.1',    'waldorf', ],
+                       [ 'cpan-authors', 'cpan-authors', '8.4.1',    'waldorf', ],
+                       [ 'cpan-authors', 'cpan-authors', '8.4.1',    'statler', ],
+                     ],
+        },
+        {
+           test => "DEFAULT INNER (2) with named columns",
+           sql  => q{SELECT applname, appluniq, version, landscapename, nodename
+			    FROM APPL, PREC, NODE, LANDSCAPE, NM_LANDSCAPE
+			    WHERE appl_type LIKE '%DB'
+			      AND APPL.id=PREC.appl_id
+			      AND PREC.node_id=NODE.id
+			      AND NM_LANDSCAPE.obj_id=APPL.id
+			      AND NM_LANDSCAPE.obj_type=1
+			      AND NM_LANDSCAPE.ls_id=LANDSCAPE.id},
+           result => [
+                       [ 'ZQF', 'ZFQLIN', '10.2.0.4', 'Logistic',       'ernie', ],
+                       [ 'ZQF', 'ZFQLIN', '10.2.0.4', 'Logistic',       'bert', ],
+                       [ 'YRA', 'YRA-UX', '10.2.0.2', 'Infrastructure', 'bert', ],
+                       [ 'YRA', 'YRA-UX', '10.2.0.2', 'Infrastructure', 'ernie', ],
+                     ],
+        },
+        {
+           test => "DEFAULT INNER (3) with named columns",
+           sql  => q{SELECT applname, appluniq, version, surname, familyname, phone, nodename
+			    FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT
+			    WHERE appl_type='CUPS'
+			      AND APPL.id=PREC.appl_id
+			      AND PREC.node_id=NODE.id
+			      AND APPL_CONTACT.appl_id=APPL.id
+			      AND APPL_CONTACT.contact_id=CONTACT.id
+			      AND PREC.PRECEDENCE=1
+			    ORDER BY applname, appluniq DESC, nodename DESC},
+           result => [
+                       [
+                          'PRN1',   'PRN1-4.B2',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'piggy',
+                       ],
+                       [
+                          'PRN2',   'PRN2-4.B2',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'kermit',
+                       ],
+                       [
+                          'PRN1',   'PRN1-4.B1',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'samson',
+                       ],
+                     ],
+        },
+        {
+           test => "DEFAULT INNER (4) with named columns",
+           sql => q{SELECT DISTINCT applname, appluniq, version, surname, familyname, phone, nodename
+			    FROM APPL, PREC, NODE, CONTACT, APPL_CONTACT
+			    WHERE appl_type='CUPS'
+			      AND APPL.id=PREC.appl_id
+			      AND PREC.node_id=NODE.id
+			      AND APPL_CONTACT.appl_id=APPL.id
+			      AND APPL_CONTACT.contact_id=CONTACT.id
+			    ORDER BY applname, appluniq, nodename},
+           result => [
+                       [
+                          'PRN1',   'PRN1-4.B1',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'piggy',
+                       ],
+                       [
+                          'PRN1',   'PRN1-4.B1',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'samson',
+                       ],
+                       [
+                          'PRN1',   'PRN1-4.B2',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'piggy',
+                       ],
+                       [
+                          'PRN1',   'PRN1-4.B2',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'samson',
+                       ],
+                       [
+                          'PRN2',   'PRN2-4.B2',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'kermit',
+                       ],
+                       [
+                          'PRN2',   'PRN2-4.B2',        '1.1.22', 'Helge',
+                          'Brunft', '+41-123-45678-09', 'tiffy',
+                       ],
+                     ],
+        },
+        {
+           test => "DEFAULT INNER (5) with named columns",
+           sql => q{SELECT CONCAT('[% NOW %]') AS "timestamp", applname, appluniq, version, nodename
+			    FROM APPL, PREC, NODE
+			    WHERE appl_type LIKE '%DB'
+			      AND APPL.id=PREC.appl_id
+			      AND PREC.node_id=NODE.id},
+           result => [
+                       [ '[% NOW %]', 'ZQF',          'ZFQLIN',       '10.2.0.4', 'ernie', ],
+                       [ '[% NOW %]', 'ZQF',          'ZFQLIN',       '10.2.0.4', 'bert', ],
+                       [ '[% NOW %]', 'YRA',          'YRA-UX',       '10.2.0.2', 'bert', ],
+                       [ '[% NOW %]', 'YRA',          'YRA-UX',       '10.2.0.2', 'ernie', ],
+                       [ '[% NOW %]', 'cpan-mods',    'cpan-mods',    '8.4.1',    'statler', ],
+                       [ '[% NOW %]', 'cpan-mods',    'cpan-mods',    '8.4.1',    'waldorf', ],
+                       [ '[% NOW %]', 'cpan-authors', 'cpan-authors', '8.4.1',    'waldorf', ],
+                       [ '[% NOW %]', 'cpan-authors', 'cpan-authors', '8.4.1',    'statler', ],
+                     ],
         },
     );
 
     foreach my $test (@tests)
     {
+        $test->{test} or next;
         local $TODO;
-	if( $test->{todo} )
-	{
-	    note( "break here" );
-	}
+        if ( $test->{todo} )
+        {
+            note("break here");
+        }
         defined( $test->{todo} ) and $TODO = $test->{todo};
         if ( defined( $test->{prepare_err} ) )
         {
@@ -328,7 +616,7 @@ foreach my $test_dbd (@test_dbds)
 
             if ( $test->{fetch_by} )
             {
-		my $got_result = $sth->fetchall_hashref( $test->{fetch_by} );
+                my $got_result = $sth->fetchall_hashref( $test->{fetch_by} );
                 is_deeply( $got_result, $test->{result}, $test->{test} );
             }
             elsif ( $test->{result_code} )
@@ -337,7 +625,7 @@ foreach my $test_dbd (@test_dbds)
             }
             else
             {
-		my $got_result = $sth->fetch_rows();
+                my $got_result = $sth->fetch_rows();
                 is_deeply( $got_result, $test->{result}, $test->{test} );
             }
         }
