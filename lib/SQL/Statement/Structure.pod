@@ -181,8 +181,8 @@ Example:
     SELECT * FROM FOO ORDER BY id DESC, name
 
 In this case, C<order> could return 2 instances of C<SQL::Statement::Order>.
-You can use the methods C<$o-E<gt>table()>, C<$o-E<gt>column()> and
-C<$o-E<gt>desc()> to examine the order object.
+You can use the methods C<$o-E<gt>table()>, C<$o-E<gt>column()>,
+C<$o-E<gt>direction()> and C<$o-E<gt>desc()> to examine the order object.
 
 =head2 B<limit>
 
