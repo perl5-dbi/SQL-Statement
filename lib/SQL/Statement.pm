@@ -14,7 +14,6 @@ use warnings;
 
 use 5.008;
 use vars qw($VERSION $DEBUG);
-use sort 'stable';
 
 use SQL::Parser;
 require SQL::Eval;
@@ -1099,6 +1098,7 @@ sub SELECT($$)
 
     if (@order_by)
     {
+	use sort 'stable';
         my @sortCols = map {
             my ( $col, $tbl ) = ( $_->column(), $_->table() );
             $self->{join} and $table->is_shared($col) and $tbl = 'shared';
@@ -1118,6 +1118,7 @@ sub SELECT($$)
                 $result;
             } @{$rows};
         } while ( $i > 0 );
+	use sort 'defaults'; # for perl < 5.10.0
     }
 
     if ( defined( $self->limit() ) )
