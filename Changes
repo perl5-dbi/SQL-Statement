@@ -17,6 +17,11 @@ Version 1.32
 * Different accessors for direction of ORDER BY clause query part
   and it's boolean equivalent "desc" (0 or 1, respectively)
 
+[Misc]
+* Bump requirement of DBI to 1.616
+* Add a lot of Pure-Perl DBD's as build dependency for testing
+* switch for fully external DBD tests from DBD::XBase to DBD::SQLite
+
 Version 1.31, released August 16th, 2010
 ----------------------------------------------
 
