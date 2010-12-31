@@ -56,7 +56,7 @@ sub check_mod
 }
 
 my %defaultRecommended = (
-                           'DBI'          => '1.614',
+                           'DBI'          => '1.616',
                            'DBD::File'    => '0.40',
                            'DBD::CSV'     => '0.30',
                            'DBD::DBM'     => '0.06',
