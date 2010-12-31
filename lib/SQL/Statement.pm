@@ -1049,6 +1049,7 @@ sub SELECT($$)
     # begin count for limiting if there's a limit clasue and no order clause
     #
     my $limit_count = 0 if ( $self->limit() and !$self->order() );
+    my $limit       = $self->limit();
     my $row_count   = 0;
     my $offset      = $self->offset() || 0;
     while ( my $array = $table->fetch_row($data) )
@@ -1056,17 +1057,15 @@ sub SELECT($$)
         if ( $self->eval_where( $e, $tableName, $array, \%funcs ) )
         {
             next if ( defined($limit_count) and ( $row_count++ < $offset ) );
-            $limit_count++ if ( defined($limit_count) );
 
             my @row = map { $_->value($e) } $self->columns();
             push( @{$rows}, \@row );
 
             # We quit here if there's a limit clause without order clause
             # and the limit has been reached
-            if ( defined($limit_count) && ( $limit_count >= $self->limit() ) )
-            {
-                return ( scalar( @{$rows} ), $numFields, $rows );
-            }
+            defined($limit_count)
+              and ( ++$limit_count >= $limit )
+              and return ( $limit, $numFields, $rows );
         }
     }
 
@@ -1098,7 +1097,7 @@ sub SELECT($$)
 
     if (@order_by)
     {
-	use sort 'stable';
+        use sort 'stable';
         my @sortCols = map {
             my ( $col, $tbl ) = ( $_->column(), $_->table() );
             $self->{join} and $table->is_shared($col) and $tbl = 'shared';
@@ -1118,7 +1117,7 @@ sub SELECT($$)
                 $result;
             } @{$rows};
         } while ( $i > 0 );
-	use sort 'defaults'; # for perl < 5.10.0
+        use sort 'defaults';    # for perl < 5.10.0
     }
 
     if ( defined( $self->limit() ) )
