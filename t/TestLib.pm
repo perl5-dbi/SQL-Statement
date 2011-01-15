@@ -60,7 +60,7 @@ my %defaultRecommended = (
                            'DBD::File'    => '0.40',
                            'DBD::CSV'     => '0.30',
                            'DBD::DBM'     => '0.06',
-                           'DBD::AnyData' => '0.110',
+#                           'DBD::AnyData' => '0.110',
                          );
 
 sub default_recommended
