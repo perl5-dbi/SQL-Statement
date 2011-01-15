@@ -2721,6 +2721,12 @@ C<sth-E<gt>{NAME}>:
 
 See L<DBI/FetchHashKeyName> for more information.
 
+=item *
+
+Unable to use the same table twice with different aliases. B<Workaround>:
+Temporary tables: C<< CREATE TEMP TABLE t_foo AS SELECT * FROM foo >>.
+Than both tables can be used independently.
+
 =back
 
 Patches to fix bugs/limitations (or a grant to do it) would be
