@@ -16,10 +16,12 @@ Version 1.32
   add a fetch_rows() to fetch all rows at once
 * Different accessors for direction of ORDER BY clause query part
   and it's boolean equivalent "desc" (0 or 1, respectively)
+* Add a lot of Pure-Perl DBD's as build dependency for testing
+  (skip DBD::AnyData for now, because it seems to be broken - check
+  for next release)
 
 [Misc]
 * Bump requirement of DBI to 1.616
-* Add a lot of Pure-Perl DBD's as build dependency for testing
 * switch for fully external DBD tests from DBD::XBase to DBD::SQLite
 * Document another limitation (lacking implicit creating temp table
   during processing a query using the same table with different aliases
