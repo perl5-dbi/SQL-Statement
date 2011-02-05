@@ -61,14 +61,6 @@ WriteMakefile1(
     LICENSE        => 'perl',
     BUILD_REQUIRES => {
         'Test::Simple' => '0.90',
-        # means: DBI >= 1.616
-        'DBI::DBD::SqlEngine' => '0.03',
-        'DBD::File'           => '0.40',
-        'DBD::AnyData'        => '0.110',
-        'DBD::CSV'            => '0.30',
-        'DBD::DBM'            => '0.06',
-        'DBD::SQLite'         => '0',
-        'MLDBM'               => '0',
                       },
     AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
     test   => { TESTS => 't/*.t xt/*.t' },
