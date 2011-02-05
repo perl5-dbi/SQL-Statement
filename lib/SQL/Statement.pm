@@ -30,7 +30,7 @@ use Params::Util qw(_INSTANCE _STRING _ARRAY _ARRAY0 _HASH0 _HASH);
 
 #use locale;
 
-$VERSION = '1.32';
+$VERSION = '1.33';
 
 sub new
 {
