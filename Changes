@@ -1,11 +1,11 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.33, released February 01th, 2011
+Version 1.33, released February 05th, 2011
 ----------------------------------------------
 
 [Bug fixes]
-* Move test dependencies to Bundle::Test::SQL::Statement to avoid
-  circular dependencies
+* Move test dependencies to (unreleased) Bundle::Test::SQL::Statement
+  to avoid circular dependencies
 
 Version 1.32, released January 19th, 2011
 ----------------------------------------------
