@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use vars qw($VERSION %info);
-$VERSION = '1.33';
+$VERSION = '1.34';
 
 use SQL::Statement();
 

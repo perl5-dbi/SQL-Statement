@@ -1,7 +1,7 @@
 package SQL::Dialects::CSV;
 
 use vars qw($VERSION);
-$VERSION = '1.33';
+$VERSION = '1.34';
 
 use SQL::Dialects::Role;
 
