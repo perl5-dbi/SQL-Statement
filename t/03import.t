@@ -128,7 +128,15 @@ foreach my $test_dbd (@test_dbds)
         $sth->execute();
         $str = '';
         while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
-        cmp_ok( $str, 'eq', '1 Hacker^2 Perl^3 Another^4 Just^', 'SELECT FROM "SELECTED(*)"' );
+        cmp_ok( $str, 'eq', '1 Hacker^2 Perl^3 Another^4 Just^', 'SELECT FROM "SELECTED(*)" tbl_copy' );
+
+        ok( $dbh->do("CREATE $temp TABLE tbl_extract AS SELECT * FROM aoa WHERE x LIKE 'H%'"), 'CREATE AS SELECT * with quoted restriction' )
+          or diag( $dbh->errstr() );
+        $sth = $dbh->prepare("SELECT * FROM tbl_extract ORDER BY id ASC");
+        $sth->execute();
+        $str = '';
+        while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+        cmp_ok( $str, 'eq', '1 Hacker^', 'SELECT FROM "SELECTED(*)" tbl_extract' );
 
         $dbh->do($_) for split /\n/, <<"";
         CREATE $temp TABLE tmp (id INTEGER, xphrase VARCHAR(30))
