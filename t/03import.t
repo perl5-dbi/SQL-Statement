@@ -130,7 +130,7 @@ foreach my $test_dbd (@test_dbds)
         while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
         cmp_ok( $str, 'eq', '1 Hacker^2 Perl^3 Another^4 Just^', 'SELECT FROM "SELECTED(*)" tbl_copy' );
 
-        ok( $dbh->do("CREATE $temp TABLE tbl_extract AS SELECT * FROM aoa WHERE x LIKE 'H%'"), 'CREATE AS SELECT * with quoted restriction' )
+        ok( $dbh->do("CREATE $temp TABLE tbl_extract AS SELECT * FROM aoa WHERE word LIKE 'H%'"), 'CREATE AS SELECT * with quoted restriction' )
           or diag( $dbh->errstr() );
         $sth = $dbh->prepare("SELECT * FROM tbl_extract ORDER BY id ASC");
         $sth->execute();
