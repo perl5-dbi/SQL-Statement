@@ -177,16 +177,17 @@ sub CREATE ($$$)
         # AS IMPORT
         if ( $subquery =~ m/^IMPORT/i )
         {
-            $sth = $data->{Database}->prepare("SELECT * FROM $subquery");
-            $sth->execute(@$params);
+            $sth = $data->{Database}->prepare("SELECT * FROM $subquery") or
+		return $self->do_err( $data->{Database}->errstr() );
+            $sth->execute(@$params) or return $self->do_err( $sth->errstr() );
             $names = $sth->{NAME};
         }
 
         # AS SELECT
         else
         {
-            $sth = $data->{Database}->prepare($subquery);
-            $sth->execute();
+            $sth = $data->{Database}->prepare($subquery) or return $self->do_err( $data->{Database}->errstr() );
+            $sth->execute() or return $self->do_err( $sth->errstr() );
             $names = $sth->{NAME};
         }
         $names = $sth->{NAME} unless defined $names;

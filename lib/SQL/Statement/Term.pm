@@ -186,6 +186,8 @@ sub value($)
     unless ( defined( $self->{TMPVAL} ) )
     {
         my ( $tbl, $col ) = $self->{OWNER}->full_qualified_column_name( $self->{VALUE} );
+	defined( $tbl ) or croak( "Can't find table containing column named '$self->{VALUE}'" );
+	defined( $col ) or croak( "Unknown column: '$self->{VALUE}'" );
         $self->{TMPVAL}      = $tbl . $self->{OWNER}->{dlm} . $col;
         $self->{TABLE_NAME}  = $tbl;
         $self->{COLUMN_NAME} = $col;

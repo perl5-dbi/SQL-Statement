@@ -991,6 +991,11 @@ sub CREATE
         my $subquery = $2;
         return undef unless $self->TABLE_NAME($table_name);
         $self->{struct}->{table_names} = [$table_name];
+
+        # undo subquery replaces
+        $subquery =~ s/\?(\d+)\?/'$self->{struct}{literals}[$1]'/g;
+	$subquery =~ s/\?QI(\d+)\?/"$self->{struct}->{quoted_ids}->[$1]"/g;
+	$subquery =~ s/\?COMMA\?/,/gs;
         $self->{struct}->{subquery}    = $subquery;
         if ( -1 != index( $subquery, '?' ) )
         {
