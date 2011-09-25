@@ -128,10 +128,10 @@ sub new
             $mod =~ s|::|/|g;
             $mod .= '.pm';
             eval { require $mod; } unless ( defined( $INC{$mod} ) );
-            return $owner->do_er($@) if ($@);
+            return $owner->do_err($@) if ($@);
         }
 
-        $pkg->can($sub) or return $owner->do_er( "Can't find subroutine $pkg" . "::$sub" );
+        $pkg->can($sub) or return $owner->do_err( "Can't find subroutine $pkg" . "::$sub" );
     }
 
     return $self;
