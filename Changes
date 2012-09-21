@@ -1,5 +1,15 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.400, released July ......, 2011
+----------------------------------------------
+
+[Misc]
+* Switch to 3-digited minor version
+
+[Bug fixes]
+* undo literal replaces in subqueries before passing them to the
+  child parser
+
 Version 1.33, released February 05th, 2011
 ----------------------------------------------
 

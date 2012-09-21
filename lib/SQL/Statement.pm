@@ -30,7 +30,7 @@ use Params::Util qw(_INSTANCE _STRING _ARRAY _ARRAY0 _HASH0 _HASH);
 
 #use locale;
 
-$VERSION = '1.34';
+$VERSION = '1.400';
 
 sub new
 {
@@ -256,11 +256,11 @@ sub DROP ($$$)
          and ( $@ or @err )
          and grep { $_ =~ $enoentrx } ( @err, $@ ) )
     {
-        $@ = '';
         return ( -1, 0 );
     }
 
-    $self->do_err( $@ || $err[0] ) if ( $@ || @err );
+    return if $self->{errstr};
+    return $self->do_err( $@ || $err[0] ) if ( $@ || @err );
 
     #    return undef unless $eval;
     return ( -1, 0 ) unless $eval;
