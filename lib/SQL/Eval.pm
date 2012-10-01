@@ -48,6 +48,13 @@ sub column($$)
     return $self->table($table)->column($column);
 }
 
+sub gen_access_fastpath($)
+{
+    my ( $self, $table ) = @_;
+
+    return $self->table($table)->gen_access_fastpath();
+}
+
 package SQL::Eval::Table;
 
 use Carp qw(croak);
@@ -83,6 +90,21 @@ sub column($)     { return $_[0]->{row}->[ $_[0]->column_num( $_[1] ) ]; }
 sub column_num($) { $_[0]->{col_nums}->{ $_[1] }; }
 sub col_nums()    { $_[0]->{col_nums} }
 sub col_names()   { $_[0]->{col_names}; }
+
+sub gen_access_fastpath($)
+{
+    my ( $self ) = @_;
+
+    if( $self->can("column") == SQL::Eval::Table->can("column") and
+	$self->can("column_num") == SQL::Eval::Table->can("column_num") )
+    {
+	return sub { $self->{row}->[ $self->{col_nums}->{ $_[0] } ] };
+    }
+    else
+    {
+	return sub { $self->column($_[0]) };
+    }
+}
 
 sub capability($)
 {

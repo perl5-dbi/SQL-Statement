@@ -181,8 +181,7 @@ sub new
 
 sub value($)
 {
-    my $self = $_[0];
-    my $eval = $_[1];
+    my ($self, $eval) = @_;
     unless ( defined( $self->{TMPVAL} ) )
     {
         my ( $tbl, $col ) = $self->{OWNER}->full_qualified_column_name( $self->{VALUE} );
@@ -194,20 +193,23 @@ sub value($)
     }
 
     # with TempEval: return $eval->column($self->{TABLE_NAME}, $self->{COLUMN_NAME});
+    my $fp;
+    defined( $fp = $self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } ) and
+	return &$fp( $self->{COLUMN_NAME} );
+
+    defined( $fp = $self->{fastpath}->{"${eval}." . $self->{TMPVAL} } ) and
+	return &$fp( $self->{TMPVAL} );
 
     if ( defined( _INSTANCE( $eval, 'SQL::Eval' ) ) )
     {
-        my $table = $eval->{tables}->{ $self->{TABLE_NAME} };
-        return $table->column( $self->{COLUMN_NAME} );
-
-        # return $line->[ $table->{col_nums}->{ $self->{COLUMN_NAME} } ];
+	$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } = $eval->gen_access_fastpath($self->{TABLE_NAME});
+	return &{$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} }}( $self->{COLUMN_NAME} );
     }
     elsif ( defined( _INSTANCE( $eval, 'SQL::Eval::Table' ) ) )
     {
-        return $eval->column( $self->{TMPVAL} );
-        #my $line = $eval->{table}->[ $eval->{rowpos} - 1 ];
-
-        #return $line->[ $eval->{col_nums}->{ $self->{TMPVAL} } ];
+	$self->{fastpath}->{"${eval}." . $self->{TMPVAL} } = $eval->gen_access_fastpath($self->{TMPVAL});
+	return &{$self->{fastpath}->{"${eval}." . $self->{TMPVAL} }}( $self->{TMPVAL} );
+        # return $eval->column( $self->{TMPVAL} );
     }
     else
     {
