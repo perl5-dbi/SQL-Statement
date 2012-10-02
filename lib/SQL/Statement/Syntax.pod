@@ -232,6 +232,9 @@ data source, see the IMPORT() function.
       * self-joins are not currently supported
       * if implicit joins are used, the WHERE clause must contain
         an equijoin condition for each table
+      * multiple ANSI joins are not supported; use implicit joins for these
+      * this also means that combinations of INNER and non-INNER joins are
+	not supported
 
 =head3 SEARCH CONDITION
 

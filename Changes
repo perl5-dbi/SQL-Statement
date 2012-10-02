@@ -10,6 +10,8 @@ Version 1.400, released July ......, 2011
 * undo literal replaces in subqueries before passing them to the
   child parser
 * Fix doc typo RT#76764 (STEFFENW) - thanks Steffen
+* Improve documentation/tests for multiple JOIN's from RT#69573
+  (from BBYRD) with modifications
 
 Version 1.33, released February 05th, 2011
 ----------------------------------------------

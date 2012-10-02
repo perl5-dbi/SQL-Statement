@@ -541,6 +541,52 @@ foreach my $test_dbd (@test_dbds)
                        [ '[% NOW %]', 'cpan-authors', 'cpan-authors', '8.4.1',    'statler', ],
                      ],
         },
+        {
+           test => "Complex INNER JOIN",
+           sql => q{SELECT pname, sname, rname
+             FROM Prof p
+             JOIN Subject s
+               ON p.pid = s.pid
+             JOIN Room r
+               ON p.pid = r.pid
+           },
+           result => [ [qw(Sue Chem 1C)], [qw(Bob Bio 2B)], [qw(Bob Math 2B)] ],
+           todo => 'Not supported yet!',
+	   execute_err => qr/No such column 'rname'/,
+        },
+        {
+           test => "Complex INNER JOIN (using)",
+           sql => q{SELECT pname, sname, rname
+             FROM Prof
+             JOIN Subject USING (pid)
+             JOIN Room USING (pid)
+           },
+           result => [ [qw(Sue Chem 1C)], [qw(Bob Bio 2B)], [qw(Bob Math 2B)] ],
+           todo => 'Not supported yet!',
+	   prepare_err => qr/Can't find table names in FROM clause/,
+        },
+        {
+           test => "Complex NATURAL JOIN",
+           sql => q{SELECT pname, sname, rname
+             FROM Prof NATURAL JOIN Subject NATURAL JOIN Room
+           },
+           result => [ [qw(Sue Chem 1C)], [qw(Bob Bio 2B)], [qw(Bob Math 2B)] ],
+           todo => 'Not supported yet!',
+	   prepare_err => qr/Can't find table names in FROM clause/,
+        },
+        {
+           test => "Complex LEFT JOIN",
+           sql => q{SELECT pname, sname, rname
+             FROM Prof p
+             LEFT JOIN Subject s
+               ON p.pid = s.pid
+             LEFT JOIN Room r
+               ON p.pid = r.pid
+           },
+           result => [ [qw(Sue Chem 1C)], [qw(Bob Bio 2B)], [qw(Bob Math 2B)], ['Tom', undef, undef] ],
+           todo => 'Not supported yet!',
+	   execute_err => qr/No such column 'rname'/,
+        },
     );
 
     foreach my $test (@tests)
