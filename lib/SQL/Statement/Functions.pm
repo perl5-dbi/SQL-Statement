@@ -287,7 +287,7 @@ B<LOWER & UPPER>
 
  # purpose   : lower-case or upper-case a string
  # arguments : a string
- # returns   : the sting lower or upper cased
+ # returns   : the string lower or upper cased
 
 =cut
 
