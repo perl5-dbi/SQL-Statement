@@ -94,7 +94,7 @@ foreach my $test_dbd (@test_dbds)
         my $comment = $1;
 
         my $sth = $dbh->prepare($sql);
-        ok($sth, "prepare $sql using $test_dbd") or diag($dbh->errstr || 'unknown error');
+        ok($sth, "prepare <$sql> using '$test_dbd'") or diag($dbh->errstr || 'unknown error');
 
 	my @bind;
 #	if($sth->{NUM_OF_PARAMS})
@@ -104,7 +104,7 @@ foreach my $test_dbd (@test_dbds)
 	$comment and @bind = split /,/, $comment;
         # if execute errors we will handle it, not PrintError:
         my $n = $sth->execute(@bind);
-        ok($n, "execute $sql using $test_dbd") or diag($sth->errstr || 'unknown error');
+        ok($n, "execute <$sql> using '$test_dbd'") or diag($sth->errstr || 'unknown error');
         next if (!defined($n));
 
 	is( $n, $result, $sql ) unless( 'ARRAY' eq ref $result );

@@ -47,22 +47,23 @@ foreach my $test_dbd (@test_dbds)
     ok( $dbh->do( qq{ INSERT INTO Tmp VALUES(?,?) }, {}, 2, 'zzz' ),
         'placeholder insert without named cols' )
       or diag( $dbh->errstr() );
-    $dbh->do( qq{ INSERT INTO Tmp (id,phrase) VALUES (?,?) }, {}, 3, 'baz' );
+    $dbh->do( qq{ INSERT INTO Tmp (id,phrase) VALUES (?,?) }, {}, 3, 'baz' ) or diag( $dbh->errstr() );
     ok( $dbh->do( qq{ DELETE FROM Tmp WHERE id=? or phrase=? }, {}, 3, 'baz' ),
         'placeholder delete' );
-    ok( $dbh->do( qq{ UPDATE Tmp SET phrase=? WHERE id=?}, {}, 'bar', 2 ), 'placeholder update' );
+    ok( $dbh->do( qq{ UPDATE Tmp SET phrase=? WHERE id=?}, {}, 'bar', 2 ), 'placeholder update' ) or diag( $dbh->errstr() );
     ok( $dbh->do( qq{ UPDATE Tmp SET phrase=?,id=? WHERE id=? and phrase=?},
                   {}, 'foo', 1, 9, 'yyy' ),
-        'placeholder update' );
+        'placeholder update' ) or diag( $dbh->errstr() );
     ok( $dbh->do( qq{INSERT INTO Tmp VALUES (3, 'baz'), (4, 'fob'),
 (5, 'zab')} ),
-        'multiline insert' );
+        'multiline insert' ) or diag( $dbh->errstr() );
     $sth = $dbh->prepare('SELECT id,phrase FROM Tmp ORDER BY id');
-    $sth->execute();
+    ok($sth, "prepare 'SELECT id,phrase FROM Tmp ORDER BY id'") or diag( $dbh->errstr() );
+    $sth->execute() or diag( $dbh->errstr() );
     $str = '';
     while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
     cmp_ok( $str, 'eq', '1 foo^2 bar^3 baz^4 fob^5 zab^', 'verify table contents' );
-    ok( $dbh->do(qq{ DROP TABLE IF EXISTS Tmp }), 'DROP TABLE' );
+    ok( $dbh->do(qq{ DROP TABLE IF EXISTS Tmp }), 'DROP TABLE' ) or diag( $dbh->errstr() );
 
     ########################################
     # CREATE, INSERT, UPDATE, DELETE, SELECT
@@ -76,7 +77,8 @@ foreach my $test_dbd (@test_dbds)
 	DELETE FROM phrase WHERE id = 2
 
     $sth = $dbh->prepare("SELECT UPPER('a') AS A,phrase FROM phrase");
-    $sth->execute;
+    ok($sth, "prepare 'SELECT UPPER('a') AS A,phrase FROM phrase'") or diag( $dbh->errstr() );
+    $sth->execute or diag( $dbh->errstr() );
     $str = '';
     while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
     ok( $str eq 'A FOO^A BAR^', 'SELECT' );
