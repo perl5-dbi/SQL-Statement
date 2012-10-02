@@ -202,12 +202,12 @@ sub value($)
 
     if ( defined( _INSTANCE( $eval, 'SQL::Eval' ) ) )
     {
-	$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } = $eval->gen_access_fastpath($self->{TABLE_NAME});
+	$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } = $eval->_gen_access_fastpath($self->{TABLE_NAME});
 	return &{$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} }}( $self->{COLUMN_NAME} );
     }
     elsif ( defined( _INSTANCE( $eval, 'SQL::Eval::Table' ) ) )
     {
-	$self->{fastpath}->{"${eval}." . $self->{TMPVAL} } = $eval->gen_access_fastpath($self->{TMPVAL});
+	$self->{fastpath}->{"${eval}." . $self->{TMPVAL} } = $eval->_gen_access_fastpath($self->{TMPVAL});
 	return &{$self->{fastpath}->{"${eval}." . $self->{TMPVAL} }}( $self->{TMPVAL} );
         # return $eval->column( $self->{TMPVAL} );
     }

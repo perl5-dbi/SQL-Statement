@@ -48,11 +48,11 @@ sub column($$)
     return $self->table($table)->column($column);
 }
 
-sub gen_access_fastpath($)
+sub _gen_access_fastpath($)
 {
     my ( $self, $table ) = @_;
 
-    return $self->table($table)->gen_access_fastpath();
+    return $self->table($table)->_gen_access_fastpath();
 }
 
 package SQL::Eval::Table;
@@ -91,7 +91,7 @@ sub column_num($) { $_[0]->{col_nums}->{ $_[1] }; }
 sub col_nums()    { $_[0]->{col_nums} }
 sub col_names()   { $_[0]->{col_names}; }
 
-sub gen_access_fastpath($)
+sub _gen_access_fastpath($)
 {
     my ( $self ) = @_;
 
@@ -247,6 +247,12 @@ This is equivalent to and a shorthand for
 
     $col = $eval->table('foo')->column('id');
 
+=item _gen_access_fastpath
+
+Return a subroutine reference for fast accessing columns for read-only
+access. This routine simply returns the C<_gen_access_fastpath> of the
+referenced table.
+
 =back
 
 
@@ -281,6 +287,14 @@ created from C<col_names>.
 =item capabilities
 
 Hash reference containing additional capabilities.
+
+=item _gen_access_fastpath
+
+Return a subroutine reference for fast accessing columns for read-only
+access. When the instantiated object doesn't provide own methods for
+C<column> and C<column_num> a subroutine reference is returned which
+directly access the internal data structures. For all other cases a
+subroutine directly calling C<< $self->column($_[0]) >> is returned.
 
 =back
 
