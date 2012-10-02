@@ -241,7 +241,8 @@ sub CALL
 }
 
 my $enoentstr = "Cannot open .*\(" . Errno::ENOENT . "\)";
-my $enoentrx  = qr/$enoentstr/;
+my $eabstrstr = "Abstract method .*::open_table called";
+my $notblrx  = qr/(?:$enoentstr|$eabstrstr)/;
 
 sub DROP ($$$)
 {
@@ -253,8 +254,8 @@ sub DROP ($$$)
         ($eval) = $self->open_tables( $data, 0, 1 );
     };
     if (     $self->{ignore_missing_table}
-         and ( $@ or @err )
-         and grep { $_ =~ $enoentrx } ( @err, $@ ) )
+         and ( $@ or @err or $self->{errstr} )
+         and grep { $_ =~ $notblrx } ( @err, $@, $self->{errstr} ) )
     {
         return ( -1, 0 );
     }
