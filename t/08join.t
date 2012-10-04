@@ -557,9 +557,9 @@ foreach my $test_dbd (@test_dbds)
         {
            test => "Complex INNER JOIN (using)",
            sql => q{SELECT pname, sname, rname
-             FROM Prof
-             JOIN Subject USING (pid)
-             JOIN Room USING (pid)
+             FROM Prof p
+             JOIN Subject s USING (pid)
+             JOIN Room r USING (pid)
            },
            result => [ [qw(Sue Chem 1C)], [qw(Bob Bio 2B)], [qw(Bob Math 2B)] ],
            todo => 'Not supported yet!',

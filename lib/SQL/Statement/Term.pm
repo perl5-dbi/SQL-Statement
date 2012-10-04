@@ -192,6 +192,11 @@ sub value($)
         $self->{COLUMN_NAME} = $col;
     }
 
+    # XXX - can TMPVAL being defined without TABLE_NAME?
+    unless ( defined( $self->{TABLE_NAME} ) ) {
+        croak( "No table specified: '" . $self->{OWNER}->{original_string} . "'" );
+    }
+    
     # with TempEval: return $eval->column($self->{TABLE_NAME}, $self->{COLUMN_NAME});
     my $fp;
     defined( $fp = $self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } ) and

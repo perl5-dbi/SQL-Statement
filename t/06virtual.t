@@ -15,6 +15,20 @@ my $testdir = test_dir();
 
 my @massValues = map { [ $_, ( "a" .. "f" )[ int rand 6 ], int rand 10 ] } ( 1 .. 3999 );
 
+# (this code shamelessly stolen from Math::Complex's t/Trig.t, with some mods to near)
+use Math::Trig;
+my $eps = 1e-11;
+
+if ($^O eq 'unicos') { # See lib/Math/Complex.pm and t/lib/complex.t.
+    $eps = 1e-10;
+}
+
+sub near ($$$) {
+    my $d = $_[1] ? abs($_[0]/$_[1] - 1) : abs($_[0]);
+    cmp_ok($d, '<', $eps, $_[2]) or diag("near? $_[0] ~= $_[1]");
+}
+#
+
 SKIP:
 foreach my $test_dbd (@test_dbds)
 {
@@ -100,6 +114,7 @@ foreach my $test_dbd (@test_dbds)
     }
 
     my @tests = (
+        ### GROUP BY Tests ###
         {
            test     => 'GROUP BY one column',
            sql      => "SELECT class,SUM(sales) as foo, MAX(sales) FROM biz GROUP BY class",
@@ -207,6 +222,7 @@ foreach my $test_dbd (@test_dbds)
            execute_err =>
              qr/Column 'biz\.class' must appear in the GROUP BY clause or be used in an aggregate function/,
         },
+        ### Aggregate Functions ###
         {
            test   => 'SUM(bar) of empty table',
            sql    => "SELECT SUM(bar) FROM numbers",
@@ -253,35 +269,138 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT COUNT(*) FROM trick",
            result => [ [2] ],
         },
+        ### Date/Time Functions ###
+        {
+           test   => 'current_date int',
+           sql    => "SELECT CURRENT_DATE()",
+           result_like => qr/^\d{4}-\d{2}-\d{2}$/,
+        },
+        {
+           test   => 'current_time int',
+           sql    => "SELECT CURRENT_TIME",
+           result_like => qr/^\d{2}:\d{2}:\d{2}$/,
+        },
+        {
+           test   => 'current_timestamp int',
+           sql    => "SELECT CURRENT_TIMESTAMP()",
+           result_like => qr/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,
+        },
+        {
+           test   => 'curdate int',
+           sql    => "SELECT CURDATE",
+           result_like => qr/^\d{4}-\d{2}-\d{2}$/,
+        },
+        {
+           test   => 'curtime int',
+           sql    => "SELECT CURTIME()",
+           result_like => qr/^\d{2}:\d{2}:\d{2}$/,
+        },
+        {
+           test   => 'now int',
+           sql    => "SELECT NOW",
+           result_like => qr/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,
+        },
+        {
+           test   => 'unix_timestamp int',
+           sql    => "SELECT UNIX_TIMESTAMP()",
+           result_like => qr/^\d{10,}$/,
+        },
+        {
+           test   => 'current_time precision',
+           sql    => "SELECT CURRENT_TIME (1)",
+           result_like => qr/^\d{2}:\d{2}:\d{2}\.\d{1}$/,
+        },
+        {
+           test   => 'current_timestamp precision',
+           sql    => "SELECT CURRENT_TIMESTAMP  (2)",
+           result_like => qr/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{2}$/,
+        },
+        {
+           test   => 'curtime precision',
+           sql    => "SELECT CURTIME   (3)",
+           result_like => qr/^\d{2}:\d{2}:\d{2}\.\d{3}$/,
+        },
+        {
+           test   => 'now precision',
+           sql    => "SELECT NOW(4)",
+           result_like => qr/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{4}$/,
+        },
+        {
+           test   => 'unix_timestamp precision',
+           sql    => "SELECT UNIX_TIMESTAMP(5)",
+           result_like => qr/^\d{10,}\.\d{5}$/,
+        },
+        ### String Functions ### 
+        {
+           test   => 'ascii char',
+           sql    => "SELECT ASCII('A')",
+           result => [ [65] ],
+        },
+        {
+           test   => 'ascii str',
+           sql    => "SELECT ASCII('ABC')",
+           result => [ [65] ],
+        },
+        {
+           test   => 'char blank',
+           sql    => "SELECT CHAR()",
+           result => [ [''] ],
+        },
+        {
+           test   => 'char char',
+           sql    => "SELECT CHAR(65)",
+           result => [ ['A'] ],
+        },
+        {
+           test   => 'char char unicode',
+           sql    => "SELECT CHAR(CONV('263A', 16))",
+           result => [ [chr(0x263a)] ],
+        },
+        {
+           test   => 'char str',
+           sql    => "SELECT CHAR(65,66,67)",
+           result => [ ['ABC'] ],
+        },
+        {
+           test   => 'char str unicode',
+           sql    => "SELECT CHAR(CONV('263A', 16), 9787, CONV('10011000111100', 2))",
+           result => [ [chr(9786).chr(9787).chr(9788)] ],
+        },
+        {
+           test   => 'bit_length 6bit',
+           sql    => "SELECT BIT_LENGTH(' oo')",
+           result => [ [22] ],
+        },
+        {
+           test   => 'bit_length 7bit',
+           sql    => "SELECT BIT_LENGTH('foo')",
+           result => [ [23] ],
+        },
+        {
+           test   => 'bit_length unicode',
+           sql    => "SELECT BIT_LENGTH(CHAR(9786, 9787, 9788))",
+           result => [ [62] ],
+           comment=> '14+24+24',
+        },
+        {
+           test   => 'character_length',
+           sql    => "SELECT CHARACTER_LENGTH('foo')",
+           result => [ [3] ],
+        },
         {
            test   => 'char_length',
            sql    => "SELECT CHAR_LENGTH('foo')",
            result => [ [3] ],
         },
         {
-           test   => 'position',
-           sql    => "SELECT POSITION('a','bar')",
-           result => [ [2] ],
+           test   => 'character_length unicode',
+           sql    => "SELECT CHARACTER_LENGTH(CHAR(9786, 9787, 9788))",
+           result => [ [3] ],
         },
         {
-           test   => 'lower',
-           sql    => "SELECT LOWER('A')",
-           result => [ ['a'] ],
-        },
-        {
-           test   => 'upper',
-           sql    => "SELECT UPPER('a')",
-           result => [ ['A'] ],
-        },
-        {
-           test   => 'concat good',
-           sql    => "SELECT CONCAT('A','B')",
-           result => [ ['AB'] ],
-        },
-        {
-           test   => 'concat bad',
-           sql    => "SELECT CONCAT('A',NULL)",
-           result => [ [undef] ],
+           test   => 'char_length unicode',
+           sql    => "SELECT CHAR_LENGTH(CHAR(9786, 9787, 9788))",
+           result => [ [3] ],
         },
         {
            test   => 'coalesce',
@@ -294,10 +413,241 @@ foreach my $test_dbd (@test_dbds)
            result => [ ['z'] ],
         },
         {
+           test   => 'ifnull',
+           sql    => "SELECT IFNULL(NULL,'z')",
+           result => [ ['z'] ],
+        },
+        {
+           test   => 'concat good',
+           sql    => "SELECT CONCAT('A','B')",
+           result => [ ['AB'] ],
+        },
+        {
+           test   => 'concat bad',
+           sql    => "SELECT CONCAT('A',NULL)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'conv 2->92',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 92)",
+           result => [ ['HN(/'] ],
+        },
+        {
+           test   => 'conv 2->64',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 64)",
+           result => [ ['VPdr'] ],
+        },
+        {
+           test   => 'conv 2->36',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 36)",
+           result => [ ['3BCKR'] ],
+        },
+        {
+           test   => 'conv 2->16',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 16)",
+           result => [ ['54F76B'] ],
+        },
+        {
+           test   => 'conv 2->10',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 10)",
+           result => [ [5568363] ],
+        },
+        {
+           test   => 'conv 2->8',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2,  8)",
+           result => [ [25173553] ],
+        },
+        {
+           test   => 'conv 2->2',
+           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2,  2)",
+           result => [ ['10101001111011101101011'] ],
+        },
+        {
+           test   => 'conv base 36 short-circuit',
+           sql    => "SELECT CONV(-1, 2, 36)",
+           result => [ [-1] ],
+        },
+        {
+           test   => 'conv base 92 short-circuit',
+           sql    => "SELECT CONV(-1, 2, 92)",
+           result => [ ['-B'] ],
+        },
+        {
+           test   => 'conv 92->36',
+           sql    => "SELECT CONV('-&23ms98*&a ^.21 hjs ', 92, 36)",
+           result => [ ['-K0I202KQNNWT6T.LCV70S2NKBRPR84RIHPA2JZ3N7MJ4LR6Z58UT0ASDKIG9QUDF96AGW9EY7318W1NWL28SHZ08T4DL8AA9KG59B6KNJZH4946CBLR0FRIGDZ7OB4F0WSGM9HVFR6E70FE932DYTYP46ZFOA3EZ54WIWW5Q3MH2FW8YIBN5V37CRN07A9C3VX4WZCF36BA69KI766606JE9G847RNA0NC3SKPR1CV7XRN56I5MWIZD34VUGJZ'] ],
+        },
+        {
+           test   => 'conv 2->92 fractional',
+           sql    => "SELECT CONV('10101001111.011101101011', 2, 92)",
+           result => [ ['O:.q8J_/XAAAAAAAAAAAAAAi&)LZgh0v&7iGMl6;4,FUUC6U}gTSvQ?J,{rClk2+~AEG^2;_gG@:%hpI5M`$]UVl(nG|@x]}*lq?!G8/A?'."'".'<e%d>x-08]1<%?fOf'."'".'&%MVDNVw)B&%LLL}v*%%Hy+j*_vyJZH7gZ5lZn<&0]OrTeW$-0#cVCrOf<\61\o_`$i:Ug%3A{*&e$M|LAL{rGHiur~YYm_]7?@]d{>u#mwh/z!F=>C[9*F}Gp%+GXyNhT'] ],
+        },
+        {
+           test   => 'conv 8->64 fractional',
+           sql    => "SELECT CONV(2517.3553, 8, 64)",
+           result => [ ['VP.dr'] ],
+        },
+        {
+           test   => 'conv 16->32 fractional',
+           sql    => "SELECT CONV('54F . 76B', 16, 32)",
+           result => [ ['1AF.EQO'] ],
+        },
+        {
+           test   => 'conv 2->16 fractional',
+           sql    => "SELECT CONV('101 0100 1111.0111 0110 1011', 2, 16)",
+           result => [ ['54F.76B'] ],
+        },
+        {
+           test   => 'conv 64->10 fractional',
+           sql    => "SELECT CONV('VP.dr', 64, 10)",
+           result_near => 1359.463623046875,
+        },
+        {
+           test   => 'conv 32->8 fractional',
+           sql    => "SELECT CONV(' 1 A F . E Q O ', 32, 8)",
+           result => [ [2517.3553] ],
+        },
+        {
+           test   => 'conv 2->2 fractional',
+           sql    => "SELECT CONV('101 0100 1111.0111 0110 1011', 2, 2)",
+           result => [ ['10101001111.011101101011'] ],
+        },
+        {
+           test   => 'conv 32->8 big_number',
+           sql    => "SELECT CONV('1AF.EQO0000000000000000000000000000', 32, 8)",
+           result => [ [2517.3553] ],
+        },
+        {
            test => 'decode',
            sql =>
              q{SELECT DISTINCT DECODE(color,'White','W','Red','R','B') AS cfc FROM biz ORDER BY cfc},
            result => [ ['B'], ['R'], ['W'] ],
+        },
+        {
+           test   => 'insert good 1:1',
+           sql    => "SELECT INSERT('foodieland', 4, 3, 'bar')",
+           result => [ ['foobarland'] ],
+        },
+        {
+           test   => 'insert good non-1:1',
+           sql    => "SELECT INSERT('foodland', 4, 1, 'bar')",
+           result => [ ['foobarland'] ],
+        },
+        {
+           test   => 'insert bad 1',
+           sql    => "SELECT INSERT(NULL, 4, 1, 'bar')",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'insert bad 2',
+           sql    => "SELECT INSERT('foodland', 4, 1, NULL)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'left good',
+           sql    => "SELECT LEFT('foodland', 4)",
+           result => [ ['food'] ],
+        },
+        {
+           test   => 'left bad 1',
+           sql    => "SELECT LEFT(NULL, 4)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'left bad 2',
+           sql    => "SELECT LEFT('foodland', NULL)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'right good',
+           sql    => "SELECT RIGHT('foodland', 4)",
+           result => [ ['land'] ],
+        },
+        {
+           test   => 'right bad 1',
+           sql    => "SELECT RIGHT(NULL, 4)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'right bad 2',
+           sql    => "SELECT RIGHT('foodland', NULL)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'locate 2param',
+           sql    => "SELECT LOCATE('a','bar')",
+           result => [ [2] ],
+        },
+        {
+           test   => 'locate 3param',
+           sql    => "SELECT LOCATE('a','barafa',3)",
+           result => [ [4] ],
+        },
+        {
+           test   => 'position 2param',
+           sql    => "SELECT POSITION('a','bar')",
+           result => [ [2] ],
+        },
+        {
+           test   => 'position 3param',
+           sql    => "SELECT POSITION('a','barafa',3)",
+           result => [ [4] ],
+        },
+        {
+           test   => 'lower',
+           sql    => "SELECT LOWER('A')",
+           result => [ ['a'] ],
+        },
+        {
+           test   => 'upper',
+           sql    => "SELECT UPPER('a')",
+           result => [ ['A'] ],
+        },
+        {
+           test   => 'lcase',
+           sql    => "SELECT LCASE('A')",
+           result => [ ['a'] ],
+        },
+        {
+           test   => 'ucase',
+           sql    => "SELECT UCASE('a')",
+           result => [ ['A'] ],
+        },
+        {
+           test   => 'ltrim',
+           sql    => q{SELECT LTRIM(' fun ')},
+           result => [ ['fun '] ],
+        },
+        {
+           test   => 'rtrim',
+           sql    => q{SELECT RTRIM(' fun ')},
+           result => [ [' fun'] ],
+        },
+        {
+           test   => 'octet_length',
+           sql    => "SELECT OCTET_LENGTH('foo')",
+           result => [ [3] ],
+        },
+        {
+           test   => 'octet_length unicode',
+           sql    => "SELECT OCTET_LENGTH(CHAR(64, 169, 9786, 65572))",
+           result => [ [10] ],
+           comment=> '1+2+3+4',
+        },
+        {
+           test   => 'regex match',
+           sql    => "SELECT REGEX('jeff','/EF/i')",
+           result => [ [1] ],
+        },
+        {
+           test   => 'regex no match',
+           sql    => "SELECT REGEX('jeff','/zzz/')",
+           result => [ [0] ],
+        },
+        {
+           test   => 'repeat',
+           sql    => q{SELECT REPEAT('zfunkY', 3)},
+           result => [ ['zfunkYzfunkYzfunkY'] ],
         },
         {
            test   => 'replace',
@@ -307,21 +657,6 @@ foreach my $test_dbd (@test_dbds)
         {
            test   => 'substitute',
            sql    => q{SELECT SUBSTITUTE('zfunkY','s/z(.+)ky/$1/i')},
-           result => [ ['fun'] ],
-        },
-        {
-           test   => 'substr',
-           sql    => q{SELECT SUBSTR('zfunkY',2,3)},
-           result => [ ['fun'] ],
-        },
-        {
-           test   => 'substring',
-           sql    => "SELECT DISTINCT color FROM biz WHERE SUBSTRING(class FROM 1 FOR 1)='T'",
-           result => [ ['White'] ],
-        },
-        {
-           test   => 'trim',
-           sql    => q{SELECT TRIM(' fun ')},
            result => [ ['fun'] ],
         },
         {
@@ -335,14 +670,522 @@ foreach my $test_dbd (@test_dbds)
            result => [ [0] ],
         },
         {
-           test   => 'regex match',
-           sql    => "SELECT REGEX('jeff','/EF/i')",
+           test   => 'space',
+           sql    => q{SELECT SPACE(10)},
+           result => [ [' ' x 10] ],
+        },
+        {
+           test   => 'substr',
+           sql    => q{SELECT SUBSTR('zfunkY',2,3)},
+           result => [ ['fun'] ],
+        },
+        {
+           test   => 'substring',
+           sql    => "SELECT DISTINCT color FROM biz WHERE SUBSTRING(class FROM 1 FOR 1)='T'",
+           result => [ ['White'] ],
+        },
+        {
+           test   => 'translate',
+           sql    => q{SELECT TRANSLATE('foobar forever', 'oae', '0@3')},
+           result => [ ['f00b@r f0r3v3r'] ],
+        },
+        {
+           test   => 'trim simple',
+           sql    => q{SELECT TRIM(' fun ')},
+           result => [ ['fun'] ],
+        },
+        {
+           test   => 'trim leading',
+           todo   => "Analyze why this fails; may be thinking FROM keyword is for table specs",
+           sql    => q{SELECT TRIM(LEADING FROM ' fun ')},
+           result => [ ['fun '] ],
+        },
+        {
+           test   => 'trim trailing',
+           todo   => "Analyze why this fails; may be thinking FROM keyword is for table specs",
+           sql    => q{SELECT TRIM(TRAILING FROM ' fun ')},
+           result => [ [' fun'] ],
+        },
+        {
+           test   => 'trim leading ;',
+           todo   => "Analyze why this fails; may be thinking FROM keyword is for table specs",
+           sql    => q{SELECT TRIM(LEADING ';' FROM ';;; fun ')},
+           result => [ [' fun '] ],
+        },
+        {
+           test   => 'unhex str',
+           sql    => "SELECT UNHEX('414243')",
+           result => [ ['ABC'] ],
+        },
+        {
+           test   => 'unhex str unicode',
+           sql    => "SELECT UNHEX('263A' || HEX(9787) || CONV('10011000111100', 2, 16), 'UCS-2')",
+           result => [ [chr(9786).chr(9787).chr(9788)] ],
+        },
+        ### Numeric Functions ### 
+        {
+           test   => 'abs',
+           sql    => "SELECT ABS(-4)",
+           result => [ [4] ],
+        },
+        {
+           test   => 'ceiling int',
+           sql    => "SELECT CEILING(5)",
+           result => [ [5] ],
+        },
+        {
+           test   => 'ceiling positive',
+           sql    => "SELECT CEILING(4.1)",
+           result => [ [5] ],
+        },
+        {
+           test   => 'ceil negative',
+           sql    => "SELECT CEIL(-4.5)",
+           result => [ [-4] ],
+        },
+        {
+           test   => 'floor int',
+           sql    => "SELECT FLOOR(-5)",
+           result => [ [-5] ],
+        },
+        {
+           test   => 'floor positive',
+           sql    => "SELECT FLOOR(4.999999999999)",
+           result => [ [4] ],
+        },
+        {
+           test   => 'floor negative',
+           sql    => "SELECT FLOOR(-4.1)",
+           result => [ [-5] ],
+        },
+        {
+           test   => 'exp',
+           sql    => "SELECT EXP(1)",
+           result => [ [sinh(1)+cosh(1)] ],
+        },
+        {
+           test   => 'log as log10',
+           sql    => "SELECT LOG(6)",
+           result => [ [log(6) / log(10)] ],
+        },
+        {
+           test   => 'log as log2',
+           sql    => "SELECT LOG(2, 32)",
+           result => [ [log(32) / log(2)] ],
+        },
+        {
+           test   => 'ln',
+           sql    => "SELECT LN(3)",
+           result => [ [log(3)] ],
+        },
+        {
+           test   => 'mod',
+           sql    => "SELECT MOD(8, 5)",
+           result => [ [3] ],
+        },
+        {
+           test   => 'power',
+           sql    => "SELECT POWER(2, 4)",
+           result => [ [16] ],
+        },
+        {
+           test   => 'pow',
+           sql    => "SELECT POW(2, 4)",
+           result => [ [16] ],
+        },
+        {
+           test   => 'rand',
+           sql    => "SELECT FLOOR(RAND(4))",
+           result_like => qr/^[0123]$|^-0$/,
+        },
+        {
+           test   => 'rand with seed',
+           sql    => "SELECT FLOOR(RAND(4), UNIX_TIMESTAMP())",
+           result_like => qr/^-?[0123]$|^-0$/,
+        },
+        {
+           test   => 'round int',
+           sql    => "SELECT ROUND(4.999999999999)",
+           result => [ [5] ],
+        },
+        {
+           test   => 'round tenth',
+           sql    => "SELECT ROUND(4.542222222222, 1)",
+           result => [ [4.5] ],
+        },
+        {
+           test   => 'sign -1',
+           sql    => "SELECT SIGN(-25.5)",
+           result => [ [-1] ],
+        },
+        {
+           test   => 'sign 1',
+           sql    => "SELECT SIGN(53645)",
            result => [ [1] ],
         },
         {
-           test   => 'regex no match',
-           sql    => "SELECT REGEX('jeff','/zzz/')",
+           test   => 'sign 0',
+           sql    => "SELECT SIGN(0)",
            result => [ [0] ],
+        },
+        {
+           test   => 'sign null',
+           sql    => "SELECT SIGN(NULL)",
+           result => [ [undef] ],
+        },
+        {
+           test   => 'sqrt',
+           sql    => "SELECT SQRT(64)",
+           result => [ [8] ],
+        },
+        {
+           test   => 'truncate int',
+           sql    => "SELECT TRUNCATE(4.999999999999)",
+           result => [ [4] ],
+        },
+        {
+           test   => 'trunc int',
+           sql    => "SELECT TRUNC(-4.9)",
+           result => [ [-4] ],
+        },
+        {
+           test   => 'truncate tenth',
+           sql    => "SELECT TRUNCATE(4.934, 1)",
+           result => [ [4.9] ],
+        },
+        {
+           test   => 'trunc int',
+           sql    => "SELECT TRUNC(-4.99999, 1)",
+           result => [ [-4.9] ],
+        },
+        ### Trigonometric Functions ### 
+        # (this code shamelessly stolen from Math::Complex's t/Trig.t and converted to this test format)
+        {
+           test   => 'sin',
+           sql    => "SELECT SIN(1)",
+           result_near => 0.841470984807897,
+        },
+        {
+           test   => 'cos',
+           sql    => "SELECT COS(1)",
+           result_near => 0.54030230586814,
+        },
+        {
+           test   => 'tan',
+           sql    => "SELECT TAN(1)",
+           result_near => 1.5574077246549,
+        },
+        {
+           test   => 'sec',
+           sql    => "SELECT SEC(1)",
+           result_near => 1.85081571768093,
+        },
+        {
+           test   => 'csc',
+           sql    => "SELECT CSC(1)",
+           result_near => 1.18839510577812,
+        },
+        {
+           test   => 'cosec',
+           sql    => "SELECT COSEC(1)",
+           result_near => 1.18839510577812,
+        },
+        {
+           test   => 'cot',
+           sql    => "SELECT COT(1)",
+           result_near => 0.642092615934331,
+        },
+        {
+           test   => 'cotan',
+           sql    => "SELECT COTAN(1)",
+           result_near => 0.642092615934331,
+        },
+        {
+           test   => 'asin',
+           sql    => "SELECT ASIN(1)",
+           result_near => 1.5707963267949,
+        },
+        {
+           test   => 'acos',
+           sql    => "SELECT ACOS(1)",
+           result => [ [0] ],
+        },
+        {
+           test   => 'atan',
+           sql    => "SELECT ATAN(1)",
+           result_near => 0.785398163397448,
+        },
+        {
+           test   => 'asec',
+           sql    => "SELECT ASEC(1)",
+           result => [ [0] ],
+        },
+        {
+           test   => 'acsc',
+           sql    => "SELECT ACSC(1)",
+           result_near => 1.5707963267949,
+        },
+        {
+           test   => 'acosec',
+           sql    => "SELECT ACOSEC(1)",
+           result_near => 1.5707963267949,
+        },
+        {
+           test   => 'acot',
+           sql    => "SELECT ACOT(1)",
+           result_near => 0.785398163397448,
+        },
+        {
+           test   => 'acotan',
+           sql    => "SELECT ACOTAN(1)",
+           result_near => 0.785398163397448,
+        },
+        {
+           test   => 'sinh',
+           sql    => "SELECT SINH(1)",
+           result_near => 1.1752011936438,
+        },
+        {
+           test   => 'cosh',
+           sql    => "SELECT COSH(1)",
+           result_near => 1.54308063481524,
+        },
+        {
+           test   => 'tanh',
+           sql    => "SELECT TANH(1)",
+           result_near => 0.761594155955765,
+        },
+        {
+           test   => 'sech',
+           sql    => "SELECT SECH(1)",
+           result_near => 0.648054273663885,
+        },
+        {
+           test   => 'csch',
+           sql    => "SELECT CSCH(1)",
+           result_near => 0.850918128239322,
+        },
+        {
+           test   => 'cosech',
+           sql    => "SELECT COSECH(1)",
+           result_near => 0.850918128239322,
+        },
+        {
+           test   => 'coth',
+           sql    => "SELECT COTH(1)",
+           result_near => 1.31303528549933,
+        },
+        {
+           test   => 'cotanh',
+           sql    => "SELECT COTANH(1)",
+           result_near => 1.31303528549933,
+        },
+        {
+           test   => 'asinh',
+           sql    => "SELECT ASINH(1)",
+           result_near => 0.881373587019543,
+        },
+        {
+           test   => 'acosh',
+           sql    => "SELECT ACOSH(1)",
+           result => [ [0] ],
+        },
+        {
+           test   => 'atanh',
+           sql    => "SELECT ATANH(0.9)",
+           result_near => 1.47221948958322,
+        },
+        {
+           test   => 'asech', 
+           sql    => "SELECT ASECH(0.9)",  # atanh(1.0) would be an error.
+           result_near => 0.467145308103262,
+        },
+        {
+           test   => 'acsch',
+           sql    => "SELECT ACSCH(2)",
+           result_near => 0.481211825059603,
+        },
+        {
+           test   => 'acosech',
+           sql    => "SELECT ACOSECH(2)",
+           result_near => 0.481211825059603,
+        },
+        {
+           test   => 'acoth',
+           sql    => "SELECT ACOTH(2)",
+           result_near => 0.549306144334055,
+        },
+        {
+           test   => 'acotanh',
+           sql    => "SELECT ACOTANH(2)",
+           result_near => 0.549306144334055,
+        },
+        {
+           test   => 'pi',
+           sql    => "SELECT PI",
+           result_near => 3.141592653589793,
+        },
+        {
+           test   => 'atan2 to pi/2',
+           sql    => "SELECT ATAN2(1, 0)",
+           result_near => pi/2,
+        },
+        {
+           test   => 'atan2 to pi/4',
+           sql    => "SELECT ATAN2(1, 1)",
+           result_near => pi/4,
+        },
+        {
+           test   => 'atan2 to -3pi/4',
+           sql    => "SELECT ATAN2(-1, -1)",
+           result_near => -3*pi/4,
+        },
+        {
+           test   => 'tan as property sin/cos',
+           sql    => "SELECT TAN(0.9)",
+           result_near => sin(0.9) / cos(0.9),
+        },
+        {
+           test   => 'sinh 2',
+           sql    => "SELECT SINH(2)",
+           result_near => 3.62686040784702,
+        },
+        {
+           test   => 'acsch 0.1',
+           sql    => "SELECT ACSCH(0.1)",
+           result_near => 2.99822295029797,
+        },
+        {
+           test   => 'deg2rad',
+           sql    => "SELECT DEG2RAD(90)",
+           result_near => pi/2,
+        },
+        {
+           test   => 'radians',
+           sql    => "SELECT RADIANS(90)",
+           result_near => pi/2,
+        },
+        {
+           test   => 'rad2deg',
+           sql    => "SELECT RAD2DEG(PI)",
+           result_near => 180,
+        },
+        {
+           test   => 'degrees',
+           sql    => "SELECT DEGREES(PI())",
+           result_near => 180,
+        },
+        {
+           test   => 'deg2grad',
+           sql    => "SELECT DEG2GRAD(0.9)",
+           result => [ [1] ],
+        },
+        {
+           test   => 'grad2deg',
+           sql    => "SELECT GRAD2DEG(50)",
+           result => [ [45] ],
+        },
+        {
+           test   => 'rad2grad',
+           sql    => "SELECT RAD2GRAD(PI / 2)",
+           result => [ [200] ],
+        },
+        {
+           test   => 'grad2rad',
+           sql    => "SELECT GRAD2RAD(200)",
+           result_near => pi,
+        },
+        {
+           test   => 'lotta radians',
+           sql    => "SELECT DEG2RAD(10000000000)",
+           result_near => 4.88692191243172,
+        },
+        {
+           test   => 'negative degrees',
+           sql    => "SELECT RAD2DEG(-10000000000)",
+           result_near => -330.8232421875,
+        },
+        {
+           test   => 'positive degrees',
+           sql    => "SELECT RAD2DEG(10000)",
+           result_near => 197.795130823273,
+        },
+        {
+           test   => 'tanh 100',
+           sql    => "SELECT TANH(100)",
+           result_near => 1,
+        },
+        {
+           test   => 'coth 100',
+           sql    => "SELECT COTH(100)",
+           result_near => 1,
+        },
+        {
+           test   => 'tanh -100',
+           sql    => "SELECT TANH(-100)",
+           result_near => -1,
+        },
+        {
+           test   => 'coth -100',
+           sql    => "SELECT COTH(-100)",
+           result_near => -1,
+        },
+        {
+           test   => 'sech 1e5',
+           sql    => "SELECT SECH(100000)",
+           result => [ [0] ],
+        },
+        {
+           test   => 'csch 1e5',
+           sql    => "SELECT CSCH(100000)",
+           result => [ [0] ],
+        },
+        {
+           test   => 'tanh 1e5',
+           sql    => "SELECT TANH(100000)",
+           result => [ [1] ],
+        },
+        {
+           test   => 'coth 1e5',
+           sql    => "SELECT COTH(100000)",
+           result => [ [1] ],
+        },
+        {
+           test   => 'sech -1e5',
+           sql    => "SELECT SECH(-100000)",
+           result => [ [0] ],
+        },
+        {
+           test   => 'csch -1e5',
+           sql    => "SELECT CSCH(-100000)",
+           result => [ ['0'] ], # XXX was '-0'
+           comment=> 'Is meant to return a "negative zero"'
+        },
+        {
+           test   => 'tanh -1e5',
+           sql    => "SELECT TANH(-100000)",
+           result => [ [-1] ],
+        },
+        {
+           test   => 'coth -1e5',
+           sql    => "SELECT COTH(-100000)",
+           result => [ [-1] ],
+        },
+        ### System Functions
+        {
+           test   => 'dbname',
+           sql    => "SELECT DBNAME()",
+           result => [ [$dbh->{Name}] ],
+        },
+        {
+           test   => 'username',
+           sql    => "SELECT USERNAME()",
+           result => [ [$dbh->{CURRENT_USER}] ],
+        },
+        {
+           test   => 'user',
+           sql    => "SELECT USER()",
+           result => [ [$dbh->{CURRENT_USER}] ],
         },
         {
            test => 'SELECT with calculation in WHERE CLAUSE',
@@ -537,6 +1380,7 @@ foreach my $test_dbd (@test_dbds)
         {
            test   => 'Caclulation outside aggregation',
            todo   => "Known limitation. Parser/Engine can not handle properly",
+           passes => 'parse-DBD::CSV parse-DBD::File parse-DBD::DBM',
            sql    => "SELECT MAX(time_stamp) - 3*3600 FROM log",
            result => [ [ $now - ( 3 * 3600 ) ] ],
         },
@@ -565,11 +1409,8 @@ foreach my $test_dbd (@test_dbds)
     foreach my $test (@tests)
     {
         local $TODO;
-	if( $test->{todo} )
-	{
-	    note( "break here" );
-	}
-        defined( $test->{todo} ) and $TODO = $test->{todo};
+        defined($test->{todo}) and not (defined($test->{passes}) and $test->{passes} =~ /(?:parse|execute|result)(?:(?!-)|-\Q$test_dbd\E)/)
+            and $TODO = $test->{todo};
         if ( defined( $test->{prepare_err} ) )
         {
             $sth = $dbh->prepare( $test->{sql} );
@@ -580,6 +1421,9 @@ foreach my $test_dbd (@test_dbds)
         $sth = $dbh->prepare( $test->{sql} );
         ok( $sth, "prepare $test->{sql} using $test_dbd" ) or diag( $dbh->errstr() );
         $sth or next;
+
+        defined($test->{todo}) and not (defined($test->{passes}) and $test->{passes} =~ /(?:execute|result)(?:(?!-)|-\Q$test_dbd\E)/)
+            and $TODO = $test->{todo};
         if ( defined( $test->{params} ) )
         {
             my $params;
@@ -627,6 +1471,8 @@ foreach my $test_dbd (@test_dbds)
             ok( $n, "execute $test->{sql} using $test_dbd" ) or diag( $dbh->errstr() );
             'SELECT' eq $sth->command() or next;
 
+            defined($test->{todo}) and not (defined($test->{passes}) and $test->{passes} =~ /result(?:(?!-)|-\Q$test_dbd\E)/)
+                and $TODO = $test->{todo};
             if ( $test->{result_cols} )
             {
                 is_deeply( $sth->col_names(), $test->{result_cols}, "Columns in $test->{test}" );
@@ -640,6 +1486,16 @@ foreach my $test_dbd (@test_dbds)
             elsif ( $test->{result_code} )
             {
                 &{ $test->{result_code} }($sth);
+            }
+            elsif ( $test->{result_like} )
+            {
+                my $row = $sth->fetch_rows();
+                like( $row && $row->[0] && $row->[0][0], $test->{result_like}, $test->{test} );
+            }
+            elsif ( $test->{result_near} )
+            {
+                my $row = $sth->fetch_rows();
+                near( $row && $row->[0] && $row->[0][0], $test->{result_near}, $test->{test} );
             }
             else
             {

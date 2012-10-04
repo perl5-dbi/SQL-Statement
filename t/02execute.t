@@ -97,7 +97,7 @@ foreach my $test_dbd (@test_dbds)
     ###########################
     $dbh->do("CREATE FUNCTION froog");
     sub froog { 99 }
-    ok( '99' eq $dbh->selectrow_array("SELECT froog"), 'CREATE FUNCTION from script' );
+    ok( '99' eq $dbh->selectrow_array("SELECT froog()"), 'CREATE FUNCTION from script' );
 
 
     for my $sql (
@@ -168,7 +168,7 @@ foreach my $test_dbd (@test_dbds)
     }
     $dbh->do(qq{CREATE FUNCTION foofoo NAME "Foo::foo"});
     $dbh->do(qq{CREATE FUNCTION foobar NAME "Foo::bar"});
-    ok( 88 == $dbh->selectrow_array("SELECT foofoo"), 'CREATE FUNCTION from module' );
+    ok( 88 == $dbh->selectrow_array("SELECT foofoo()"), 'CREATE FUNCTION from module' );
     ok( 42 == $dbh->selectrow_array("SELECT foobar(21)"), 'CREATE FUNCTION from module with argument' );
 
     ################
@@ -181,7 +181,7 @@ foreach my $test_dbd (@test_dbds)
 	print $fh "package Bar; sub SQL_FUNCTION_BAR{77};1;";
 	close $fh;
 	$dbh->do("LOAD Bar");
-	ok( 77 == $dbh->selectrow_array("SELECT bar"), 'LOAD FUNCTIONS' );
+	ok( 77 == $dbh->selectrow_array("SELECT bar()"), 'LOAD FUNCTIONS' );
     }
     -e 'Bar.pm' and unlink 'Bar.pm';
 

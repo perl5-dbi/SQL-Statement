@@ -15,6 +15,8 @@ my @Keywords = qw(
   PRIMARY KEY BLOB TEXT
   );
 
+# FIXME: This should really use the SQL::Dialect keywords, a la:
+#    return join(',', keys %{ SQL::Dialects::Foobar::get_config_as_hash()->{reserved_words} });
 sub sql_keywords
 {
     return join ',', @Keywords;
@@ -63,7 +65,7 @@ sub sql_keywords
     ,
     10004 => "ISO-8859-1"    # SQL_COLLATION_SEQ
     ,
-    87 => "N"                # SQL_COLUMN_ALIAS
+    87 => "Y"                # SQL_COLUMN_ALIAS
     ,
     22 => 0                  # SQL_CONCAT_NULL_BEHAVIOR
 
@@ -122,8 +124,6 @@ sub sql_keywords
     125 => 0                 # SQL_CONVERT_WLONGVARCHAR
     ,
     126 => 0                 # SQL_CONVERT_WVARCHAR
-
-      #
     ,
     74 => 2                  # SQL_CORRELATION_NAME
     ,
@@ -137,7 +137,21 @@ sub sql_keywords
     ,
     131 => 0                 # SQL_CREATE_SCHEMA
     ,
-    132 => 1                 # SQL_CREATE_TABLE
+    132 => 0x00000015        # SQL_CREATE_TABLE
+      #      SQL_CT_CREATE_TABLE                       => 0x00000001 +
+      #      SQL_CT_COMMIT_PRESERVE                    => 0x00000002
+      #      SQL_CT_COMMIT_DELETE                      => 0x00000004 +
+      #      SQL_CT_GLOBAL_TEMPORARY                   => 0x00000008
+      #      SQL_CT_LOCAL_TEMPORARY                    => 0x00000010 +
+      #      SQL_CT_CONSTRAINT_INITIALLY_DEFERRED      => 0x00000020
+      #      SQL_CT_CONSTRAINT_INITIALLY_IMMEDIATE     => 0x00000040
+      #      SQL_CT_CONSTRAINT_DEFERRABLE              => 0x00000080
+      #      SQL_CT_CONSTRAINT_NON_DEFERRABLE          => 0x00000100
+      #      SQL_CT_COLUMN_CONSTRAINT                  => 0x00000200
+      #      SQL_CT_COLUMN_DEFAULT                     => 0x00000400
+      #      SQL_CT_COLUMN_COLLATION                   => 0x00000800
+      #      SQL_CT_TABLE_CONSTRAINT                   => 0x00001000
+      #      SQL_CT_CONSTRAINT_NAME_DEFINITION         => 0x00002000
     ,
     133 => 0                 # SQL_CREATE_TRANSLATION
     ,
@@ -326,11 +340,42 @@ sub sql_keywords
       #    14 => undef                           # SQL_SEARCH_PATTERN_ESCAPE
       #    13 => undef                           # SQL_SERVER_NAME
       #    94 => undef                           # SQL_SPECIAL_CHARACTERS
-      #   155 => undef                           # SQL_SQL92_DATETIME_FUNCTIONS
+    ,
+    155 => 8             # SQL_SQL92_DATETIME_FUNCTIONS
+      #      SQL_SDF_CURRENT_DATE                      => 0x00000001 +
+      #      SQL_SDF_CURRENT_TIME                      => 0x00000002 +
+      #      SQL_SDF_CURRENT_TIMESTAMP                 => 0x00000004 +
+
       #   156 => undef                           # SQL_SQL92_FOREIGN_KEY_DELETE_RULE
       #   157 => undef                           # SQL_SQL92_FOREIGN_KEY_UPDATE_RULE
       #   158 => undef                           # SQL_SQL92_GRANT
-      #   159 => undef                           # SQL_SQL92_NUMERIC_VALUE_FUNCTIONS
+    ,
+    159 => 0x00FFFFFF    # SQL_SQL92_NUMERIC_VALUE_FUNCTIONS
+      # All of them!
+      #      SQL_FN_NUM_ABS                            => 0x00000001 +
+      #      SQL_FN_NUM_ACOS                           => 0x00000002 +
+      #      SQL_FN_NUM_ASIN                           => 0x00000004 +
+      #      SQL_FN_NUM_ATAN                           => 0x00000008 +
+      #      SQL_FN_NUM_ATAN2                          => 0x00000010 +
+      #      SQL_FN_NUM_CEILING                        => 0x00000020 +
+      #      SQL_FN_NUM_COS                            => 0x00000040 +
+      #      SQL_FN_NUM_COT                            => 0x00000080 +
+      #      SQL_FN_NUM_EXP                            => 0x00000100 +
+      #      SQL_FN_NUM_FLOOR                          => 0x00000200 +
+      #      SQL_FN_NUM_LOG                            => 0x00000400 +
+      #      SQL_FN_NUM_MOD                            => 0x00000800 +
+      #      SQL_FN_NUM_SIGN                           => 0x00001000 +
+      #      SQL_FN_NUM_SIN                            => 0x00002000 +
+      #      SQL_FN_NUM_SQRT                           => 0x00004000 +
+      #      SQL_FN_NUM_TAN                            => 0x00008000 +
+      #      SQL_FN_NUM_PI                             => 0x00010000 +
+      #      SQL_FN_NUM_RAND                           => 0x00020000 +
+      #      SQL_FN_NUM_DEGREES                        => 0x00040000 +
+      #      SQL_FN_NUM_LOG10                          => 0x00080000 +
+      #      SQL_FN_NUM_POWER                          => 0x00100000 +
+      #      SQL_FN_NUM_RADIANS                        => 0x00200000 +
+      #      SQL_FN_NUM_ROUND                          => 0x00400000 +
+      #      SQL_FN_NUM_TRUNCATE                       => 0x00800000 +
     ,
     160 => 0x00003E06    # SQL_SQL92_PREDICATES
 
@@ -370,16 +415,17 @@ sub sql_keywords
       #                                                    SQL_SRVC_DEFAULT
       #                                                    SQL_SRVC_ROW_SUBQUERY
     ,
-    164 => 0x000000EE    # SQL_SQL92_STRING_FUNCTIONS
+    164 => 0x000000FE    # SQL_SQL92_STRING_FUNCTIONS
 
-      #  SQL_SSF_CONVERT         -    /* convert() string function not supported */
-      #  SQL_SSF_LOWER        2  +    /* lower() string function SUPPORTED */
-      #  SQL_SSF_UPPER        4  +    /* upper() string function SUPPORTED */
-      #  SQL_SSF_SUBSTRING    8  +    /* substring() string function SUPPORTED */
-      #  SQL_SSF_TRANSLATE       -    /* translate() string function not supported */
-      #  SQL_SSF_TRIM_BOTH   32  +    /* trim() both string function SUPPORTED */
-      #  SQL_SSF_TRIM_LEADING 64 +    /* trim() leading string function SUPPORTED */
-      #  SQL_SSF_TRIM_TRAILING128+    /* trim() trailing string function SUPPORTED */
+      #      SQL_SSF_CONVERT                           => 0x00000001
+      #      SQL_SSF_LOWER                             => 0x00000002 +
+      #      SQL_SSF_UPPER                             => 0x00000004 +
+      #      SQL_SSF_SUBSTRING                         => 0x00000008 +
+      #      SQL_SSF_TRANSLATE                         => 0x00000010 +
+      #      SQL_SSF_TRIM_BOTH                         => 0x00000020 +
+      #      SQL_SSF_TRIM_LEADING                      => 0x00000040 +
+      #      SQL_SSF_TRIM_TRAILING                     => 0x00000080 +
+
       #   165 => undef                           # SQL_SQL92_VALUE_EXPRESSIONS
       #   118 => undef                           # SQL_SQL_CONFORMANCE
       #   166 => undef                           # SQL_STANDARD_CLI_CONFORMANCE
@@ -387,47 +433,76 @@ sub sql_keywords
       #   168 => undef                           # SQL_STATIC_CURSOR_ATTRIBUTES2
       #    83 => undef                           # SQL_STATIC_SENSITIVITY
     ,
-    50 => 0x00001C49    # SQL_STRING_FUNCTIONS
+    50 => 0x00FF7FFF    # SQL_STRING_FUNCTIONS
 
       #      SQL_FN_STR_CONCAT                         => 0x00000001 +
-      #      SQL_FN_STR_INSERT                         => 0x00000002
-      #      SQL_FN_STR_LEFT                           => 0x00000004
+      #      SQL_FN_STR_INSERT                         => 0x00000002 +
+      #      SQL_FN_STR_LEFT                           => 0x00000004 +
       #      SQL_FN_STR_LTRIM                          => 0x00000008 +
-      #      SQL_FN_STR_LENGTH                         => 0x00000010
-      #      SQL_FN_STR_LOCATE                         => 0x00000020
+      #      SQL_FN_STR_LENGTH                         => 0x00000010 +
+      #      SQL_FN_STR_LOCATE                         => 0x00000020 +
       #      SQL_FN_STR_LCASE                          => 0x00000040 +
-      #      SQL_FN_STR_REPEAT                         => 0x00000080
-      #      SQL_FN_STR_REPLACE                        => 0x00000100
-      #      SQL_FN_STR_RIGHT                          => 0x00000200
+      #      SQL_FN_STR_REPEAT                         => 0x00000080 +
+      #      SQL_FN_STR_REPLACE                        => 0x00000100 +
+      #      SQL_FN_STR_RIGHT                          => 0x00000200 +
       #      SQL_FN_STR_RTRIM                          => 0x00000400 +
       #      SQL_FN_STR_SUBSTRING                      => 0x00000800 +
       #      SQL_FN_STR_UCASE                          => 0x00001000 +
-      #      SQL_FN_STR_ASCII                          => 0x00002000
-      #      SQL_FN_STR_CHAR                           => 0x00004000
+      #      SQL_FN_STR_ASCII                          => 0x00002000 +
+      #      SQL_FN_STR_CHAR                           => 0x00004000 +
       #      SQL_FN_STR_DIFFERENCE                     => 0x00008000
-      #      SQL_FN_STR_LOCATE_2                       => 0x00010000
-      #      SQL_FN_STR_SOUNDEX                        => 0x00020000
-      #      SQL_FN_STR_SPACE                          => 0x00040000
-      #      SQL_FN_STR_BIT_LENGTH                     => 0x00080000
-      #      SQL_FN_STR_CHAR_LENGTH                    => 0x00100000
-      #      SQL_FN_STR_CHARACTER_LENGTH               => 0x00200000
-      #      SQL_FN_STR_OCTET_LENGTH                   => 0x00400000
-      #      SQL_FN_STR_POSITION                       => 0x00800000
+      #      SQL_FN_STR_LOCATE_2                       => 0x00010000 +
+      #      SQL_FN_STR_SOUNDEX                        => 0x00020000 +
+      #      SQL_FN_STR_SPACE                          => 0x00040000 +
+      #      SQL_FN_STR_BIT_LENGTH                     => 0x00080000 +
+      #      SQL_FN_STR_CHAR_LENGTH                    => 0x00100000 +
+      #      SQL_FN_STR_CHARACTER_LENGTH               => 0x00200000 +
+      #      SQL_FN_STR_OCTET_LENGTH                   => 0x00400000 +
+      #      SQL_FN_STR_POSITION                       => 0x00800000 +
+
       #    95 => undef                           # SQL_SUBQUERIES
-      #    51 => undef                           # SQL_SYSTEM_FUNCTIONS
+    ,
+    51 => 8             # SQL_SYSTEM_FUNCTIONS
+      #      SQL_FN_SYS_USERNAME                       => 0x00000001 +
+      #      SQL_FN_SYS_DBNAME                         => 0x00000002 +
+      #      SQL_FN_SYS_IFNULL                         => 0x00000004 +
     ,
     45 => "table"    # SQL_TABLE_TERM
 
       #   109 => undef                           # SQL_TIMEDATE_ADD_INTERVALS
       #   110 => undef                           # SQL_TIMEDATE_DIFF_INTERVALS
-      #    52 => undef                           # SQL_TIMEDATE_FUNCTIONS
+    ,
+    52 => 0x000E0203    # SQL_TIMEDATE_FUNCTIONS
+
+      #      SQL_FN_TD_NOW                             => 0x00000001 +
+      #      SQL_FN_TD_CURDATE                         => 0x00000002 +
+      #      SQL_FN_TD_DAYOFMONTH                      => 0x00000004
+      #      SQL_FN_TD_DAYOFWEEK                       => 0x00000008
+      #      SQL_FN_TD_DAYOFYEAR                       => 0x00000010
+      #      SQL_FN_TD_MONTH                           => 0x00000020
+      #      SQL_FN_TD_QUARTER                         => 0x00000040
+      #      SQL_FN_TD_WEEK                            => 0x00000080
+      #      SQL_FN_TD_YEAR                            => 0x00000100
+      #      SQL_FN_TD_CURTIME                         => 0x00000200 +
+      #      SQL_FN_TD_HOUR                            => 0x00000400
+      #      SQL_FN_TD_MINUTE                          => 0x00000800
+      #      SQL_FN_TD_SECOND                          => 0x00001000
+      #      SQL_FN_TD_TIMESTAMPADD                    => 0x00002000
+      #      SQL_FN_TD_TIMESTAMPDIFF                   => 0x00004000
+      #      SQL_FN_TD_DAYNAME                         => 0x00008000
+      #      SQL_FN_TD_MONTHNAME                       => 0x00010000
+      #      SQL_FN_TD_CURRENT_DATE                    => 0x00020000 +
+      #      SQL_FN_TD_CURRENT_TIME                    => 0x00040000 +
+      #      SQL_FN_TD_CURRENT_TIMESTAMP               => 0x00080000 +
+      #      SQL_FN_TD_EXTRACT                         => 0x00100000
+
       #    46 => undef                           # SQL_TRANSACTION_CAPABLE
       #    72 => undef                           # SQL_TRANSACTION_ISOLATION_OPTION
       #    46 => undef                           # SQL_TXN_CAPABLE
       #    72 => undef                           # SQL_TXN_ISOLATION_OPTION
       #    96 => undef                           # SQL_UNION
       #    96 => undef                           # SQL_UNION_STATEMENT
-      #,    47 => \&sql_user_name                 # SQL_USER_NAME
+      #    47 => \&sql_user_name                 # SQL_USER_NAME
       # 10000 => undef                           # SQL_XOPEN_CLI_YEAR
 );
 

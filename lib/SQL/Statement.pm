@@ -1605,7 +1605,7 @@ sub verify_columns
         {
             defined( _INSTANCE( $self->{sort_spec_list}->[$n], 'SQL::Statement::Order' ) ) and next;
             my ( $newcol, $direction ) = each %{ $self->{sort_spec_list}->[$n] };
-            my $desc = $direction eq "DESC";
+            my $desc = $direction && ($direction eq "DESC"); # ($direction || "ASC") eq "DESC";
 
             # XXX parse order by like group by and select list
             $i = -2;

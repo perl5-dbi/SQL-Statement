@@ -15,6 +15,7 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join( '|', qw(TRIM SUBSTRING) );
+use constant BAREWORD_FUNCTIONS => join( '|', qw(TRIM SUBSTRING CURRENT_DATE CURDATE CURRENT_TIME CURTIME CURRENT_TIMESTAMP NOW UNIX_TIMESTAMP PI DBNAME) );
 use Carp qw(carp croak);
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
@@ -1790,7 +1791,7 @@ sub nongroup_string
     my $parens = 0;
     my $pos;
     my @lparens = ();
-    while ( $str =~ /\G.*?((($f)\s*\()|[\(\)])/igcs )
+    while ( $str =~ /\G.*?((\b($f)\s*\()|[\(\)])/igcs )
     {
         if ( $1 eq ')' )
         {
@@ -1893,9 +1894,9 @@ sub LITERAL_LIST
     return 1;
 }
 
-###################################################################
-# LITERAL ::= <quoted_string> | <question mark> | <number> | NULL
-###################################################################
+#############################################################################
+# LITERAL ::= <quoted_string> | <question mark> | <number> | NULL/TRUE/FALSE
+#############################################################################
 sub LITERAL
 {
     my ( $self, $str ) = @_;
@@ -1907,6 +1908,7 @@ sub LITERAL
     $str = $1 while ( $str =~ m/^\s*\(\s*(.+)\s*\)\s*$/ );
 
     return 'null' if $str =~ m/^NULL$/i;    # NULL
+    return 'boolean' if $str =~ m/^(?:TRUE|FALSE)$/i;  # TRUE/FALSE
 
     #    return 'empty_string' if $str =~ /^~E~$/i;    # NULL
     if ( $str eq '?' )
@@ -2024,7 +2026,7 @@ sub undo_string_funcs
     my $brackets = 0;
     my $pos;
     my @lbrackets = ();
-    while ( $str =~ /\G.*?((($f)\s*\[)|[\[\]])/igcs )
+    while ( $str =~ /\G.*?((\b($f)\s*\[)|[\[\]])/igcs )
     {
         if ( $1 eq ']' )
         {
@@ -2116,6 +2118,8 @@ sub ROW_VALUE
     $str = $self->undo_string_funcs($str);
     $str = undo_math_funcs($str);
     my $orgstr = $str;
+    my $f = FUNCTION_NAMES;
+    my $bf = BAREWORD_FUNCTIONS;
 
     # USER-DEFINED FUNCTION
     my ( $user_func_name, $user_func_args, $is_func );
@@ -2128,7 +2132,7 @@ sub ROW_VALUE
         $user_func_args = $2;
 
         # convert operator-like function to parenthetical format
-        if ( ( $is_func = $self->is_func($user_func_name) ) && ( $user_func_args !~ m/^\(.*\)$/ ) )
+        if ( ( $is_func = $self->is_func($user_func_name) ) && ( $user_func_args !~ m/^\(.*\)$/ ) && ( $is_func =~ /^(?:$bf)$/i ) )
         {
             $orgstr = $str = "$user_func_name ($user_func_args)";
         }
@@ -2141,10 +2145,15 @@ sub ROW_VALUE
         $is_func        = $self->is_func($user_func_name);
     }
 
-    if ( $is_func && ( uc($is_func) !~ m/(TRIM|SUBSTRING)/ ) )
+    # BLKB
+    # Limiting the parens convert shortcut, so that "SELECT LOG(1), PI" works as a
+    # two functions, and "SELECT x FROM log" works as a table
+    undef $is_func if ( $is_func && $is_func !~ /^(?:$bf)$/i && $str !~ m/^\S+\s*\(.*\)\s*$/ );
+    
+    if ( $is_func && ( uc($is_func) !~ m/^($f)$/ ) )
     {
         my ( $name, $value ) = ( $user_func_name, '' );
-        if ( $str =~ m/^(\S+)\s*\((.+)\)\s*$/i )
+        if ( $str =~ m/^(\S+)\s*\((.*)\)\s*$/ )
         {
             $name    = $1;
             $value   = $2;
@@ -2355,11 +2364,13 @@ sub ROW_VALUE
                };
     }
 
-    # NULL, PLACEHOLDER, NUMBER
+    # NULL, BOOLEAN, PLACEHOLDER, NUMBER
     #
     if ( $type = $self->LITERAL($str) )
     {
         undef $str if ( $type eq 'null' );
+        $str = 1 if ( $type eq 'boolean' and $str =~ /^TRUE$/i  );
+        $str = 0 if ( $type eq 'boolean' and $str =~ /^FALSE$/i );
 
         #        if ($type eq 'empty_string') {
         #           $str = '';
@@ -2461,7 +2472,7 @@ sub COLUMN_NAME
 
     my $user_func = $col_name;
     $user_func =~ s/^(\S+).*$/$1/;
-    if ( $col_name !~ m/(TRIM|SUBSTRING)/i )
+    if ( $col_name !~ m/^(TRIM|SUBSTRING)$/i )
     {
         undef $user_func unless ( $self->{opts}->{function_names}->{ uc $user_func } );
     }
@@ -2549,6 +2560,7 @@ sub TABLE_NAME_LIST
         return $self->do_err('Dialect does not support multiple tables!');
     }
 
+    my $bf = BAREWORD_FUNCTIONS;
     my %is_table_alias;
     for my $table_str (@table_names)
     {
@@ -2582,7 +2594,7 @@ sub TABLE_NAME_LIST
         $u_name =~ s/^(\S+)\s*(.*$)/$1/;
         my $u_args = $2;
 
-        if ( $u_name = $self->is_func($u_name) )
+        if ( ($u_name = $self->is_func($u_name)) && ($u_name =~ /^(?:$bf)$/i || $table =~ /^$u_name\s*\(/i) )
         {
             $u_args = " $u_args" if ($u_args);
             my $u_func = $self->ROW_VALUE( $u_name . $u_args );

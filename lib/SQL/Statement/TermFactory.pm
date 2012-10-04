@@ -105,7 +105,7 @@ sub buildCondition
     elsif ( defined( $pred->{type} ) )
     {
         my $type = uc( $pred->{type} );
-        if ( ( $type eq 'STRING' ) || ( $type eq 'NUMBER' ) )
+        if ( $type =~ m/^(?:STRING|NUMBER|BOOLEAN)$/ )
         {
             $term = SQL::Statement::ConstantTerm->new( $self->{OWNER}, $pred->{value} );
         }
