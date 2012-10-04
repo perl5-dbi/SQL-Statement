@@ -15,7 +15,9 @@ use strict;
 use warnings;
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join( '|', qw(TRIM SUBSTRING) );
-use constant BAREWORD_FUNCTIONS => join( '|', qw(TRIM SUBSTRING CURRENT_DATE CURDATE CURRENT_TIME CURTIME CURRENT_TIMESTAMP NOW UNIX_TIMESTAMP PI DBNAME) );
+use constant BAREWORD_FUNCTIONS => join( '|',
+                                         qw(TRIM SUBSTRING CURRENT_DATE CURDATE CURRENT_TIME CURTIME CURRENT_TIMESTAMP NOW UNIX_TIMESTAMP PI DBNAME)
+                                       );
 use Carp qw(carp croak);
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
@@ -995,9 +997,9 @@ sub CREATE
 
         # undo subquery replaces
         $subquery =~ s/\?(\d+)\?/'$self->{struct}{literals}[$1]'/g;
-	$subquery =~ s/\?QI(\d+)\?/"$self->{struct}->{quoted_ids}->[$1]"/g;
-	$subquery =~ s/\?COMMA\?/,/gs;
-        $self->{struct}->{subquery}    = $subquery;
+        $subquery =~ s/\?QI(\d+)\?/"$self->{struct}->{quoted_ids}->[$1]"/g;
+        $subquery =~ s/\?COMMA\?/,/gs;
+        $self->{struct}->{subquery} = $subquery;
         if ( -1 != index( $subquery, '?' ) )
         {
             ++$self->{struct}->{num_placeholders};
@@ -1907,8 +1909,8 @@ sub LITERAL
     #
     $str = $1 while ( $str =~ m/^\s*\(\s*(.+)\s*\)\s*$/ );
 
-    return 'null' if $str =~ m/^NULL$/i;    # NULL
-    return 'boolean' if $str =~ m/^(?:TRUE|FALSE)$/i;  # TRUE/FALSE
+    return 'null'    if $str =~ m/^NULL$/i;              # NULL
+    return 'boolean' if $str =~ m/^(?:TRUE|FALSE)$/i;    # TRUE/FALSE
 
     #    return 'empty_string' if $str =~ /^~E~$/i;    # NULL
     if ( $str eq '?' )
@@ -1918,7 +1920,7 @@ sub LITERAL
     }
 
     #    return 'placeholder' if $str eq '?';   # placeholder question mark
-    return 'string' if $str =~ m/^'.*'$/s;    # quoted string
+    return 'string' if $str =~ m/^'.*'$/s;               # quoted string
           # return 'number' if $str =~ m/^[+-]?(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/; # number
     return 'number' if ( looks_like_number($str) );    # number
 
@@ -2118,8 +2120,8 @@ sub ROW_VALUE
     $str = $self->undo_string_funcs($str);
     $str = undo_math_funcs($str);
     my $orgstr = $str;
-    my $f = FUNCTION_NAMES;
-    my $bf = BAREWORD_FUNCTIONS;
+    my $f      = FUNCTION_NAMES;
+    my $bf     = BAREWORD_FUNCTIONS;
 
     # USER-DEFINED FUNCTION
     my ( $user_func_name, $user_func_args, $is_func );
@@ -2132,7 +2134,9 @@ sub ROW_VALUE
         $user_func_args = $2;
 
         # convert operator-like function to parenthetical format
-        if ( ( $is_func = $self->is_func($user_func_name) ) && ( $user_func_args !~ m/^\(.*\)$/ ) && ( $is_func =~ /^(?:$bf)$/i ) )
+        if (    ( $is_func = $self->is_func($user_func_name) )
+             && ( $user_func_args !~ m/^\(.*\)$/ )
+             && ( $is_func =~ /^(?:$bf)$/i ) )
         {
             $orgstr = $str = "$user_func_name ($user_func_args)";
         }
@@ -2149,7 +2153,7 @@ sub ROW_VALUE
     # Limiting the parens convert shortcut, so that "SELECT LOG(1), PI" works as a
     # two functions, and "SELECT x FROM log" works as a table
     undef $is_func if ( $is_func && $is_func !~ /^(?:$bf)$/i && $str !~ m/^\S+\s*\(.*\)\s*$/ );
-    
+
     if ( $is_func && ( uc($is_func) !~ m/^($f)$/ ) )
     {
         my ( $name, $value ) = ( $user_func_name, '' );
@@ -2369,7 +2373,7 @@ sub ROW_VALUE
     if ( $type = $self->LITERAL($str) )
     {
         undef $str if ( $type eq 'null' );
-        $str = 1 if ( $type eq 'boolean' and $str =~ /^TRUE$/i  );
+        $str = 1 if ( $type eq 'boolean' and $str =~ /^TRUE$/i );
         $str = 0 if ( $type eq 'boolean' and $str =~ /^FALSE$/i );
 
         #        if ($type eq 'empty_string') {
@@ -2594,7 +2598,8 @@ sub TABLE_NAME_LIST
         $u_name =~ s/^(\S+)\s*(.*$)/$1/;
         my $u_args = $2;
 
-        if ( ($u_name = $self->is_func($u_name)) && ($u_name =~ /^(?:$bf)$/i || $table =~ /^$u_name\s*\(/i) )
+        if (    ( $u_name = $self->is_func($u_name) )
+             && ( $u_name =~ /^(?:$bf)$/i || $table =~ /^$u_name\s*\(/i ) )
         {
             $u_args = " $u_args" if ($u_args);
             my $u_func = $self->ROW_VALUE( $u_name . $u_args );
@@ -2816,8 +2821,8 @@ sub set_feature_flags
     if ( defined $select )
     {
         delete $self->{select};
-        $self->{opts}->{valid_options}->{SELECT_MULTIPLE_TABLES} = $self->{opts}->{select}->{join} =
-          $select->{join};
+        $self->{opts}->{valid_options}->{SELECT_MULTIPLE_TABLES} =
+          $self->{opts}->{select}->{join} = $select->{join};
     }
     if ( defined $create )
     {

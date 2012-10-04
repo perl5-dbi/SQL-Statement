@@ -93,16 +93,16 @@ sub col_names()   { $_[0]->{col_names}; }
 
 sub _gen_access_fastpath($)
 {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
-    if( $self->can("column") == SQL::Eval::Table->can("column") and
-	$self->can("column_num") == SQL::Eval::Table->can("column_num") )
+    if (     $self->can("column") == SQL::Eval::Table->can("column")
+         and $self->can("column_num") == SQL::Eval::Table->can("column_num") )
     {
-	return sub { $self->{row}->[ $self->{col_nums}->{ $_[0] } ] };
+        return sub { $self->{row}->[ $self->{col_nums}->{ $_[0] } ] };
     }
     else
     {
-	return sub { $self->column($_[0]) };
+        return sub { $self->column( $_[0] ) };
     }
 }
 

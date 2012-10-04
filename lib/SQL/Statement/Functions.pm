@@ -8,12 +8,12 @@ use warnings;
 
 use Params::Util qw(_ARRAY0 _HASH0 _INSTANCE);
 use Scalar::Util qw(looks_like_number);
-use List::Util   qw(max);   # core module since Perl 5.8.0
-use Time::HiRes  qw(time);  # core module since Perl 5.7.2
-use Encode;                 # core module since Perl 5.7.1
-use Math::Trig;             # core module since Perl 5.004
-use Math::BigInt            # core modules since forever
-   upgrade => 'Math::BigFloat';
+use List::Util qw(max);      # core module since Perl 5.8.0
+use Time::HiRes qw(time);    # core module since Perl 5.7.2
+use Encode;                  # core module since Perl 5.7.1
+use Math::Trig;              # core module since Perl 5.004
+use Math::BigInt             # core modules since forever
+  upgrade => 'Math::BigFloat';
 use Math::BigFloat;
 
 =pod
@@ -271,7 +271,7 @@ use warnings 'all';
 
 sub SQL_FUNCTION_CURRENT_TIME
 {
-    return substr(SQL_FUNCTION_CURRENT_TIMESTAMP(@_[0..2]), 11);
+    return substr( SQL_FUNCTION_CURRENT_TIMESTAMP( @_[ 0 .. 2 ] ), 11 );
 }
 no warnings 'once';
 *SQL_FUNCTION_CURTIME = \&SQL_FUNCTION_CURRENT_TIME;
@@ -289,20 +289,23 @@ use warnings 'all';
 
 sub SQL_FUNCTION_CURRENT_TIMESTAMP
 {
-   my $prec;
+    my $prec;
 
-   my $curtime = time;
-   my ( $sec, $min, $hour, $day, $mon, $year ) = localtime($curtime);
-   
-   my $sec_frac;
-   if ($_[2]) {
-      $prec = int($_[2]);
-      $sec_frac = sprintf( '%.*f', $prec, $curtime - int($curtime) );
-      $sec_frac = substr($sec_frac, 2);  # truncate 0. from decimal
-   }
-   
-   return
-      sprintf( '%4s-%02s-%02s %02s:%02s:%02s'.($prec ? '.%s' : ''), $year + 1900, $mon + 1, $day, $hour, $min, $sec, $sec_frac );
+    my $curtime = time;
+    my ( $sec, $min, $hour, $day, $mon, $year ) = localtime($curtime);
+
+    my $sec_frac;
+    if ( $_[2] )
+    {
+        $prec     = int( $_[2] );
+        $sec_frac = sprintf( '%.*f', $prec, $curtime - int($curtime) );
+        $sec_frac = substr( $sec_frac, 2 );                               # truncate 0. from decimal
+    }
+
+    return
+      sprintf( '%4s-%02s-%02s %02s:%02s:%02s' . ( $prec ? '.%s' : '' ),
+               $year + 1900,
+               $mon + 1, $day, $hour, $min, $sec, $sec_frac );
 }
 no warnings 'once';
 *SQL_FUNCTION_NOW = \&SQL_FUNCTION_CURRENT_TIMESTAMP;
@@ -318,7 +321,7 @@ use warnings 'all';
 
 =cut
 
-sub SQL_FUNCTION_UNIX_TIMESTAMP { return sprintf("%.*f", $_[2] ? int($_[2]) : 0, time); }
+sub SQL_FUNCTION_UNIX_TIMESTAMP { return sprintf( "%.*f", $_[2] ? int( $_[2] ) : 0, time ); }
 
 =pod
 
@@ -331,11 +334,13 @@ sub SQL_FUNCTION_UNIX_TIMESTAMP { return sprintf("%.*f", $_[2] ? int($_[2]) : 0,
 
 =cut
 
-sub SQL_FUNCTION_ASCII { return defined $_[2] ? ord($_[2]) : undef; }
-sub SQL_FUNCTION_CHAR  {
-   my ( $self, $owner, @params ) = @_;
-   (defined || return undef) for (@params);
-   return join '', map { chr } @params;
+sub SQL_FUNCTION_ASCII { return defined $_[2] ? ord( $_[2] ) : undef; }
+
+sub SQL_FUNCTION_CHAR
+{
+    my ( $self, $owner, @params ) = @_;
+    ( defined || return undef ) for (@params);
+    return join '', map { chr } @params;
 }
 
 =pod
@@ -347,10 +352,14 @@ sub SQL_FUNCTION_CHAR  {
 
 =cut
 
-sub SQL_FUNCTION_BIT_LENGTH {
-   my @v = @_[0..1]; my $str = $_[2];
-   # Number of bits on first character = INT(LOG2(ord($str)) + 1) + rest of string = OCTET_LENGTH(substr($str, 1)) * 8
-   return int(SQL_FUNCTION_LOG(@v, 2, ord($str)) + 1) + SQL_FUNCTION_OCTET_LENGTH(@v, substr($str, 1)) * 8;
+sub SQL_FUNCTION_BIT_LENGTH
+{
+    my @v   = @_[ 0 .. 1 ];
+    my $str = $_[2];
+    # Number of bits on first character = INT(LOG2(ord($str)) + 1) + rest of string = OCTET_LENGTH(substr($str, 1)) * 8
+    return
+      int( SQL_FUNCTION_LOG( @v, 2, ord($str) ) + 1 ) +
+      SQL_FUNCTION_OCTET_LENGTH( @v, substr( $str, 1 ) ) * 8;
 }
 
 =pod
@@ -383,7 +392,7 @@ use warnings 'all';
  #
  
 =cut
- 
+
 sub SQL_FUNCTION_COALESCE
 {
     my ( $self, $owner, @params ) = @_;
@@ -419,10 +428,11 @@ use warnings 'all';
 
 =cut
 
-sub SQL_FUNCTION_CONCAT {
+sub SQL_FUNCTION_CONCAT
+{
     my ( $self, $owner, @params ) = @_;
-   (defined || return undef) for (@params);
-   return join '', @params;
+    ( defined || return undef ) for (@params);
+    return join '', @params;
 }
 
 =pod
@@ -442,133 +452,151 @@ sub SQL_FUNCTION_CONCAT {
 
 =cut
 
-sub SQL_FUNCTION_CONV {
-   my ( $self, $owner, $num, $sbase, $ebase ) = @_;
-   $ebase ||= 10;
-   
-   die "Invalid base $sbase!" unless ($sbase >= 2 && $sbase <= 92);
-   die "Invalid base $ebase!" unless ($ebase >= 2 && $ebase <= 92);
-   
-   my ($i, $new) = (0, '');
-   
-   # number clean up
-   $num =~ s/\s+//g;
-   $new = '-' if ($num =~ s/^\-//);  # negative
-   $num =~ s/^0+// if ($sbase <= 62);
-   $num =~ s/^A+// if ($sbase >  62);
+sub SQL_FUNCTION_CONV
+{
+    my ( $self, $owner, $num, $sbase, $ebase ) = @_;
+    $ebase ||= 10;
 
-   my $is_dec = ($num =~ /\./) ? 1 : 0;
-   $num =~ s/0+$// if ($sbase <= 62 && $is_dec);
-   $num =~ s/A+$// if ($sbase >  62 && $is_dec);
+    die "Invalid base $sbase!" unless ( $sbase >= 2 && $sbase <= 92 );
+    die "Invalid base $ebase!" unless ( $ebase >= 2 && $ebase <= 92 );
 
-   # short-circuits
-   return $new.$num if ($sbase == $ebase);
-   return $new.$num if (length($num) == 1 && $sbase < $ebase && $sbase <= 62 && $ebase <= 62);
+    my ( $i, $new ) = ( 0, '' );
 
-   # num of digits (power)
-   my $poten_digits = int(length($num) * (log($sbase) / log(10)));
-   $i = length($num)- 1;
-   $i = length($1)  - 1 if ($num =~ s/^(.+)\.(.+)$/$1$2/);  # decimal digits
+    # number clean up
+    $num =~ s/\s+//g;
+    $new = '-' if ( $num =~ s/^\-// );    # negative
+    $num =~ s/^0+// if ( $sbase <= 62 );
+    $num =~ s/^A+// if ( $sbase > 62 );
 
-   
-   # might have large digits
-   my $use_big = $poten_digits <= 14 ? 0 : 1;  # Perl's number limits are probably closer to 16 digits, but just to be safe...
-   $use_big = 1;
-   my (@digits, %digits, $dnum);
-   
-   # upgrade doesn't work as well as it should...
-   no strict 'subs';
-   my $big_class = $is_dec ? Math::BigFloat : Math::BigInt;  
+    my $is_dec = ( $num =~ /\./ ) ? 1 : 0;
+    $num =~ s/0+$// if ( $sbase <= 62 && $is_dec );
+    $num =~ s/A+$// if ( $sbase > 62  && $is_dec );
 
-   # convert base Y to base 10 (with short-circuits)
-   if    (!$is_dec && !$use_big && $sbase == 16) { $dnum = oct('0x'.$num); }
-   elsif (!$is_dec && !$use_big && $sbase == 8)  { $dnum = oct('0'.$num);  }
-   elsif (!$is_dec && !$use_big && $sbase == 2)  { $dnum = oct('0b'.$num); }
-   elsif ($sbase == 10) {
-      no warnings 'numeric';  # what?  you think I'm adding zero on accident?
-      $dnum = $use_big ? $big_class->new($num) : $num + 0;
-      $dnum->accuracy($poten_digits + 16) if ($use_big);
-   }
-   else {  
-      my $dstr = ($sbase <= 62) ?
-         '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' :
-         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_=~|,;:?!@#$%^&*()<>{}[]\`'."'\"";
-      $num = uc $num if ($sbase <= 36);
+    # short-circuits
+    return $new . $num if ( $sbase == $ebase );
+    return $new . $num if ( length($num) == 1 && $sbase < $ebase && $sbase <= 62 && $ebase <= 62 );
 
-      @digits = split //, $dstr;
-      %digits = map { $digits[$_] => $_ } (0 .. $sbase - 1);
+    # num of digits (power)
+    my $poten_digits = int( length($num) * ( log($sbase) / log(10) ) );
+    $i = length($num) - 1;
+    $i = length($1) - 1 if ( $num =~ s/^(.+)\.(.+)$/$1$2/ );    # decimal digits
 
-      $dnum = $use_big ? $big_class->new(0) : 0;
-      $dnum->accuracy($poten_digits + 16) if ($use_big);
-      foreach my $d ( $num =~ /./g ) {
-         die "Invalid character $d in string!" unless (exists $digits{$d});
-         my $v = $digits{$d};
-         
-         my $exp;
-         if ($use_big) {
-            $exp = $big_class->new($sbase);
-            $exp->accuracy($poten_digits + 16);
-            $dnum = $exp->bpow($i)->bmul($v)->badd($dnum);
-         }
-         else {
-            $exp   = $sbase ** $i;
-            $dnum += $v * $exp;
-         }
-         $i--;  # may go into the negative for non-ints
-      }
-   }
+    # might have large digits
+    my $use_big =
+      $poten_digits <= 14
+      ? 0
+      : 1;    # Perl's number limits are probably closer to 16 digits, but just to be safe...
+    $use_big = 1;
+    my ( @digits, %digits, $dnum );
 
-   # convert base 10 to base Z (with short-circuits)
-   if    (!$is_dec && !$use_big && $ebase == 16) { $new .= sprintf('%X', $dnum); }
-   elsif (!$is_dec && !$use_big && $ebase == 8)  { $new .= sprintf('%o', $dnum); }
-   elsif (!$is_dec && !$use_big && $ebase == 2)  { $new .= sprintf('%b', $dnum); }
-   elsif (                         $ebase == 10) { $new .= $dnum; }
-   else {
-      my $dstr = ($ebase <= 62) ?
-         '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' :
-         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_-=~|,;:?!@#$%^&*()<>{}[]\`'."'\"";
-      @digits = split //, $dstr;
-      
-      # get the largest power of Z (the highest digit)
-      $i = $use_big ?
-         $dnum->copy()->blog(
-            $ebase,
-            int($dnum->length() / 9) + 2  # (an accuracy that is a little over the potential # of integer digits within log)
-         )->bfloor()->bstr() :
-         int(log($dnum) / log($ebase));
-      
-      while ($dnum != 0 && length($new) < 255) {
-         if ($i == -1) {  # time to go pro...
-            $use_big = 1;
-            $dnum = $big_class->new($dnum);
-            $dnum->accuracy(length($dnum) + 255 + 16);
+    # upgrade doesn't work as well as it should...
+    no strict 'subs';
+    my $big_class = $is_dec ? Math::BigFloat : Math::BigInt;
+
+    # convert base Y to base 10 (with short-circuits)
+    if    ( !$is_dec && !$use_big && $sbase == 16 ) { $dnum = oct( '0x' . $num ); }
+    elsif ( !$is_dec && !$use_big && $sbase == 8 )  { $dnum = oct( '0' . $num ); }
+    elsif ( !$is_dec && !$use_big && $sbase == 2 )  { $dnum = oct( '0b' . $num ); }
+    elsif ( $sbase == 10 )
+    {
+        no warnings 'numeric';    # what?  you think I'm adding zero on accident?
+        $dnum = $use_big ? $big_class->new($num) : $num + 0;
+        $dnum->accuracy( $poten_digits + 16 ) if ($use_big);
+    }
+    else
+    {
+        my $dstr =
+          ( $sbase <= 62 )
+          ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_=~|,;:?!@#$%^&*()<>{}[]\`'
+          . "'\"";
+        $num = uc $num if ( $sbase <= 36 );
+
+        @digits = split //, $dstr;
+        %digits = map { $digits[$_] => $_ } ( 0 .. $sbase - 1 );
+
+        $dnum = $use_big ? $big_class->new(0) : 0;
+        $dnum->accuracy( $poten_digits + 16 ) if ($use_big);
+        foreach my $d ( $num =~ /./g )
+        {
+            die "Invalid character $d in string!" unless ( exists $digits{$d} );
+            my $v = $digits{$d};
+
+            my $exp;
+            if ($use_big)
+            {
+                $exp = $big_class->new($sbase);
+                $exp->accuracy( $poten_digits + 16 );
+                $dnum = $exp->bpow($i)->bmul($v)->badd($dnum);
+            }
+            else
+            {
+                $exp = $sbase**$i;
+                $dnum += $v * $exp;
+            }
+            $i--;    # may go into the negative for non-ints
+        }
     }
 
-         my ($exp, $v);
-         if ($use_big) {
-            $exp = $big_class->new($ebase)->bpow($i);
-            $v   = $dnum->copy()->bdiv($exp)->bfloor();
-         }
-         else {
-            $exp = $ebase ** $i;
-            $v   = int($dnum / $exp);
-         }
-         $dnum -= $v * $exp;  # this method is safer for fractionals
-         
-         $new .= '.' if ($i == -1);  # decimal point
-         $new .= $digits[$v];
-         
-         $i--;  # may go into the negative for non-ints
-      }
-   }
+    # convert base 10 to base Z (with short-circuits)
+    if    ( !$is_dec && !$use_big && $ebase == 16 ) { $new .= sprintf( '%X', $dnum ); }
+    elsif ( !$is_dec && !$use_big && $ebase == 8 )  { $new .= sprintf( '%o', $dnum ); }
+    elsif ( !$is_dec && !$use_big && $ebase == 2 )  { $new .= sprintf( '%b', $dnum ); }
+    elsif ( $ebase == 10 ) { $new .= $dnum; }
+    else
+    {
+        my $dstr =
+          ( $ebase <= 62 )
+          ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_-=~|,;:?!@#$%^&*()<>{}[]\`'
+          . "'\"";
+        @digits = split //, $dstr;
 
-   # Final cleanup
-   $new =~ s/^(-?)0+/$1/ if ($ebase <= 62);
-   $new =~ s/^(-?)A+/$1/ if ($ebase >  62);
-   $new =~ s/0+$//       if ($ebase <= 62 && $is_dec);
-   $new =~ s/A+$//       if ($ebase >  62 && $is_dec);
-   
-   return $new;
+        # get the largest power of Z (the highest digit)
+        $i = $use_big
+          ? $dnum->copy()->blog(
+            $ebase,
+            int( $dnum->length() / 9 ) +
+              2   # (an accuracy that is a little over the potential # of integer digits within log)
+          )->bfloor()->bstr()
+          : int( log($dnum) / log($ebase) );
+
+        while ( $dnum != 0 && length($new) < 255 )
+        {
+            if ( $i == -1 )
+            {     # time to go pro...
+                $use_big = 1;
+                $dnum    = $big_class->new($dnum);
+                $dnum->accuracy( length($dnum) + 255 + 16 );
+            }
+
+            my ( $exp, $v );
+            if ($use_big)
+            {
+                $exp = $big_class->new($ebase)->bpow($i);
+                $v   = $dnum->copy()->bdiv($exp)->bfloor();
+            }
+            else
+            {
+                $exp = $ebase**$i;
+                $v   = int( $dnum / $exp );
+            }
+            $dnum -= $v * $exp;    # this method is safer for fractionals
+
+            $new .= '.' if ( $i == -1 );    # decimal point
+            $new .= $digits[$v];
+
+            $i--;                           # may go into the negative for non-ints
+        }
+    }
+
+    # Final cleanup
+    $new =~ s/^(-?)0+/$1/ if ( $ebase <= 62 );
+    $new =~ s/^(-?)A+/$1/ if ( $ebase > 62 );
+    $new =~ s/0+$//       if ( $ebase <= 62 && $is_dec );
+    $new =~ s/A+$//       if ( $ebase > 62 && $is_dec );
+
+    return $new;
 }
 
 =pod
@@ -643,12 +671,13 @@ sub SQL_FUNCTION_DECODE
 
 =cut
 
-sub SQL_FUNCTION_INSERT {  # just like a 4-parameter substr in Perl
-   (defined || return undef) for (@_[2..5]);
-   my $str = $_[2];
-   no warnings 'void';
-   substr($str, $_[3]-1, $_[4], $_[5]);
-   return $str; 
+sub SQL_FUNCTION_INSERT
+{    # just like a 4-parameter substr in Perl
+    ( defined || return undef ) for ( @_[ 2 .. 5 ] );
+    my $str = $_[2];
+    no warnings 'void';
+    substr( $str, $_[3] - 1, $_[4], $_[5] );
+    return $str;
 }
 
 =pod
@@ -660,9 +689,9 @@ sub SQL_FUNCTION_INSERT {  # just like a 4-parameter substr in Perl
 
 =cut
 
-sub SQL_FUNCTION_HEX { return SQL_FUNCTION_CONV(@_[0..2], 10, 16); }
-sub SQL_FUNCTION_OCT { return SQL_FUNCTION_CONV(@_[0..2], 10,  8); }
-sub SQL_FUNCTION_BIN { return SQL_FUNCTION_CONV(@_[0..2], 10,  2); }
+sub SQL_FUNCTION_HEX { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 16 ); }
+sub SQL_FUNCTION_OCT { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 8 ); }
+sub SQL_FUNCTION_BIN { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 2 ); }
 
 =pod
 
@@ -673,8 +702,16 @@ sub SQL_FUNCTION_BIN { return SQL_FUNCTION_CONV(@_[0..2], 10,  2); }
 
 =cut
 
-sub SQL_FUNCTION_LEFT  { (defined || return undef) for (@_[2..3]); return substr($_[2], 0, $_[3]); }
-sub SQL_FUNCTION_RIGHT { (defined || return undef) for (@_[2..3]); return substr($_[2], -$_[3]); }
+sub SQL_FUNCTION_LEFT {
+    ( defined || return undef )
+      for ( @_[ 2 .. 3 ] );
+    return substr( $_[2], 0, $_[3] );
+}
+sub SQL_FUNCTION_RIGHT {
+    ( defined || return undef )
+      for ( @_[ 2 .. 3 ] );
+    return substr( $_[2], -$_[3] );
+}
 
 =pod
 
@@ -686,12 +723,13 @@ sub SQL_FUNCTION_RIGHT { (defined || return undef) for (@_[2..3]); return substr
 
 =cut
 
-sub SQL_FUNCTION_LOCATE {
-   (defined || return undef) for (@_[2..3]); 
-   my ($self, $owner, $substr, $str, $s) = @_;
-   $s = int($s || 0);
-   my $pos = index( substr($str, $s), $substr ) + 1;
-   return $pos && $pos + $s;
+sub SQL_FUNCTION_LOCATE
+{
+    ( defined || return undef ) for ( @_[ 2 .. 3 ] );
+    my ( $self, $owner, $substr, $str, $s ) = @_;
+    $s = int( $s || 0 );
+    my $pos = index( substr( $str, $s ), $substr ) + 1;
+    return $pos && $pos + $s;
 }
 no warnings 'once';
 *SQL_FUNCTION_POSITION = \&SQL_FUNCTION_LOCATE;
@@ -733,15 +771,18 @@ use warnings 'all';
 
 =cut
 
-sub SQL_FUNCTION_LTRIM {
-   my $str = $_[2];
-   $str =~ s/^\s+//;
-   return $str; 
+sub SQL_FUNCTION_LTRIM
+{
+    my $str = $_[2];
+    $str =~ s/^\s+//;
+    return $str;
 }
-sub SQL_FUNCTION_RTRIM {
-   my $str = $_[2];
-   $str =~ s/\s+$//;
-   return $str; 
+
+sub SQL_FUNCTION_RTRIM
+{
+    my $str = $_[2];
+    $str =~ s/\s+$//;
+    return $str;
 }
 
 =pod
@@ -753,7 +794,7 @@ sub SQL_FUNCTION_RTRIM {
 
 =cut
 
-sub SQL_FUNCTION_OCTET_LENGTH { return length(Encode::encode_utf8($_[2])); }  # per Perldoc
+sub SQL_FUNCTION_OCTET_LENGTH { return length( Encode::encode_utf8( $_[2] ) ); }    # per Perldoc
 
 =pod
 
@@ -771,7 +812,7 @@ sub SQL_FUNCTION_OCTET_LENGTH { return length(Encode::encode_utf8($_[2])); }  # 
 sub SQL_FUNCTION_REGEX
 {
     my ( $self, $owner, @params ) = @_;
-    (defined || return 0) for (@params[0..1]); 
+    ( defined || return 0 ) for ( @params[ 0 .. 1 ] );
     my ( $pattern, $modifier ) = $params[1] =~ m~^/(.+)/([a-z]*)$~;
     $pattern = "(?$modifier:$pattern)" if ($modifier);
     return ( $params[0] =~ qr($pattern) ) ? 1 : 0;
@@ -786,7 +827,11 @@ sub SQL_FUNCTION_REGEX
 
 =cut
 
-sub SQL_FUNCTION_REPEAT { (defined || return undef) for (@_[2..3]); return $_[2] x int($_[3]); }
+sub SQL_FUNCTION_REPEAT {
+    ( defined || return undef )
+      for ( @_[ 2 .. 3 ] );
+    return $_[2] x int( $_[3] );
+}
 
 =pod
 
@@ -845,7 +890,7 @@ sub SQL_FUNCTION_SOUNDEX
 
 =cut
 
-sub SQL_FUNCTION_SPACE { return ' ' x int($_[2]); }
+sub SQL_FUNCTION_SPACE { return ' ' x int( $_[2] ); }
 
 =pod
 
@@ -874,7 +919,7 @@ Note: The SUBSTRING function is implemented in L<SQL::Parser> and L<SQL::Stateme
 sub SQL_FUNCTION_SUBSTR
 {
     my ( $self, $owner, @params ) = @_;
-    (defined || return undef) for (@params[0..2]);
+    ( defined || return undef ) for ( @params[ 0 .. 2 ] );
     my $string = $params[0] || '';
     my $start  = $params[1] || 0;
     my $offset = $params[2] || length $string;
@@ -894,12 +939,13 @@ sub SQL_FUNCTION_SUBSTR
 
 =cut
 
-sub SQL_FUNCTION_TRANSLATE {
-   my ($self, $owner, $str, $oldlist, $newlist) = @_;
-   $oldlist =~ s{(/\-)}{\\$1}g;
-   $newlist =~ s{(/\-)}{\\$1}g;
-   eval "\$str =~ tr/$oldlist/$newlist/";
-   return $str;
+sub SQL_FUNCTION_TRANSLATE
+{
+    my ( $self, $owner, $str, $oldlist, $newlist ) = @_;
+    $oldlist =~ s{(/\-)}{\\$1}g;
+    $newlist =~ s{(/\-)}{\\$1}g;
+    eval "\$str =~ tr/$oldlist/$newlist/";
+    return $str;
 }
 
 =pod
@@ -937,20 +983,21 @@ Note: The TRIM function is implemented in L<SQL::Parser> and L<SQL::Statement> a
 
 =cut
 
-sub SQL_FUNCTION_UNHEX {
-   my ($self, $owner, $hex, $encoding) = @_;
-   return undef unless (defined $hex);
+sub SQL_FUNCTION_UNHEX
+{
+    my ( $self, $owner, $hex, $encoding ) = @_;
+    return undef unless ( defined $hex );
 
-   $hex =~ s/\s+//g;
-   $hex =~ s/[^0-9a-fA-F]+//g;
-   
-   my $str = '';
-   foreach my $i (0 .. int((length($hex)-1) / 2)) {
-      $str .= pack('C', SQL_FUNCTION_CONV($self, $owner, substr($hex, $i*2, 2), 16, 10));
-   }
-   return $encoding ? Encode::decode($encoding, $str, Encode::FB_WARN) : $str;
+    $hex =~ s/\s+//g;
+    $hex =~ s/[^0-9a-fA-F]+//g;
+
+    my $str = '';
+    foreach my $i ( 0 .. int( ( length($hex) - 1 ) / 2 ) )
+    {
+        $str .= pack( 'C', SQL_FUNCTION_CONV( $self, $owner, substr( $hex, $i * 2, 2 ), 16, 10 ) );
+    }
+    return $encoding ? Encode::decode( $encoding, $str, Encode::FB_WARN ) : $str;
 }
-
 
 =head2 Numeric Functions
 
@@ -961,7 +1008,7 @@ sub SQL_FUNCTION_UNHEX {
 
 =cut
 
-sub SQL_FUNCTION_ABS { return abs($_[2]); }
+sub SQL_FUNCTION_ABS { return abs( $_[2] ); }
 
 =pod
 
@@ -972,8 +1019,17 @@ sub SQL_FUNCTION_ABS { return abs($_[2]); }
 
 =cut
 
-sub SQL_FUNCTION_CEILING { my $i = int($_[2]); return $i == $_[2] ? $i : SQL_FUNCTION_ROUND(@_[0..1], $_[2] + 0.5, 0); }
-sub SQL_FUNCTION_FLOOR   { my $i = int($_[2]); return $i == $_[2] ? $i : SQL_FUNCTION_ROUND(@_[0..1], $_[2] - 0.5, 0); }
+sub SQL_FUNCTION_CEILING
+{
+    my $i = int( $_[2] );
+    return $i == $_[2] ? $i : SQL_FUNCTION_ROUND( @_[ 0 .. 1 ], $_[2] + 0.5, 0 );
+}
+
+sub SQL_FUNCTION_FLOOR
+{
+    my $i = int( $_[2] );
+    return $i == $_[2] ? $i : SQL_FUNCTION_ROUND( @_[ 0 .. 1 ], $_[2] - 0.5, 0 );
+}
 no warnings 'once';
 *SQL_FUNCTION_CEIL = \&SQL_FUNCTION_CEILING;
 use warnings 'all';
@@ -987,7 +1043,7 @@ use warnings 'all';
 
 =cut
 
-sub SQL_FUNCTION_EXP { return (sinh(1)+cosh(1)) ** $_[2]; }  # e = sinh(X)+cosh(X)
+sub SQL_FUNCTION_EXP { return ( sinh(1) + cosh(1) )**$_[2]; }    # e = sinh(X)+cosh(X)
 
 =pod
 
@@ -998,7 +1054,7 @@ sub SQL_FUNCTION_EXP { return (sinh(1)+cosh(1)) ** $_[2]; }  # e = sinh(X)+cosh(
 
 =cut
 
-sub SQL_FUNCTION_LOG { return $_[3] ? log($_[3]) / log($_[2]) : log($_[2]) / log(10); }
+sub SQL_FUNCTION_LOG { return $_[3] ? log( $_[3] ) / log( $_[2] ) : log( $_[2] ) / log(10); }
 
 =pod
 
@@ -1009,8 +1065,8 @@ sub SQL_FUNCTION_LOG { return $_[3] ? log($_[3]) / log($_[2]) : log($_[2]) / log
 
 =cut
 
-sub SQL_FUNCTION_LN    { return log($_[2]); }
-sub SQL_FUNCTION_LOG10 { return SQL_FUNCTION_LOG(@_[0..2]); }
+sub SQL_FUNCTION_LN    { return log( $_[2] ); }
+sub SQL_FUNCTION_LOG10 { return SQL_FUNCTION_LOG( @_[ 0 .. 2 ] ); }
 
 =pod
 
@@ -1032,7 +1088,7 @@ sub SQL_FUNCTION_MOD { return $_[2] % $_[3]; }
 
 =cut
 
-sub SQL_FUNCTION_POWER { return $_[2] ** $_[3]; }
+sub SQL_FUNCTION_POWER { return $_[2]**$_[3]; }
 no warnings 'once';
 *SQL_FUNCTION_POW = \&SQL_FUNCTION_POWER;
 use warnings 'all';
@@ -1046,7 +1102,7 @@ use warnings 'all';
 
 =cut
 
-sub SQL_FUNCTION_RAND { $_[3] && srand($_[3]); return rand($_[2]); }
+sub SQL_FUNCTION_RAND { $_[3] && srand( $_[3] ); return rand( $_[2] ); }
 
 =pod
 
@@ -1057,7 +1113,7 @@ sub SQL_FUNCTION_RAND { $_[3] && srand($_[3]); return rand($_[2]); }
 
 =cut
 
-sub SQL_FUNCTION_ROUND { return sprintf("%.*f", $_[3] ? int($_[3]) : 0, $_[2]); }
+sub SQL_FUNCTION_ROUND { return sprintf( "%.*f", $_[3] ? int( $_[3] ) : 0, $_[2] ); }
 
 =pod
 
@@ -1068,7 +1124,7 @@ sub SQL_FUNCTION_ROUND { return sprintf("%.*f", $_[3] ? int($_[3]) : 0, $_[2]); 
 
 =cut
 
-sub SQL_FUNCTION_SIGN { return defined($_[2]) ? ($_[2] <=> 0) : undef; }
+sub SQL_FUNCTION_SIGN { return defined( $_[2] ) ? ( $_[2] <=> 0 ) : undef; }
 
 =pod
 
@@ -1079,7 +1135,7 @@ sub SQL_FUNCTION_SIGN { return defined($_[2]) ? ($_[2] <=> 0) : undef; }
 
 =cut
 
-sub SQL_FUNCTION_SQRT { return sqrt($_[2]); }
+sub SQL_FUNCTION_SQRT { return sqrt( $_[2] ); }
 
 =pod
 
@@ -1090,7 +1146,12 @@ sub SQL_FUNCTION_SQRT { return sqrt($_[2]); }
 
 =cut
 
-sub SQL_FUNCTION_TRUNCATE { my $c = int($_[3] || 0); my $d = 10 ** $c; return sprintf("%.*f", $c, int($_[2]*$d) / $d); }
+sub SQL_FUNCTION_TRUNCATE
+{
+    my $c = int( $_[3] || 0 );
+    my $d = 10**$c;
+    return sprintf( "%.*f", $c, int( $_[2] * $d ) / $d );
+}
 no warnings 'once';
 *SQL_FUNCTION_TRUNC = \&SQL_FUNCTION_TRUNCATE;
 use warnings 'all';
@@ -1211,51 +1272,51 @@ B<PI> can be used without parentheses.
 
 =cut
 
-sub SQL_FUNCTION_ACOS      { return acos      ($_[2] || 0); }
-sub SQL_FUNCTION_ACOSEC    { return acosec    ($_[2] || 0); }
-sub SQL_FUNCTION_ACOSECH   { return acosech   ($_[2] || 0); }
-sub SQL_FUNCTION_ACOSH     { return acosh     ($_[2] || 0); }
-sub SQL_FUNCTION_ACOT      { return acot      ($_[2] || 0); }
-sub SQL_FUNCTION_ACOTAN    { return acotan    ($_[2] || 0); }
-sub SQL_FUNCTION_ACOTANH   { return acotanh   ($_[2] || 0); }
-sub SQL_FUNCTION_ACOTH     { return acoth     ($_[2] || 0); }
-sub SQL_FUNCTION_ACSC      { return acsc      ($_[2] || 0); }
-sub SQL_FUNCTION_ACSCH     { return acsch     ($_[2] || 0); }
-sub SQL_FUNCTION_ASEC      { return asec      ($_[2] || 0); }
-sub SQL_FUNCTION_ASECH     { return asech     ($_[2] || 0); }
-sub SQL_FUNCTION_ASIN      { return asin      ($_[2] || 0); }
-sub SQL_FUNCTION_ASINH     { return asinh     ($_[2] || 0); }
-sub SQL_FUNCTION_ATAN      { return atan      ($_[2] || 0); }
-sub SQL_FUNCTION_ATAN2     { return atan2     ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_ATANH     { return atanh     ($_[2] || 0); }
-sub SQL_FUNCTION_COS       { return cos       ($_[2] || 0); }
-sub SQL_FUNCTION_COSEC     { return cosec     ($_[2] || 0); }
-sub SQL_FUNCTION_COSECH    { return cosech    ($_[2] || 0); }
-sub SQL_FUNCTION_COSH      { return cosh      ($_[2] || 0); }
-sub SQL_FUNCTION_COT       { return cot       ($_[2] || 0); }
-sub SQL_FUNCTION_COTAN     { return cotan     ($_[2] || 0); }
-sub SQL_FUNCTION_COTANH    { return cotanh    ($_[2] || 0); }
-sub SQL_FUNCTION_COTH      { return coth      ($_[2] || 0); }
-sub SQL_FUNCTION_CSC       { return csc       ($_[2] || 0); }
-sub SQL_FUNCTION_CSCH      { return csch      ($_[2] || 0); }
-sub SQL_FUNCTION_DEG2DEG   { return deg2deg   ($_[2] || 0); }
-sub SQL_FUNCTION_RAD2RAD   { return rad2rad   ($_[2] || 0); }
-sub SQL_FUNCTION_GRAD2GRAD { return grad2grad ($_[2] || 0); }
-sub SQL_FUNCTION_DEG2GRAD  { return deg2grad  ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_DEG2RAD   { return deg2rad   ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_DEGREES   { return rad2deg   ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_GRAD2DEG  { return grad2deg  ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_GRAD2RAD  { return grad2rad  ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_PI        { return pi; }
-sub SQL_FUNCTION_RAD2DEG   { return rad2deg   ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_RAD2GRAD  { return rad2grad  ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_RADIANS   { return deg2rad   ($_[2] || 0, $_[3] || 0); }
-sub SQL_FUNCTION_SEC       { return sec       ($_[2] || 0);        }
-sub SQL_FUNCTION_SECH      { return sech      ($_[2] || 0);        }
-sub SQL_FUNCTION_SIN       { return sin       ($_[2] || 0);        }
-sub SQL_FUNCTION_SINH      { return sinh      ($_[2] || 0);        }
-sub SQL_FUNCTION_TAN       { return tan       ($_[2] || 0);        }
-sub SQL_FUNCTION_TANH      { return tanh      ($_[2] || 0);        }
+sub SQL_FUNCTION_ACOS    { return acos( $_[2]    || 0 ); }
+sub SQL_FUNCTION_ACOSEC  { return acosec( $_[2]  || 0 ); }
+sub SQL_FUNCTION_ACOSECH { return acosech( $_[2] || 0 ); }
+sub SQL_FUNCTION_ACOSH   { return acosh( $_[2]   || 0 ); }
+sub SQL_FUNCTION_ACOT    { return acot( $_[2]    || 0 ); }
+sub SQL_FUNCTION_ACOTAN  { return acotan( $_[2]  || 0 ); }
+sub SQL_FUNCTION_ACOTANH { return acotanh( $_[2] || 0 ); }
+sub SQL_FUNCTION_ACOTH   { return acoth( $_[2]   || 0 ); }
+sub SQL_FUNCTION_ACSC    { return acsc( $_[2]    || 0 ); }
+sub SQL_FUNCTION_ACSCH   { return acsch( $_[2]   || 0 ); }
+sub SQL_FUNCTION_ASEC    { return asec( $_[2]    || 0 ); }
+sub SQL_FUNCTION_ASECH   { return asech( $_[2]   || 0 ); }
+sub SQL_FUNCTION_ASIN    { return asin( $_[2]    || 0 ); }
+sub SQL_FUNCTION_ASINH   { return asinh( $_[2]   || 0 ); }
+sub SQL_FUNCTION_ATAN    { return atan( $_[2]    || 0 ); }
+sub SQL_FUNCTION_ATAN2 { return atan2( $_[2] || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_ATANH { return atanh( $_[2] || 0 ); }
+sub SQL_FUNCTION_COS   { return cos( $_[2]   || 0 ); }
+sub SQL_FUNCTION_COSEC { return cosec( $_[2] || 0 ); }
+sub SQL_FUNCTION_COSECH    { return cosech( $_[2]    || 0 ); }
+sub SQL_FUNCTION_COSH      { return cosh( $_[2]      || 0 ); }
+sub SQL_FUNCTION_COT       { return cot( $_[2]       || 0 ); }
+sub SQL_FUNCTION_COTAN     { return cotan( $_[2]     || 0 ); }
+sub SQL_FUNCTION_COTANH    { return cotanh( $_[2]    || 0 ); }
+sub SQL_FUNCTION_COTH      { return coth( $_[2]      || 0 ); }
+sub SQL_FUNCTION_CSC       { return csc( $_[2]       || 0 ); }
+sub SQL_FUNCTION_CSCH      { return csch( $_[2]      || 0 ); }
+sub SQL_FUNCTION_DEG2DEG   { return deg2deg( $_[2]   || 0 ); }
+sub SQL_FUNCTION_RAD2RAD   { return rad2rad( $_[2]   || 0 ); }
+sub SQL_FUNCTION_GRAD2GRAD { return grad2grad( $_[2] || 0 ); }
+sub SQL_FUNCTION_DEG2GRAD  { return deg2grad( $_[2]  || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_DEG2RAD   { return deg2rad( $_[2]   || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_DEGREES   { return rad2deg( $_[2]   || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_GRAD2DEG  { return grad2deg( $_[2]  || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_GRAD2RAD  { return grad2rad( $_[2]  || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_PI       { return pi; }
+sub SQL_FUNCTION_RAD2DEG  { return rad2deg( $_[2] || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_RAD2GRAD { return rad2grad( $_[2] || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_RADIANS  { return deg2rad( $_[2] || 0, $_[3] || 0 ); }
+sub SQL_FUNCTION_SEC  { return sec( $_[2]  || 0 ); }
+sub SQL_FUNCTION_SECH { return sech( $_[2] || 0 ); }
+sub SQL_FUNCTION_SIN  { return sin( $_[2]  || 0 ); }
+sub SQL_FUNCTION_SINH { return sinh( $_[2] || 0 ); }
+sub SQL_FUNCTION_TAN  { return tan( $_[2]  || 0 ); }
+sub SQL_FUNCTION_TANH { return tanh( $_[2] || 0 ); }
 
 =head2 System Functions
 
@@ -1266,7 +1327,7 @@ sub SQL_FUNCTION_TANH      { return tanh      ($_[2] || 0);        }
 
 =cut
 
-sub SQL_FUNCTION_DBNAME   { return $_[1]->{Database}{Name};         }
+sub SQL_FUNCTION_DBNAME   { return $_[1]->{Database}{Name}; }
 sub SQL_FUNCTION_USERNAME { return $_[1]->{Database}{CURRENT_USER}; }
 no warnings 'once';
 *SQL_FUNCTION_USER = \&SQL_FUNCTION_USERNAME;

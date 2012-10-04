@@ -41,24 +41,24 @@ sub sql_keywords
       #                                             SQL_AF_DISTINCT + 20
       #                                             SQL_AF_ALL      + 40
     ,
-    117 => 0             # SQL_ALTER_DOMAIN -
+    117 => 0    # SQL_ALTER_DOMAIN -
     ,
-    86 => 0              # SQL_ALTER_TABLE  -
+    86 => 0     # SQL_ALTER_TABLE  -
 
       # 10021 => undef                           # SQL_ASYNC_MODE
       #   120 => undef                           # SQL_BATCH_ROW_COUNT
       #   121 => undef                           # SQL_BATCH_SUPPORT
       #    82 => undef                           # SQL_BOOKMARK_PERSISTENCE
     ,
-    114 => 1             # SQL_CATALOG_LOCATION
+    114 => 1    # SQL_CATALOG_LOCATION
     ,
-    10003 => "N"         # SQL_CATALOG_NAME
+    10003 => "N"    # SQL_CATALOG_NAME
     ,
-    41 => '.'            # SQL_CATALOG_NAME_SEPARATOR
+    41 => '.'       # SQL_CATALOG_NAME_SEPARATOR
     ,
-    42 => ""             # SQL_CATALOG_TERM
+    42 => ""        # SQL_CATALOG_TERM
     ,
-    92 => 0              # SQL_CATALOG_USAGE
+    92 => 0         # SQL_CATALOG_USAGE
 
       #
       # 10004 => undef                           # SQL_COLLATING_SEQUENCE
@@ -73,89 +73,89 @@ sub sql_keywords
       # CONVERT FUNCTION NOT CURRENTLY SUPPORTED
       #
     ,
-    53 => 0                  # SQL_CONVERT_BIGINT
+    53 => 0    # SQL_CONVERT_BIGINT
     ,
-    54 => 0                  # SQL_CONVERT_BINARY
+    54 => 0    # SQL_CONVERT_BINARY
     ,
-    55 => 0                  # SQL_CONVERT_BIT
+    55 => 0    # SQL_CONVERT_BIT
     ,
-    56 => 0                  # SQL_CONVERT_CHAR
+    56 => 0    # SQL_CONVERT_CHAR
     ,
-    57 => 0                  # SQL_CONVERT_DATE
+    57 => 0    # SQL_CONVERT_DATE
     ,
-    58 => 0                  # SQL_CONVERT_DECIMAL
+    58 => 0    # SQL_CONVERT_DECIMAL
     ,
-    59 => 0                  # SQL_CONVERT_DOUBLE
+    59 => 0    # SQL_CONVERT_DOUBLE
     ,
-    60 => 0                  # SQL_CONVERT_FLOAT
+    60 => 0    # SQL_CONVERT_FLOAT
     ,
-    48 => 0                  # SQL_CONVERT_FUNCTIONS
+    48 => 0    # SQL_CONVERT_FUNCTIONS
     ,
-    173 => 0                 # SQL_CONVERT_GUID
+    173 => 0    # SQL_CONVERT_GUID
     ,
-    61 => 0                  # SQL_CONVERT_INTEGER
+    61 => 0     # SQL_CONVERT_INTEGER
     ,
-    123 => 0                 # SQL_CONVERT_INTERVAL_DAY_TIME
+    123 => 0    # SQL_CONVERT_INTERVAL_DAY_TIME
     ,
-    124 => 0                 # SQL_CONVERT_INTERVAL_YEAR_MONTH
+    124 => 0    # SQL_CONVERT_INTERVAL_YEAR_MONTH
     ,
-    71 => 0                  # SQL_CONVERT_LONGVARBINARY
+    71 => 0     # SQL_CONVERT_LONGVARBINARY
     ,
-    62 => 0                  # SQL_CONVERT_LONGVARCHAR
+    62 => 0     # SQL_CONVERT_LONGVARCHAR
     ,
-    63 => 0                  # SQL_CONVERT_NUMERIC
+    63 => 0     # SQL_CONVERT_NUMERIC
     ,
-    64 => 0                  # SQL_CONVERT_REAL
+    64 => 0     # SQL_CONVERT_REAL
     ,
-    65 => 0                  # SQL_CONVERT_SMALLINT
+    65 => 0     # SQL_CONVERT_SMALLINT
     ,
-    66 => 0                  # SQL_CONVERT_TIME
+    66 => 0     # SQL_CONVERT_TIME
     ,
-    67 => 0                  # SQL_CONVERT_TIMESTAMP
+    67 => 0     # SQL_CONVERT_TIMESTAMP
     ,
-    68 => 0                  # SQL_CONVERT_TINYINT
+    68 => 0     # SQL_CONVERT_TINYINT
     ,
-    69 => 0                  # SQL_CONVERT_VARBINARY
+    69 => 0     # SQL_CONVERT_VARBINARY
     ,
-    70 => 0                  # SQL_CONVERT_VARCHAR
+    70 => 0     # SQL_CONVERT_VARCHAR
     ,
-    122 => 0                 # SQL_CONVERT_WCHAR
+    122 => 0    # SQL_CONVERT_WCHAR
     ,
-    125 => 0                 # SQL_CONVERT_WLONGVARCHAR
+    125 => 0    # SQL_CONVERT_WLONGVARCHAR
     ,
-    126 => 0                 # SQL_CONVERT_WVARCHAR
+    126 => 0    # SQL_CONVERT_WVARCHAR
     ,
-    74 => 2                  # SQL_CORRELATION_NAME
+    74 => 2     # SQL_CORRELATION_NAME
     ,
-    127 => 0                 # SQL_CREATE_ASSERTION
+    127 => 0    # SQL_CREATE_ASSERTION
     ,
-    128 => 0                 # SQL_CREATE_CHARACTER_SET
+    128 => 0    # SQL_CREATE_CHARACTER_SET
     ,
-    129 => 0                 # SQL_CREATE_COLLATION
+    129 => 0    # SQL_CREATE_COLLATION
     ,
-    130 => 0                 # SQL_CREATE_DOMAIN
+    130 => 0    # SQL_CREATE_DOMAIN
     ,
-    131 => 0                 # SQL_CREATE_SCHEMA
+    131 => 0    # SQL_CREATE_SCHEMA
     ,
-    132 => 0x00000015        # SQL_CREATE_TABLE
-      #      SQL_CT_CREATE_TABLE                       => 0x00000001 +
-      #      SQL_CT_COMMIT_PRESERVE                    => 0x00000002
-      #      SQL_CT_COMMIT_DELETE                      => 0x00000004 +
-      #      SQL_CT_GLOBAL_TEMPORARY                   => 0x00000008
-      #      SQL_CT_LOCAL_TEMPORARY                    => 0x00000010 +
-      #      SQL_CT_CONSTRAINT_INITIALLY_DEFERRED      => 0x00000020
-      #      SQL_CT_CONSTRAINT_INITIALLY_IMMEDIATE     => 0x00000040
-      #      SQL_CT_CONSTRAINT_DEFERRABLE              => 0x00000080
-      #      SQL_CT_CONSTRAINT_NON_DEFERRABLE          => 0x00000100
-      #      SQL_CT_COLUMN_CONSTRAINT                  => 0x00000200
-      #      SQL_CT_COLUMN_DEFAULT                     => 0x00000400
-      #      SQL_CT_COLUMN_COLLATION                   => 0x00000800
-      #      SQL_CT_TABLE_CONSTRAINT                   => 0x00001000
-      #      SQL_CT_CONSTRAINT_NAME_DEFINITION         => 0x00002000
+    132 => 0x00000015    # SQL_CREATE_TABLE
+                         #      SQL_CT_CREATE_TABLE                       => 0x00000001 +
+                         #      SQL_CT_COMMIT_PRESERVE                    => 0x00000002
+                         #      SQL_CT_COMMIT_DELETE                      => 0x00000004 +
+                         #      SQL_CT_GLOBAL_TEMPORARY                   => 0x00000008
+                         #      SQL_CT_LOCAL_TEMPORARY                    => 0x00000010 +
+                         #      SQL_CT_CONSTRAINT_INITIALLY_DEFERRED      => 0x00000020
+                         #      SQL_CT_CONSTRAINT_INITIALLY_IMMEDIATE     => 0x00000040
+                         #      SQL_CT_CONSTRAINT_DEFERRABLE              => 0x00000080
+                         #      SQL_CT_CONSTRAINT_NON_DEFERRABLE          => 0x00000100
+                         #      SQL_CT_COLUMN_CONSTRAINT                  => 0x00000200
+                         #      SQL_CT_COLUMN_DEFAULT                     => 0x00000400
+                         #      SQL_CT_COLUMN_COLLATION                   => 0x00000800
+                         #      SQL_CT_TABLE_CONSTRAINT                   => 0x00001000
+                         #      SQL_CT_CONSTRAINT_NAME_DEFINITION         => 0x00002000
     ,
-    133 => 0                 # SQL_CREATE_TRANSLATION
+    133 => 0             # SQL_CREATE_TRANSLATION
     ,
-    134 => 0                 # SQL_CREATE_VIEW
+    134 => 0             # SQL_CREATE_VIEW
 
       #
       # CURSORS NOT CURRENTLY SUPPORTED
@@ -166,9 +166,9 @@ sub sql_keywords
       #
       #,      2 => \&sql_data_source_name         # SQL_DATA_SOURCE_NAME
     ,
-    25 => "N"                # SQL_DATA_SOURCE_READ_ONLY
+    25 => "N"    # SQL_DATA_SOURCE_READ_ONLY
     ,
-    119 => 0                 # SQL_DATETIME_LITERALS
+    119 => 0     # SQL_DATETIME_LITERALS
 
       #,     17 => \&sql_driver_name              # SQL_DBMS_NAME
       #,     18 => \&sql_driver_ver               # SQL_DBMS_VER
@@ -177,7 +177,7 @@ sub sql_keywords
       #    26 => undef,                          # SQL_DEFAULT_TRANSACTION_ISOLATION
       #    26 => undef                           # SQL_DEFAULT_TXN_ISOLATION
     ,
-    10002 => "N"             # SQL_DESCRIBE_PARAMETER
+    10002 => "N"    # SQL_DESCRIBE_PARAMETER
 
       #   171 => undef                           # SQL_DM_VER
       #     3 => undef                           # SQL_DRIVER_HDBC
@@ -189,50 +189,50 @@ sub sql_keywords
       #    77 => undef                           # SQL_DRIVER_ODBC_VER
       #,      7 => \&sql_driver_ver               # SQL_DRIVER_VER
     ,
-    136 => 0                 # SQL_DROP_ASSERTION
+    136 => 0    # SQL_DROP_ASSERTION
     ,
-    137 => 0                 # SQL_DROP_CHARACTER_SET
+    137 => 0    # SQL_DROP_CHARACTER_SET
     ,
-    138 => 0                 # SQL_DROP_COLLATION
+    138 => 0    # SQL_DROP_COLLATION
     ,
-    139 => 0                 # SQL_DROP_DOMAIN
+    139 => 0    # SQL_DROP_DOMAIN
     ,
-    140 => 0                 # SQL_DROP_SCHEMA
+    140 => 0    # SQL_DROP_SCHEMA
     ,
-    141 => 1                 # SQL_DROP_TABLE
+    141 => 1    # SQL_DROP_TABLE
     ,
-    142 => 0                 # SQL_DROP_TRANSLATION
+    142 => 0    # SQL_DROP_TRANSLATION
     ,
-    143 => 0                 # SQL_DROP_VIEW
+    143 => 0    # SQL_DROP_VIEW
 
       #   144 => undef                           # SQL_DYNAMIC_CURSOR_ATTRIBUTES1
       #   145 => undef                           # SQL_DYNAMIC_CURSOR_ATTRIBUTES2
       #    27 => undef                           # SQL_EXPRESSIONS_IN_ORDERBY
       #     8 => undef                           # SQL_FETCH_DIRECTION
     ,
-    84 => 1                  # SQL_FILE_USAGE
+    84 => 1    # SQL_FILE_USAGE
 
       #   146 => undef                           # SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1
       #   147 => undef                           # SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES2
       #    81 => undef                           # SQL_GETDATA_EXTENSIONS
       #    88 => undef                           # SQL_GROUP_BY
     ,
-    28 => 4                  # SQL_IDENTIFIER_CASE
+    28 => 4    # SQL_IDENTIFIER_CASE
     ,
-    29 => q(")               # SQL_IDENTIFIER_QUOTE_CHAR
+    29 => q(")    # SQL_IDENTIFIER_QUOTE_CHAR
 
       #   148 => undef                           # SQL_INDEX_KEYWORDS
       #   149 => undef                           # SQL_INFO_SCHEMA_VIEWS
     ,
-    172 => 1                 # SQL_INSERT_STATEMENT
+    172 => 1    # SQL_INSERT_STATEMENT
 
       #    73 => undef                           # SQL_INTEGRITY
       #   150 => undef                           # SQL_KEYSET_CURSOR_ATTRIBUTES1
       #   151 => undef                           # SQL_KEYSET_CURSOR_ATTRIBUTES2
     ,
-    89 => \&sql_keywords     # SQL_KEYWORDS
+    89 => \&sql_keywords    # SQL_KEYWORDS
     ,
-    113 => "N"               # SQL_LIKE_ESCAPE_CLAUSE
+    113 => "N"              # SQL_LIKE_ESCAPE_CLAUSE
 
       #    78 => undef                           # SQL_LOCK_TYPES
       #    34 => undef                           # SQL_MAXIMUM_CATALOG_NAME_LENGTH
@@ -309,7 +309,7 @@ sub sql_keywords
       #          20   SQL_OJ_INNER               +  inner joins SUPPORTED
       #               SQL_OJ_ALL_COMPARISON_OPS  -  on clause comp op must be =
     ,
-    90 => "N"            # SQL_ORDER_BY_COLUMNS_IN_SELECT
+    90 => "N"    # SQL_ORDER_BY_COLUMNS_IN_SELECT
 
       #    38 => undef                           # SQL_OUTER_JOINS
       #   115 => undef                           # SQL_OUTER_JOIN_CAPABILITIES
@@ -320,7 +320,7 @@ sub sql_keywords
       #    80 => undef                           # SQL_POSITIONED_STATEMENTS
       #    79 => undef                           # SQL_POS_OPERATIONS
     ,
-    21 => "N"            # SQL_PROCEDURES
+    21 => "N"    # SQL_PROCEDURES
 
       #    40 => undef                           # SQL_PROCEDURE_TERM
       #   114 => undef                           # SQL_QUALIFIER_LOCATION
@@ -328,11 +328,11 @@ sub sql_keywords
       #    42 => undef                           # SQL_QUALIFIER_TERM
       #    92 => undef                           # SQL_QUALIFIER_USAGE
     ,
-    93 => 3              # SQL_QUOTED_IDENTIFIER_CASE
+    93 => 3    # SQL_QUOTED_IDENTIFIER_CASE
     ,
-    11 => "N"            # SQL_ROW_UPDATES
+    11 => "N"    # SQL_ROW_UPDATES
     ,
-    39 => "schema"       # SQL_SCHEMA_TERM
+    39 => "schema"    # SQL_SCHEMA_TERM
 
       #    91 => undef                           # SQL_SCHEMA_USAGE
       #    43 => undef                           # SQL_SCROLL_CONCURRENCY
@@ -341,41 +341,41 @@ sub sql_keywords
       #    13 => undef                           # SQL_SERVER_NAME
       #    94 => undef                           # SQL_SPECIAL_CHARACTERS
     ,
-    155 => 8             # SQL_SQL92_DATETIME_FUNCTIONS
-      #      SQL_SDF_CURRENT_DATE                      => 0x00000001 +
-      #      SQL_SDF_CURRENT_TIME                      => 0x00000002 +
-      #      SQL_SDF_CURRENT_TIMESTAMP                 => 0x00000004 +
+    155 => 8    # SQL_SQL92_DATETIME_FUNCTIONS
+                #      SQL_SDF_CURRENT_DATE                      => 0x00000001 +
+                #      SQL_SDF_CURRENT_TIME                      => 0x00000002 +
+                #      SQL_SDF_CURRENT_TIMESTAMP                 => 0x00000004 +
 
       #   156 => undef                           # SQL_SQL92_FOREIGN_KEY_DELETE_RULE
       #   157 => undef                           # SQL_SQL92_FOREIGN_KEY_UPDATE_RULE
       #   158 => undef                           # SQL_SQL92_GRANT
     ,
     159 => 0x00FFFFFF    # SQL_SQL92_NUMERIC_VALUE_FUNCTIONS
-      # All of them!
-      #      SQL_FN_NUM_ABS                            => 0x00000001 +
-      #      SQL_FN_NUM_ACOS                           => 0x00000002 +
-      #      SQL_FN_NUM_ASIN                           => 0x00000004 +
-      #      SQL_FN_NUM_ATAN                           => 0x00000008 +
-      #      SQL_FN_NUM_ATAN2                          => 0x00000010 +
-      #      SQL_FN_NUM_CEILING                        => 0x00000020 +
-      #      SQL_FN_NUM_COS                            => 0x00000040 +
-      #      SQL_FN_NUM_COT                            => 0x00000080 +
-      #      SQL_FN_NUM_EXP                            => 0x00000100 +
-      #      SQL_FN_NUM_FLOOR                          => 0x00000200 +
-      #      SQL_FN_NUM_LOG                            => 0x00000400 +
-      #      SQL_FN_NUM_MOD                            => 0x00000800 +
-      #      SQL_FN_NUM_SIGN                           => 0x00001000 +
-      #      SQL_FN_NUM_SIN                            => 0x00002000 +
-      #      SQL_FN_NUM_SQRT                           => 0x00004000 +
-      #      SQL_FN_NUM_TAN                            => 0x00008000 +
-      #      SQL_FN_NUM_PI                             => 0x00010000 +
-      #      SQL_FN_NUM_RAND                           => 0x00020000 +
-      #      SQL_FN_NUM_DEGREES                        => 0x00040000 +
-      #      SQL_FN_NUM_LOG10                          => 0x00080000 +
-      #      SQL_FN_NUM_POWER                          => 0x00100000 +
-      #      SQL_FN_NUM_RADIANS                        => 0x00200000 +
-      #      SQL_FN_NUM_ROUND                          => 0x00400000 +
-      #      SQL_FN_NUM_TRUNCATE                       => 0x00800000 +
+                         # All of them!
+                         #      SQL_FN_NUM_ABS                            => 0x00000001 +
+                         #      SQL_FN_NUM_ACOS                           => 0x00000002 +
+                         #      SQL_FN_NUM_ASIN                           => 0x00000004 +
+                         #      SQL_FN_NUM_ATAN                           => 0x00000008 +
+                         #      SQL_FN_NUM_ATAN2                          => 0x00000010 +
+                         #      SQL_FN_NUM_CEILING                        => 0x00000020 +
+                         #      SQL_FN_NUM_COS                            => 0x00000040 +
+                         #      SQL_FN_NUM_COT                            => 0x00000080 +
+                         #      SQL_FN_NUM_EXP                            => 0x00000100 +
+                         #      SQL_FN_NUM_FLOOR                          => 0x00000200 +
+                         #      SQL_FN_NUM_LOG                            => 0x00000400 +
+                         #      SQL_FN_NUM_MOD                            => 0x00000800 +
+                         #      SQL_FN_NUM_SIGN                           => 0x00001000 +
+                         #      SQL_FN_NUM_SIN                            => 0x00002000 +
+                         #      SQL_FN_NUM_SQRT                           => 0x00004000 +
+                         #      SQL_FN_NUM_TAN                            => 0x00008000 +
+                         #      SQL_FN_NUM_PI                             => 0x00010000 +
+                         #      SQL_FN_NUM_RAND                           => 0x00020000 +
+                         #      SQL_FN_NUM_DEGREES                        => 0x00040000 +
+                         #      SQL_FN_NUM_LOG10                          => 0x00080000 +
+                         #      SQL_FN_NUM_POWER                          => 0x00100000 +
+                         #      SQL_FN_NUM_RADIANS                        => 0x00200000 +
+                         #      SQL_FN_NUM_ROUND                          => 0x00400000 +
+                         #      SQL_FN_NUM_TRUNCATE                       => 0x00800000 +
     ,
     160 => 0x00003E06    # SQL_SQL92_PREDICATES
 
@@ -462,10 +462,10 @@ sub sql_keywords
 
       #    95 => undef                           # SQL_SUBQUERIES
     ,
-    51 => 8             # SQL_SYSTEM_FUNCTIONS
-      #      SQL_FN_SYS_USERNAME                       => 0x00000001 +
-      #      SQL_FN_SYS_DBNAME                         => 0x00000002 +
-      #      SQL_FN_SYS_IFNULL                         => 0x00000004 +
+    51 => 8    # SQL_SYSTEM_FUNCTIONS
+               #      SQL_FN_SYS_USERNAME                       => 0x00000001 +
+               #      SQL_FN_SYS_DBNAME                         => 0x00000002 +
+               #      SQL_FN_SYS_IFNULL                         => 0x00000004 +
     ,
     45 => "table"    # SQL_TABLE_TERM
 

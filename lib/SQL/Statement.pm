@@ -177,8 +177,8 @@ sub CREATE ($$$)
         # AS IMPORT
         if ( $subquery =~ m/^IMPORT/i )
         {
-            $sth = $data->{Database}->prepare("SELECT * FROM $subquery") or
-		return $self->do_err( $data->{Database}->errstr() );
+            $sth = $data->{Database}->prepare("SELECT * FROM $subquery")
+              or return $self->do_err( $data->{Database}->errstr() );
             $sth->execute(@$params) or return $self->do_err( $sth->errstr() );
             $names = $sth->{NAME};
         }
@@ -186,7 +186,8 @@ sub CREATE ($$$)
         # AS SELECT
         else
         {
-            $sth = $data->{Database}->prepare($subquery) or return $self->do_err( $data->{Database}->errstr() );
+            $sth = $data->{Database}->prepare($subquery)
+              or return $self->do_err( $data->{Database}->errstr() );
             $sth->execute() or return $self->do_err( $sth->errstr() );
             $names = $sth->{NAME};
         }
@@ -242,7 +243,7 @@ sub CALL
 
 my $enoentstr = "Cannot open .*\(" . Errno::ENOENT . "\)";
 my $eabstrstr = "Abstract method .*::open_table called";
-my $notblrx  = qr/(?:$enoentstr|$eabstrstr)/;
+my $notblrx   = qr/(?:$enoentstr|$eabstrstr)/;
 
 sub DROP ($$$)
 {
@@ -1605,7 +1606,7 @@ sub verify_columns
         {
             defined( _INSTANCE( $self->{sort_spec_list}->[$n], 'SQL::Statement::Order' ) ) and next;
             my ( $newcol, $direction ) = each %{ $self->{sort_spec_list}->[$n] };
-            my $desc = $direction && ($direction eq "DESC"); # ($direction || "ASC") eq "DESC";
+            my $desc = $direction && ( $direction eq "DESC" );    # ($direction || "ASC") eq "DESC";
 
             # XXX parse order by like group by and select list
             $i = -2;
@@ -1617,8 +1618,8 @@ sub verify_columns
             defined($table) and $col = $table . "." . $col;
             $self->{sort_spec_list}->[$n] = SQL::Statement::Order->new(
                 col => SQL::Statement::Util::Column->new(
-                    $col,      # column name
-                    $table,    # table name
+                    $col,                                         # column name
+                    $table,                                       # table name
                     SQL::Statement::ColumnValue->new( $self, $col ),    # term
                     $newcol                                             # display name
                                                         ),

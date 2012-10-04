@@ -408,7 +408,7 @@ sub operate($)
     {
         last
           if $expr |=
-              ( looks_like_number($left) && looks_like_number($r) ) ? $left == $r : $left eq $r;
+          ( looks_like_number($left) && looks_like_number($r) ) ? $left == $r : $left eq $r;
     }
 
     return $expr;

@@ -181,39 +181,42 @@ sub new
 
 sub value($)
 {
-    my ($self, $eval) = @_;
+    my ( $self, $eval ) = @_;
     unless ( defined( $self->{TMPVAL} ) )
     {
         my ( $tbl, $col ) = $self->{OWNER}->full_qualified_column_name( $self->{VALUE} );
-	defined( $tbl ) or croak( "Can't find table containing column named '$self->{VALUE}'" );
-	defined( $col ) or croak( "Unknown column: '$self->{VALUE}'" );
+        defined($tbl) or croak("Can't find table containing column named '$self->{VALUE}'");
+        defined($col) or croak("Unknown column: '$self->{VALUE}'");
         $self->{TMPVAL}      = $tbl . $self->{OWNER}->{dlm} . $col;
         $self->{TABLE_NAME}  = $tbl;
         $self->{COLUMN_NAME} = $col;
     }
 
     # XXX - can TMPVAL being defined without TABLE_NAME?
-    unless ( defined( $self->{TABLE_NAME} ) ) {
+    unless ( defined( $self->{TABLE_NAME} ) )
+    {
         croak( "No table specified: '" . $self->{OWNER}->{original_string} . "'" );
     }
-    
+
     # with TempEval: return $eval->column($self->{TABLE_NAME}, $self->{COLUMN_NAME});
     my $fp;
-    defined( $fp = $self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } ) and
-	return &$fp( $self->{COLUMN_NAME} );
+    defined( $fp = $self->{fastpath}->{ "${eval}." . $self->{TABLE_NAME} } )
+      and return &$fp( $self->{COLUMN_NAME} );
 
-    defined( $fp = $self->{fastpath}->{"${eval}." . $self->{TMPVAL} } ) and
-	return &$fp( $self->{TMPVAL} );
+    defined( $fp = $self->{fastpath}->{ "${eval}." . $self->{TMPVAL} } )
+      and return &$fp( $self->{TMPVAL} );
 
     if ( defined( _INSTANCE( $eval, 'SQL::Eval' ) ) )
     {
-	$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} } = $eval->_gen_access_fastpath($self->{TABLE_NAME});
-	return &{$self->{fastpath}->{"${eval}." . $self->{TABLE_NAME} }}( $self->{COLUMN_NAME} );
+        $self->{fastpath}->{ "${eval}." . $self->{TABLE_NAME} } =
+          $eval->_gen_access_fastpath( $self->{TABLE_NAME} );
+        return &{ $self->{fastpath}->{ "${eval}." . $self->{TABLE_NAME} } }( $self->{COLUMN_NAME} );
     }
     elsif ( defined( _INSTANCE( $eval, 'SQL::Eval::Table' ) ) )
     {
-	$self->{fastpath}->{"${eval}." . $self->{TMPVAL} } = $eval->_gen_access_fastpath($self->{TMPVAL});
-	return &{$self->{fastpath}->{"${eval}." . $self->{TMPVAL} }}( $self->{TMPVAL} );
+        $self->{fastpath}->{ "${eval}." . $self->{TMPVAL} } =
+          $eval->_gen_access_fastpath( $self->{TMPVAL} );
+        return &{ $self->{fastpath}->{ "${eval}." . $self->{TMPVAL} } }( $self->{TMPVAL} );
         # return $eval->column( $self->{TMPVAL} );
     }
     else

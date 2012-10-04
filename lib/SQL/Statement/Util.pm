@@ -95,7 +95,7 @@ sub validate
     $pkg =~ s,::,/,g;
     eval { require "$pkg.pm" }
       unless $pkg eq 'SQL/Statement/Functions'
-          or $pkg eq 'main';
+      or $pkg eq 'main';
     die $@ if $@;
     $pkg =~ s,/,::,g;
     die "Can't find subroutine $pkg" . "::$sub\n" unless $pkg->can($sub);
