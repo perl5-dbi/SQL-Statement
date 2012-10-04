@@ -13,3 +13,4 @@ bugsql
 .*\.csv
 \.tmp$
 SQL-Statement-.*
+MYMETA.*

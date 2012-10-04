@@ -1158,7 +1158,7 @@ foreach my $test_dbd (@test_dbds)
         {
            test   => 'csch -1e5',
            sql    => "SELECT CSCH(-100000)",
-           result => [ ['0'] ], # XXX was '-0'
+           result => [ [ Math::Trig::csch(-100000) ] ], # XXX was '-0'
            comment=> 'Is meant to return a "negative zero"'
         },
         {

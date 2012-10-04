@@ -123,21 +123,23 @@ sub prove_reqs
 sub show_reqs
 {
     my @proved_reqs = @_;
+    my $print;
 
     if ( $INC{'Test/More.pm'} )
     {
-        Test::More::diag("Using required:") if ( $proved_reqs[0] );
-        Test::More::diag( "  $_: " . $proved_reqs[0]->{$_} ) for sort keys %{ $proved_reqs[0] };
-        Test::More::diag("Using recommended:") if ( $proved_reqs[1] );
-        Test::More::diag( "  $_: " . $proved_reqs[1]->{$_} ) for sort keys %{ $proved_reqs[1] };
+	require File::Basename;
+	$print = (File::Basename::basename($0) =~ m/00/ ? Test::More->can("diag") : Test::More->can("note"));
     }
     else
     {
-        print("# Using required:\n") if ( $proved_reqs[0] );
-        print( "#   $_: " . $proved_reqs[0]->{$_} . "\n" ) for sort keys %{ $proved_reqs[0] };
-        print("# Using recommended:\n") if ( $proved_reqs[1] );
-        print( "#   $_: " . $proved_reqs[1]->{$_} . "\n" ) for sort keys %{ $proved_reqs[1] };
+	$print = \*CORE::print;
     }
+    &$print("# Using required:\n") if ( $proved_reqs[0] );
+    &$print( "#   $_: " . $proved_reqs[0]->{$_} . "\n" ) for sort keys %{ $proved_reqs[0] };
+    &$print("# Using recommended:\n") if ( $proved_reqs[1] );
+    &$print( "#   $_: " . $proved_reqs[1]->{$_} . "\n" ) for sort keys %{ $proved_reqs[1] };
+
+    return;
 }
 
 sub connect
