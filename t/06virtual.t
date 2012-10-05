@@ -25,6 +25,7 @@ if ($^O eq 'unicos') { # See lib/Math/Complex.pm and t/lib/complex.t.
 
 sub near ($$$) {
     my $d = $_[1] ? abs($_[0]/$_[1] - 1) : abs($_[0]);
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
     cmp_ok($d, '<', $eps, $_[2]) or diag("near? $_[0] ~= $_[1]");
 }
 #
@@ -861,315 +862,322 @@ foreach my $test_dbd (@test_dbds)
         ### Trigonometric Functions ### 
         # (this code shamelessly stolen from Math::Complex's t/Trig.t and converted to this test format)
         {
-           test   => 'sin',
+           test   => 'sin(1)',
            sql    => "SELECT SIN(1)",
-           result_near => 0.841470984807897,
+           result_near => sin(1),
         },
         {
-           test   => 'cos',
+           test   => 'cos(1)',
            sql    => "SELECT COS(1)",
-           result_near => 0.54030230586814,
+           result_near => cos(1),
         },
         {
-           test   => 'tan',
+           test   => 'tan(1)',
            sql    => "SELECT TAN(1)",
-           result_near => 1.5574077246549,
+           result_near => tan(1),
         },
         {
-           test   => 'sec',
+           test   => 'sec(1)',
            sql    => "SELECT SEC(1)",
-           result_near => 1.85081571768093,
+           result_near => sec(1),
         },
         {
-           test   => 'csc',
+           test   => 'csc(1)',
            sql    => "SELECT CSC(1)",
-           result_near => 1.18839510577812,
+           result_near => csc(1),
         },
         {
-           test   => 'cosec',
+           test   => 'cosec(1)',
            sql    => "SELECT COSEC(1)",
-           result_near => 1.18839510577812,
+           result_near => cosec(1),
         },
         {
-           test   => 'cot',
+           test   => 'cot(1)',
            sql    => "SELECT COT(1)",
-           result_near => 0.642092615934331,
+           result_near => cot(1),
         },
         {
-           test   => 'cotan',
+           test   => 'cotan(1)',
            sql    => "SELECT COTAN(1)",
-           result_near => 0.642092615934331,
+           result_near => cotan(1),
         },
         {
-           test   => 'asin',
+           test   => 'asin(1)',
            sql    => "SELECT ASIN(1)",
-           result_near => 1.5707963267949,
+           result_near => asin(1),
         },
         {
-           test   => 'acos',
+           test   => 'acos(1)',
            sql    => "SELECT ACOS(1)",
-           result => [ [0] ],
+           result_near => acos(1),
         },
         {
-           test   => 'atan',
+           test   => 'atan(1)',
            sql    => "SELECT ATAN(1)",
-           result_near => 0.785398163397448,
+           result_near => atan(1),
         },
         {
-           test   => 'asec',
+           test   => 'asec(1)',
            sql    => "SELECT ASEC(1)",
-           result => [ [0] ],
+           result_near => asec(1),
         },
         {
-           test   => 'acsc',
+           test   => 'acsc(1)',
            sql    => "SELECT ACSC(1)",
-           result_near => 1.5707963267949,
+           result_near => acsc(1),
         },
         {
-           test   => 'acosec',
+           test   => 'acosec(1)',
            sql    => "SELECT ACOSEC(1)",
-           result_near => 1.5707963267949,
+           result_near => acosec(1),
         },
         {
-           test   => 'acot',
+           test   => 'acot(1)',
            sql    => "SELECT ACOT(1)",
-           result_near => 0.785398163397448,
+           result_near => acot(1),
         },
         {
-           test   => 'acotan',
+           test   => 'acotan(1)',
            sql    => "SELECT ACOTAN(1)",
-           result_near => 0.785398163397448,
+           result_near => acotan(1),
         },
         {
-           test   => 'sinh',
+           test   => 'sinh(1)',
            sql    => "SELECT SINH(1)",
-           result_near => 1.1752011936438,
+           result_near => sinh(1),
         },
         {
-           test   => 'cosh',
+           test   => 'cosh(1)',
            sql    => "SELECT COSH(1)",
-           result_near => 1.54308063481524,
+           result_near => cosh(1),
         },
         {
-           test   => 'tanh',
+           test   => 'tanh(1)',
            sql    => "SELECT TANH(1)",
-           result_near => 0.761594155955765,
+           result_near => tanh(1),
         },
         {
-           test   => 'sech',
+           test   => 'sech(1)',
            sql    => "SELECT SECH(1)",
-           result_near => 0.648054273663885,
+           result_near => sech(1),
         },
         {
-           test   => 'csch',
+           test   => 'csch(1)',
            sql    => "SELECT CSCH(1)",
-           result_near => 0.850918128239322,
+           result_near => csch(1),
         },
         {
-           test   => 'cosech',
+           test   => 'cosech(1)',
            sql    => "SELECT COSECH(1)",
-           result_near => 0.850918128239322,
+           result_near => cosech(1),
         },
         {
-           test   => 'coth',
+           test   => 'coth(1)',
            sql    => "SELECT COTH(1)",
-           result_near => 1.31303528549933,
+           result_near => coth(1),
         },
         {
-           test   => 'cotanh',
+           test   => 'cotanh(1)',
            sql    => "SELECT COTANH(1)",
-           result_near => 1.31303528549933,
+           result_near => cotanh(1),
         },
         {
-           test   => 'asinh',
+           test   => 'asinh(1)',
            sql    => "SELECT ASINH(1)",
-           result_near => 0.881373587019543,
+           result_near => asinh(1),
         },
         {
-           test   => 'acosh',
+           test   => 'acosh(1)',
            sql    => "SELECT ACOSH(1)",
-           result => [ [0] ],
+           result_near => acosh(1),
         },
         {
-           test   => 'atanh',
+           test   => 'atanh(0.9)',
            sql    => "SELECT ATANH(0.9)",
-           result_near => 1.47221948958322,
+           result_near => atanh(0.9),
         },
         {
-           test   => 'asech', 
+           test   => 'asech(0.9)', 
            sql    => "SELECT ASECH(0.9)",  # atanh(1.0) would be an error.
-           result_near => 0.467145308103262,
+           result_near => asech(0.9),
         },
         {
-           test   => 'acsch',
+           test   => 'acsch(2)',
            sql    => "SELECT ACSCH(2)",
-           result_near => 0.481211825059603,
+           result_near => acsch(2),
         },
         {
-           test   => 'acosech',
+           test   => 'acosech(2)',
            sql    => "SELECT ACOSECH(2)",
-           result_near => 0.481211825059603,
+           result_near => acosech(2),
         },
         {
-           test   => 'acoth',
+           test   => 'acoth(2)',
            sql    => "SELECT ACOTH(2)",
-           result_near => 0.549306144334055,
+           result_near => acoth(2),
         },
         {
-           test   => 'acotanh',
+           test   => 'acotanh(2)',
            sql    => "SELECT ACOTANH(2)",
-           result_near => 0.549306144334055,
+           result_near => acotanh(2),
         },
         {
            test   => 'pi',
            sql    => "SELECT PI",
-           result_near => 3.141592653589793,
+           result_near => pi,
         },
         {
-           test   => 'atan2 to pi/2',
+           test   => 'atan2(1, 0)',
            sql    => "SELECT ATAN2(1, 0)",
-           result_near => pi/2,
+           result_near => atan2(1, 0),
         },
         {
-           test   => 'atan2 to pi/4',
+           test   => 'atan2(1, 1)',
            sql    => "SELECT ATAN2(1, 1)",
-           result_near => pi/4,
+           result_near => atan(1, 1),
         },
         {
-           test   => 'atan2 to -3pi/4',
+           test   => 'atan2(-1, -1) to -3pi/4',
            sql    => "SELECT ATAN2(-1, -1)",
-           result_near => -3*pi/4,
+           result_near => atan2(-1, -1),
         },
         {
-           test   => 'tan as property sin/cos',
+           test   => 'tan(0.9) as property sin/cos',
            sql    => "SELECT TAN(0.9)",
-           result_near => sin(0.9) / cos(0.9),
+           result_near => tan(0.9),
         },
         {
-           test   => 'sinh 2',
+           test   => 'sinh(2)',
            sql    => "SELECT SINH(2)",
-           result_near => 3.62686040784702,
+           result_near => sinh(2),
         },
         {
            test   => 'acsch 0.1',
            sql    => "SELECT ACSCH(0.1)",
-           result_near => 2.99822295029797,
+           result_near => acsch(0.1),
         },
         {
-           test   => 'deg2rad',
+           test   => 'deg2rad(90)',
            sql    => "SELECT DEG2RAD(90)",
-           result_near => pi/2,
+           result_near => deg2rad(90),
         },
         {
-           test   => 'radians',
+           test   => 'radians(90)',
            sql    => "SELECT RADIANS(90)",
-           result_near => pi/2,
+           result_near => deg2rad(90),
         },
         {
-           test   => 'rad2deg',
+           test   => 'rad2deg(PI)',
            sql    => "SELECT RAD2DEG(PI)",
-           result_near => 180,
+           result_near => rad2deg(pi),
         },
         {
-           test   => 'degrees',
+           test   => 'degrees(PI)',
            sql    => "SELECT DEGREES(PI())",
-           result_near => 180,
+           result_near => rad2deg(pi),
         },
         {
-           test   => 'deg2grad',
+           test   => 'deg2grad(0.9)',
            sql    => "SELECT DEG2GRAD(0.9)",
-           result => [ [1] ],
+           result_near => deg2grad(0.9),
         },
         {
-           test   => 'grad2deg',
+           test   => 'grad2deg(50)',
            sql    => "SELECT GRAD2DEG(50)",
-           result => [ [45] ],
+           result_near => grad2deg(50),
         },
         {
-           test   => 'rad2grad',
-           sql    => "SELECT RAD2GRAD(PI / 2)",
-           result => [ [200] ],
+	   # XXX calculus within function parameters with functions as operands do not work
+           test   => 'rad2grad(pi/2)',
+           sql    => "SELECT RAD2GRAD(PI/2)",
+           result_near => rad2grad(pi/2),
+           todo   => "Known limitation. Parser/Engine can not handle properly",
         },
         {
-           test   => 'grad2rad',
+           test   => 'rad2grad(pi)',
+           sql    => "SELECT RAD2GRAD(PI)",
+           result_near => rad2grad(pi),
+        },
+        {
+           test   => 'grad2rad(200)',
            sql    => "SELECT GRAD2RAD(200)",
-           result_near => pi,
+           result_near => grad2rad(200),
         },
         {
-           test   => 'lotta radians',
+           test   => 'lotta radians - deg2rad(10000000000)',
            sql    => "SELECT DEG2RAD(10000000000)",
-           result_near => 4.88692191243172,
+           result_near => deg2rad(10000000000),
         },
         {
-           test   => 'negative degrees',
+           test   => 'negative degrees - rad2deg(-10000000000)',
            sql    => "SELECT RAD2DEG(-10000000000)",
-           result_near => -330.8232421875,
+           result_near => rad2deg(-10000000000),
         },
         {
-           test   => 'positive degrees',
+           test   => 'positive degrees - rad2deg(10000)',
            sql    => "SELECT RAD2DEG(10000)",
-           result_near => 197.795130823273,
+           result_near => rad2deg(10000),
         },
         {
            test   => 'tanh 100',
            sql    => "SELECT TANH(100)",
-           result_near => 1,
+           result_near => tanh(100),
         },
         {
            test   => 'coth 100',
            sql    => "SELECT COTH(100)",
-           result_near => 1,
+           result_near => coth(100),
         },
         {
            test   => 'tanh -100',
            sql    => "SELECT TANH(-100)",
-           result_near => -1,
+           result_near => tanh(-100),
         },
         {
            test   => 'coth -100',
            sql    => "SELECT COTH(-100)",
-           result_near => -1,
+           result_near => coth(-100),
         },
         {
            test   => 'sech 1e5',
            sql    => "SELECT SECH(100000)",
-           result => [ [0] ],
+           result_near => sech(100000),
         },
         {
            test   => 'csch 1e5',
            sql    => "SELECT CSCH(100000)",
-           result => [ [0] ],
+           result_near => csch(100000),
         },
         {
            test   => 'tanh 1e5',
            sql    => "SELECT TANH(100000)",
-           result => [ [1] ],
+           result_near => tanh(100000),
         },
         {
            test   => 'coth 1e5',
            sql    => "SELECT COTH(100000)",
-           result => [ [1] ],
+           result_near => coth(100000),
         },
         {
            test   => 'sech -1e5',
            sql    => "SELECT SECH(-100000)",
-           result => [ [0] ],
+           result_near => sech(-100000),
         },
         {
            test   => 'csch -1e5',
            sql    => "SELECT CSCH(-100000)",
-           result => [ [ Math::Trig::csch(-100000) ] ], # XXX was '-0'
+           result_near => csch(-100000),
            comment=> 'Is meant to return a "negative zero"'
         },
         {
            test   => 'tanh -1e5',
            sql    => "SELECT TANH(-100000)",
-           result => [ [-1] ],
+           result_near => tanh(-100000),
         },
         {
            test   => 'coth -1e5',
            sql    => "SELECT COTH(-100000)",
-           result => [ [-1] ],
+           result_near => Math::Trig::coth(-100000),
         },
         ### System Functions
         {
@@ -1483,16 +1491,16 @@ foreach my $test_dbd (@test_dbds)
                 is_deeply( $sth->fetchall_hashref( $test->{fetch_by} ),
                            $test->{result}, $test->{test} );
             }
-            elsif ( $test->{result_code} )
+            elsif ( defined( $test->{result_code} ) )
             {
                 &{ $test->{result_code} }($sth);
             }
-            elsif ( $test->{result_like} )
+            elsif ( defined( $test->{result_like} ) )
             {
                 my $row = $sth->fetch_rows();
                 like( $row && $row->[0] && $row->[0][0], $test->{result_like}, $test->{test} );
             }
-            elsif ( $test->{result_near} )
+            elsif ( defined( $test->{result_near} ) )
             {
                 my $row = $sth->fetch_rows();
                 near( $row && $row->[0] && $row->[0][0], $test->{result_near}, $test->{test} );
