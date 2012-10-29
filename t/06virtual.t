@@ -7,6 +7,7 @@ use Test::More;
 use TestLib qw(connect prove_reqs show_reqs test_dir default_recommended);
 
 use Params::Util qw(_CODE _ARRAY);
+use Scalar::Util qw(looks_like_number);
 
 my ( $required, $recommended ) = prove_reqs( { default_recommended(), ( MLDBM => 0 ) } );
 show_reqs( $required, $recommended );
@@ -26,7 +27,8 @@ if ($^O eq 'unicos') { # See lib/Math/Complex.pm and t/lib/complex.t.
 sub near ($$$) {
     my $d = $_[1] ? abs($_[0]/$_[1] - 1) : abs($_[0]);
     local $Test::Builder::Level = $Test::Builder::Level + 1;
-    cmp_ok($d, '<', $eps, $_[2]) or diag("near? $_[0] ~= $_[1]");
+    looks_like_number($_[0]) or return cmp_ok($_[0], "eq", $_[1], "near? $_[0] ~= $_[1]");
+    cmp_ok($d, '<', $eps, "$_[2] => near? $_[0] ~= $_[1]") or diag("near? $_[0] ~= $_[1]");
 }
 #
 
