@@ -22,7 +22,7 @@ use Carp qw(carp croak);
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 
-$VERSION = '1.400';
+$VERSION = '1.401';
 
 BEGIN
 {

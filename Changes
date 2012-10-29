@@ -1,7 +1,7 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.400, released July ......, 2011
-----------------------------------------------
+Version 1.401, released October 29, 2012
+-------------------------------------------------
 
 [Misc]
 * Switch to 3-digited minor version
@@ -12,6 +12,7 @@ Version 1.400, released July ......, 2011
 * Fix doc typo RT#76764 (STEFFENW) - thanks Steffen
 * Fix typo documented in RT#71914 (reported by Ze'ev Atlas,
   fixed by H.Merijn Brand) - thanks Ze'ev and Merijn
+* Fix DROP TABLE behaviour and error detection
 
 [Improvements]
 * Improve documentation/tests for multiple JOIN's from RT#69573
