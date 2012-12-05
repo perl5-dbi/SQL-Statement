@@ -1,5 +1,11 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.402, released xx xx, xxxx
+-------------------------------------------------
+
+[Bug fixes]
+* fix leaking reference to open tables outside SQL::Statement::execute
+
 Version 1.401, released October 29, 2012
 -------------------------------------------------
 
