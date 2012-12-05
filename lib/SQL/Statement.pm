@@ -94,7 +94,7 @@ sub prepare
         {
             $self->{$k} = $v;
         }
-        undef $self->{where_terms};
+	undef $self->{where_terms}; # force rebuild when needed
         undef $self->{columns};
         undef $self->{splitted_all_cols};
         $self->{argnum} = 0;
@@ -116,15 +116,15 @@ sub prepare
 
         $self->{tables} = [ map { SQL::Statement::Table->new($_) } @{ $self->{table_names} } ];
 
-        if ( $self->{where_clause} )
-        {
-            $self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
-            if ( $self->{where_clause}->{combiners} )
-            {
-                $self->{has_OR} = 1
-                  if ( first { -1 != index( $_, 'OR' ) } @{ $self->{where_clause}->{combiners} } );
-            }
-        }
+	if ( $self->{where_clause} && !defined($self->{where_terms}) )
+	{
+	    $self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
+	    #if ( $self->{where_clause}->{combiners} )
+	    #{
+	    #    $self->{has_OR} = 1
+	    #      if ( first { -1 != index( $_, 'OR' ) } @{ $self->{where_clause}->{combiners} } );
+	    #}
+	}
 
         ++$self->{already_prepared}->{$sql};
         return $self;
@@ -145,21 +145,40 @@ sub execute
     $self->{procedure}->{data} = $data if ( $self->{procedure} );
     $self->{params} = $params;
     my ( $table, $msg );
+
     my ($command) = $self->command();
     return $self->do_err('No command found!') unless ($command);
+
+    if ( $self->{where_clause} && !defined($self->{where_terms}) )
+    {
+	$self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
+    }
+
     ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) =
       $self->$command( $data, $params );
-    return unless ( defined( $self->{NUM_OF_ROWS} ) );
 
-    @{ $self->{NAME} } = map { $_->display_name() } @{ $self->{columns} };
+    if( defined( _ARRAY0( $self->{columns} ) ) )
+    {
+	@{ $self->{NAME} } = map { $_->display_name() } @{ $self->{columns} };
+
+	foreach my $column (@{$self->{columns}})
+	{
+	    delete $column->{term}->{fastpath};
+	}
+    }
+    else
+    {
+	$self->{NAME} = [];
+    }
 
     my $tables;
     @$tables = map { $_->{name} } @{ $self->{tables} };
     delete $self->{tables};    # Force closing the tables
-    for (@$tables)
-    {
-        push( @{ $self->{tables} }, SQL::Statement::Table->new($_) );
-    }
+    $self->{tables} = [ map {SQL::Statement::Table->new($_)} @$tables ]; # and create keen defs
+
+    undef $self->{where_terms}; # force rebuild when needed
+
+    return unless ( defined( $self->{NUM_OF_ROWS} ) );
     return $self->{NUM_OF_ROWS} || '0E0';
 }
 
@@ -1165,6 +1184,7 @@ sub eval_where
     my ( $self, $eval, $tname, $rowary ) = @_;
     return 1 unless ( defined( $self->{where_terms} ) );
     $self->{argnum} = 0;
+
     return $self->{where_terms}->value($eval);
 }
 
@@ -1414,26 +1434,27 @@ sub buildColumnObjects($)
 {
     my ( $self, $t, $tables ) = @_;
 
-    return unless ( defined( _ARRAY0( $self->{column_defs} ) ) );
-    return if ( defined( _ARRAY0( $self->{columns} ) ) );
+    defined( _ARRAY0( $self->{column_defs} ) ) or return;
+    defined( _ARRAY0( $self->{columns} ) ) and return;
+
     $self->{columns} = [];
 
     my $coldefs = $self->{column_defs};
 
     for ( my $i = 0; $i < scalar( @{$coldefs} ); ++$i )
     {
-        my $colentry = $coldefs->[$i];
+	my $colentry = $coldefs->[$i];
 
-        my @columns = $self->getColumnObject( $colentry, $t, $tables );
-        return if ( $self->{errstr} );
+	my @columns = $self->getColumnObject( $colentry, $t, $tables );
+	return if ( $self->{errstr} );
 
-        foreach my $col (@columns)
-        {
-            my $expcol = SQL::Statement::Util::Column->new( @{$col} );
-            push( @{ $self->{columns} }, $expcol );
-            $self->{column_aliases}->{ $col->[4] } ||= $col->[3];
-            $self->{colpos}->{ $col->[3] } = scalar( @{ $self->{columns} } ) - 1;
-        }
+	foreach my $col (@columns)
+	{
+	    my $expcol = SQL::Statement::Util::Column->new( @{$col} );
+	    push( @{ $self->{columns} }, $expcol );
+	    $self->{column_aliases}->{ $col->[4] } ||= $col->[3];
+	    $self->{colpos}->{ $col->[3] } = scalar( @{ $self->{columns} } ) - 1;
+	}
     }
 
     return;
@@ -1971,7 +1992,7 @@ sub DESTROY
     undef $self->{cur_table};
     undef $self->{data};
     undef $self->{group_by};
-    undef $self->{has_OR};
+    #undef $self->{has_OR};
     undef $self->{join};
     undef $self->{limit_clause};
     undef $self->{num_placeholders};
