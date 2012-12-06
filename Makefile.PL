@@ -29,41 +29,40 @@ my $selfConflictMsg = <<EOSCM;
 EOSCM
 
 WriteMakefile1(
-    MIN_PERL_VERSION => '5.008',
-    META_MERGE       => {
-                    resources => {
+                MIN_PERL_VERSION => '5.008',
+                META_MERGE       => {
+                              resources => {
                                   repository => 'https://svn.perl.org/modules/SQL-Statement/trunk/',
                                   MailingList => 'mailto:dbi-dev@perl.org',
                                   license     => 'http://dev.perl.org/licenses/',
-                                 },
-                  },
-    NAME          => 'SQL::Statement',
-    VERSION_FROM  => 'lib/SQL/Statement.pm',
-    ABSTRACT_FROM => 'lib/SQL/Statement.pm',
-    dist          => {
-              'SUFFIX'       => ".gz",
-              'DIST_DEFAULT' => 'manifest tardist',
-              'COMPRESS'     => "gzip -9vf"
-            },
-    PREREQ_PM => {
-                   'Carp'         => '0',
-                   'Clone'        => '0.30',
-                   'Data::Dumper' => '0',
-                   'Params::Util' => '1.00',
-                   'Scalar::Util' => '1.0',
-                 },
-    CONFLICTS => {
-                   'SQL::Statement' => '1.20',
-                   'DBI'            => '1.611',
-                   'DBD::AnyData'   => '0.09',
-                   'DBD::CSV'       => '0.29',
-                 },
-    LICENSE        => 'perl',
-    BUILD_REQUIRES => {
-        'Test::Simple' => '0.90',
-                      },
-    AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
-    test   => { TESTS => 't/*.t xt/*.t' },
+                              },
+                              recommends => { 'Math::Complex' => '1.56', },
+                },
+                NAME          => 'SQL::Statement',
+                VERSION_FROM  => 'lib/SQL/Statement.pm',
+                ABSTRACT_FROM => 'lib/SQL/Statement.pm',
+                dist          => {
+                          'SUFFIX'       => ".gz",
+                          'DIST_DEFAULT' => 'manifest tardist',
+                          'COMPRESS'     => "gzip -9vf"
+                        },
+                PREREQ_PM => {
+                               'Carp'         => '0',
+                               'Clone'        => '0.30',
+                               'Data::Dumper' => '0',
+                               'Params::Util' => '1.00',
+                               'Scalar::Util' => '1.0',
+                             },
+                CONFLICTS => {
+                               'SQL::Statement' => '1.20',
+                               'DBI'            => '1.611',
+                               'DBD::AnyData'   => '0.09',
+                               'DBD::CSV'       => '0.29',
+                             },
+                LICENSE        => 'perl',
+                BUILD_REQUIRES => { 'Test::Simple' => '0.90', },
+                AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
+                test   => { TESTS => 't/*.t xt/*.t' },
               );
 
 sub CheckConflicts
