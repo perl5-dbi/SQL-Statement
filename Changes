@@ -3,8 +3,13 @@ Changes log for Perl extension SQL::Statement
 Version 1.402, released xx xx, xxxx
 -------------------------------------------------
 
+[Misc]
+* add Math::Complex 1.56 as recommendation
+
 [Bug fixes]
 * fix leaking reference to open tables outside SQL::Statement::execute
+* looks_like_number identifies 'nan' as number sometimes (add regex to
+  t/06virtual.t)
 
 Version 1.401, released October 29, 2012
 -------------------------------------------------
