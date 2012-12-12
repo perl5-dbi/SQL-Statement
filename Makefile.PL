@@ -53,16 +53,19 @@ WriteMakefile1(
                                'Params::Util' => '1.00',
                                'Scalar::Util' => '1.0',
                              },
+                BUILD_REQUIRES => {
+                                    'Test::Simple'  => '0.90',
+                                    'Math::Complex' => '1.56',
+                                  },
                 CONFLICTS => {
                                'SQL::Statement' => '1.20',
                                'DBI'            => '1.611',
                                'DBD::AnyData'   => '0.09',
                                'DBD::CSV'       => '0.29',
                              },
-                LICENSE        => 'perl',
-                BUILD_REQUIRES => { 'Test::Simple' => '0.90', },
-                AUTHOR => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
-                test   => { TESTS => 't/*.t xt/*.t' },
+                LICENSE => 'perl',
+                AUTHOR  => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
+                test    => { TESTS => 't/*.t xt/*.t' },
               );
 
 sub CheckConflicts
