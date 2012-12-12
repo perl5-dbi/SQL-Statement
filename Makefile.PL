@@ -36,8 +36,11 @@ WriteMakefile1(
                                   MailingList => 'mailto:dbi-dev@perl.org',
                                   license     => 'http://dev.perl.org/licenses/',
                               },
-                              recommends => { 'Math::Complex' => '1.56', },
-                },
+                              recommends => {
+                                              'Math::Complex' => '1.56',
+                                              'Math::BigInt'  => '1.88',
+                                            },
+                              },
                 NAME          => 'SQL::Statement',
                 VERSION_FROM  => 'lib/SQL/Statement.pm',
                 ABSTRACT_FROM => 'lib/SQL/Statement.pm',
@@ -56,6 +59,7 @@ WriteMakefile1(
                 BUILD_REQUIRES => {
                                     'Test::Simple'  => '0.90',
                                     'Math::Complex' => '1.56',
+                                    'Math::BigInt'  => '1.88',
                                   },
                 CONFLICTS => {
                                'SQL::Statement' => '1.20',
