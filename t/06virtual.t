@@ -29,6 +29,7 @@ sub near ($$$) {
     local $Test::Builder::Level = $Test::Builder::Level + 1;
     looks_like_number($_[0]) or return cmp_ok($_[0], "eq", $_[1], "near? $_[0] ~= $_[1]");
     $_[0] =~ m/nan/i and return cmp_ok($_[0], "eq", $_[1], "near? $_[0] ~= $_[1]");
+    $_[0] =~ m/inf/i and return cmp_ok($_[0], "eq", $_[1], "near? $_[0] ~= $_[1]");
     cmp_ok($d, '<', $eps, "$_[2] => near? $_[0] ~= $_[1]") or diag("near? $_[0] ~= $_[1]");
 }
 #
