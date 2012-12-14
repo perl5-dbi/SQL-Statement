@@ -13,7 +13,7 @@ my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
 foreach my $test_dbd (@test_dbds)
 {
     my $dbh;
-    diag("Running tests for $test_dbd");
+    note("Running tests for $test_dbd");
 
     # Test RaiseError for prepare errors
     #

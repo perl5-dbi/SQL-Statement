@@ -38,7 +38,7 @@ SKIP:
 foreach my $test_dbd (@test_dbds)
 {
     my $dbh;
-    diag("Running tests for $test_dbd");
+    note("Running tests for $test_dbd");
     my $temp = "";
     # XXX
     # my $test_dbd_tbl = "${test_dbd}::Table";
