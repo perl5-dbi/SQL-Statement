@@ -17,7 +17,7 @@ my $test_user = delete $ENV{DBI_USER};
 my $test_pass = delete $ENV{DBI_PASS};
 
 my $test_dir;
-END { defined($test_dir) and rmtree $test_dir }
+# END { defined($test_dir) and rmtree $test_dir }
 
 sub test_dir
 {
@@ -109,10 +109,10 @@ sub prove_reqs
         while ( my ( $m, $v ) = each %req )
         {
             my ( $ok, $msg ) = check_mod( $m, $v );
-##	    if ( !$ok and $INC{'Test/More.pm'} )
-##	    {
-##		Test::More::diag($msg);
-##	    }
+	    if ( !$ok and $INC{'Test/More.pm'} )
+	    {
+		Test::More::note($msg);
+	    }
             $ok and $recommends{$m} = $msg;
         }
     }
@@ -352,7 +352,7 @@ sub errstr
 
 sub finish
 {
-    delete $_[0]->{stmt};
+    delete $_[0]->{stmt}->{data};
 }
 
 package TestLib::DBD;
@@ -510,7 +510,7 @@ sub errstr
 
 sub finish
 {
-    delete $_[0]->{sth};
+    $_[0]->{sth}->finish();
 }
 
 1;
