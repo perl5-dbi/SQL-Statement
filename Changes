@@ -10,6 +10,7 @@ Version 1.402, released xx xx, xxxx
 
 [Bug fixes]
 * fix leaking reference to open tables outside SQL::Statement::execute
+  (fixes RT#81523)
 * looks_like_number identifies 'nan' as number sometimes (add regex to
   t/06virtual.t)
 
