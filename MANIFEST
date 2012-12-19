@@ -23,7 +23,6 @@ lib/SQL/Statement/Util.pm
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
-META.yml
 README
 t/00error.t
 t/01prepare.t
