@@ -64,8 +64,8 @@ basic components is required.
 =head3 SQL::Parser rewrite
 
 The SQL::Parser needs to be modified to be able to use a
-L<http://en.wikipedia.org/wiki/Backus_Naur_Form|Backus Naur
-Form>. This would allow users and developers to rely on many different
+L<Backus Naur Form|http://en.wikipedia.org/wiki/Backus_Naur_Form>.
+This would allow users and developers to rely on many different
 SQL dialects.  This will allow better extensibility from a feature
 point of view without losing ANSI SQL compatibility.
 
