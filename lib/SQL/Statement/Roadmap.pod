@@ -97,9 +97,14 @@ The easiest way to implement this would be to create a
 L<SQL::Statement::RAM|SQL::Statement::RAM::Table> on C<BEGIN TRANSACTION>
 and write the entire table back on C<COMMIT> or discard on C<ROLLBACK>.
 
-Better performance could be acheived when the implementation allows to
-memorize the single modification and apply them at C<COMMIT>. This needs
-more discussion.
+Better performance could be achieved in cases where the implementation is
+enabled to memorize pending modifications and apply them at C<COMMIT>.
+On the other hand there are already
+L<capabilities|SQL::Eval/"Method interface of SQL::Eval::Table"> to
+improve some operations, which might create confusion in case of
+transactions.
+
+This needs more discussion.
 
 =head4 ALTER TABLE
 
