@@ -24,6 +24,7 @@ Makefile.PL
 MANIFEST
 MANIFEST.SKIP
 README
+README.md
 t/00error.t
 t/01prepare.t
 t/02execute.t

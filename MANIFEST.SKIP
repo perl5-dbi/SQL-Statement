@@ -1,4 +1,4 @@
-\B\.svn\b
+\B\.git
 \.[Bb][Aa][Kk]$
 \.orig$
 \.rej$
