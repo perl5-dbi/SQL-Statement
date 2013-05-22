@@ -1,7 +1,7 @@
 package SQL::Dialects::AnyData;
 
 use vars qw($VERSION);
-$VERSION = '1.402';
+$VERSION = '1.403';
 
 use SQL::Dialects::Role;
 

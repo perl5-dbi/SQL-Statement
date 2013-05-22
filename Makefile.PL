@@ -32,7 +32,7 @@ WriteMakefile1(
                 MIN_PERL_VERSION => '5.008',
                 META_MERGE       => {
                               resources => {
-                                  repository => 'https://svn.perl.org/modules/SQL-Statement/trunk/',
+                                  repository => 'https://github.com/perl5-dbi/SQL-Statement',
                                   MailingList => 'mailto:dbi-dev@perl.org',
                                   license     => 'http://dev.perl.org/licenses/',
                               },
