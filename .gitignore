@@ -1,0 +1,11 @@
+blib/
+.build/
+inc/
+.last_cover_stats
+META.yml
+MYMETA.*
+Makefile
+nytprof.out
+pm_to_blib
+*.swp
+*.bak
