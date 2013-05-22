@@ -1,5 +1,11 @@
 Changes log for Perl extension SQL::Statement
 
+Version 1.403, released May 22, 2013
+-------------------------------------------------
+[Bug fixes]
+* fix documentation (rt#84889 - thanks Xavier Guimard and Florian,
+  rt#85257 - thanks Andreas Koenig)
+
 Version 1.402, released December 19, 2012
 -------------------------------------------------
 
