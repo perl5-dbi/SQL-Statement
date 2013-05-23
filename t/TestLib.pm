@@ -17,7 +17,7 @@ my $test_user = delete $ENV{DBI_USER};
 my $test_pass = delete $ENV{DBI_PASS};
 
 my $test_dir;
-# END { defined($test_dir) and rmtree $test_dir }
+END { defined($test_dir) and rmtree $test_dir }
 
 sub test_dir
 {
