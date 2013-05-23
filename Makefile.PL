@@ -39,6 +39,7 @@ WriteMakefile1(
                               recommends => {
                                               'Math::Complex' => '1.56',
                                               'Math::BigInt'  => '1.88',
+					      'Text::Soundex' => '3.03_01',
                                             },
                               },
                 NAME          => 'SQL::Statement',

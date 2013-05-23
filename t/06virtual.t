@@ -20,6 +20,12 @@ my @massValues = map { [ $_, ( "a" .. "f" )[ int rand 6 ], int rand 10 ] } ( 1 .
 use Math::Trig;
 my $eps = 1e-11;
 
+my $have_soundex = 0;
+eval qq{
+    require Text::Soundex;
+    \$have_soundex = 1;
+};
+
 if ($^O eq 'unicos') { # See lib/Math/Complex.pm and t/lib/complex.t.
     $eps = 1e-10;
 }
@@ -664,6 +670,7 @@ foreach my $test_dbd (@test_dbds)
            sql    => q{SELECT SUBSTITUTE('zfunkY','s/z(.+)ky/$1/i')},
            result => [ ['fun'] ],
         },
+	($have_soundex ? (
         {
            test   => 'soundex match',
            sql    => "SELECT SOUNDEX('jeff','jeph')",
@@ -674,6 +681,7 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT SOUNDEX('jeff','quartz')",
            result => [ [0] ],
         },
+	) : ()),
         {
            test   => 'space',
            sql    => q{SELECT SPACE(10)},
