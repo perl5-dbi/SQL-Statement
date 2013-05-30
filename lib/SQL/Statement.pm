@@ -312,47 +312,49 @@ sub INSERT ($$$)
     my ($cNum) = scalar( $self->columns() );
     my $param_num = 0;
 
-    if ($cNum)
-    {
-        # INSERT INTO $table (row, ...) VALUES (value, ...), (...)
-        for ( $k = 0; $k < scalar( @{ $self->{values} } ); ++$k )
-        {
-            my ($array) = [];
-            for ( $i = 0; $i < $cNum; $i++ )
-            {
-                $col = $self->columns($i);
-                $val = $self->row_values( $k, $i );
-                if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
-                {
-                    $val = $eval->param( $val->idx() );
-                }
-                elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
-                {
-                    $val = $val->value($eval);
-                }
-                elsif ( $val and $val->{type} eq 'placeholder' )
-                {
-                    $val = $eval->param( $param_num++ );
-                }
-                elsif ( defined( _HASH($val) ) )
-                {
-                    $val = $self->{termFactory}->buildCondition($val);
-                    $val = $val->value($eval);
-                }
-                else
-                {
-                    return $self->do_err('Internal error: Unexpected column type');
-                }
-                $array->[ $table->column_num( $col->name() ) ] = $val;
-            }
-            $table->capability('insert_new_row')
-              ? $table->insert_new_row( $data, $array )
-              : $table->push_row( $data, $array );
-        }
-    }
-    else
-    {
+    $cNum or 
         return $self->do_err("Bad col names in INSERT");
+
+    my $maxCol = $#$all_cols;
+
+    # INSERT INTO $table (row, ...) VALUES (value, ...), (...)
+    for ( $k = 0; $k < scalar( @{ $self->{values} } ); ++$k )
+    {
+	my ($array) = [];
+	for ( $i = 0; $i < $cNum; $i++ )
+	{
+	    $col = $self->columns($i);
+	    $val = $self->row_values( $k, $i );
+	    if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
+	    {
+		$val = $eval->param( $val->idx() );
+	    }
+	    elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
+	    {
+		$val = $val->value($eval);
+	    }
+	    elsif ( $val and $val->{type} eq 'placeholder' )
+	    {
+		$val = $eval->param( $param_num++ );
+	    }
+	    elsif ( defined( _HASH($val) ) )
+	    {
+		$val = $self->{termFactory}->buildCondition($val);
+		$val = $val->value($eval);
+	    }
+	    else
+	    {
+		return $self->do_err('Internal error: Unexpected column type');
+	    }
+	    $array->[ $table->column_num( $col->name() ) ] = $val;
+	}
+
+	# Extend row to put values in ALL fields
+	$#$array < $maxCol and $array->[$maxCol] = undef;
+
+	$table->capability('insert_new_row')
+	  ? $table->insert_new_row( $data, $array )
+	  : $table->push_row( $data, $array );
     }
 
     return ( $k, 0 );
