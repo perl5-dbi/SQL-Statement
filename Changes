@@ -1,6 +1,6 @@
 Changes log for Perl extension SQL::Statement
 
-Version 1.405, released ..., 2013
+Version 1.405, released June 17, 2013
 -------------------------------------------------
 [Bug fixes]
 * INSERT now expands incomplete rows (Thanks to H.Merijn Brand)
