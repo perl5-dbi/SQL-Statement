@@ -15,7 +15,7 @@ or directly.  The syntax below applies to both situations.  In the case of
 DBDs, each DBD can implement its own sub-dialect so be sure to check the DBD
 documentation also.
 
-SQL::Statement is meant primarly as a base class for DBD drivers
+SQL::Statement is meant primarily as a base class for DBD drivers
 and as such concentrates on a small but useful subset of SQL.
 It does *not* in any way pretend to be a complete SQL parser for
 all dialects of SQL.  The module will continue to add new supported syntax,
@@ -282,7 +282,7 @@ representation, so do not rely on SQL::Statement retaining your case.
 Delimited identifiers (table and column names *with* quotes around them) are
 case SENSITIVE so column "foo", "fOo", "FOO" each refer to different columns.
 
-A delimited identifier is *never* equal to a regular identifer (so "foo" and
+A delimited identifier is *never* equal to a regular identifier (so "foo" and
 foo are two different columns).  But don't do that :-).
 
 Remember thought that, in L<DBD::CSV> if table names are used directly as file
