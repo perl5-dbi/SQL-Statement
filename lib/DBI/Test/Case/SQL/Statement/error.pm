@@ -7,6 +7,8 @@ use warnings;
 #use Test::More;
 #use TestLib qw(connect prove_reqs show_reqs);
 
+use parent qw(DBI::Test::SQL::Statement::Case);
+
 use Test::More;
 use DBI::Test;
 
