@@ -28,6 +28,11 @@ my $selfConflictMsg = <<EOSCM;
 ***
 EOSCM
 
+use lib qw(lib); # to find our DBI::Test extensions :D
+use DBI::Test::Conf ();
+
+my @generated_tests = DBI::Test::Conf->setup( AUTHOR_TESTS => 0 );
+
 WriteMakefile1(
                 MIN_PERL_VERSION => '5.008',
                 META_MERGE       => {
@@ -70,7 +75,11 @@ WriteMakefile1(
                              },
                 LICENSE => 'perl',
                 AUTHOR  => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
-                test    => { TESTS => 't/*.t xt/*.t' },
+                test    => { TESTS => join (' ' => 't/*.t xt/*.t', @generated_tests), },
+		clean            => {
+		    FILES           => join( " " => @generated_tests ),
+		},
+
               );
 
 sub CheckConflicts
