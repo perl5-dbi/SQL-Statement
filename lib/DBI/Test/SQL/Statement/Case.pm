@@ -3,13 +3,15 @@ package DBI::Test::SQL::Statement::Case;
 use strict;
 use warnings;
 
+use parent qw(DBI::Test::Case);
+
 use Carp qw(carp);
 
 use DBI::Mock ();
 
 sub filter_drivers
 {
-    my ($self, @test_dbds) = @_;
+    my ($self, $options, @test_dbds) = @_;
     my @supported_dbds = grep { "DBD::$_"->isa("DBI::DBD::SqlEngine") || $_ eq 'NullP' }
 	map { eval "require DBD::$_;" and "$_" } @test_dbds;
     return @supported_dbds;
@@ -22,7 +24,7 @@ sub supported_variant
     my ( $self, $test_case, $cfg_pfx, $test_confs, $dsn_pfx, $dsn_cred, $options ) = @_;
 
     # allow DBI::DBD::SqlEngine based for DBI
-    if( ( -f $INC{'DBI.pm'} and !scalar(@$test_confs)) or grep { $_->{cat_abbrev} eq "z" } @$test_confs )
+    if( $self->is_test_for_dbi($test_confs) )
     {
 	$dsn_cred or return;
 	$dsn_cred->[0] or return;
@@ -35,7 +37,7 @@ sub supported_variant
     }
 
     # allow DBD::NullP for DBI::Mock
-    if( ($INC{'DBI.pm'} eq "mocked" and !scalar(@$test_confs)) or grep { $_->{cat_abbrev} eq "m" } @$test_confs )
+    if( $self->is_test_for_mocked($test_confs) )
     {
 	$dsn_cred or return 1;
 	$dsn_cred->[0] eq 'dbi:NullP:' and return 1;
