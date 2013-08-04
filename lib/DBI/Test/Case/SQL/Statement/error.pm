@@ -27,6 +27,7 @@ sub run_test
     #
     $DB_CREDS[3]->{PrintError} = 0;
     $DB_CREDS[3]->{RaiseError} = 0;
+    $DB_CREDS[3]->{RootClass} = "SQL::Statement::Test";
     my $dbh = connect_ok(@DB_CREDS);
 
     eval { $dbh->prepare("Junk"); };
