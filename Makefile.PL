@@ -31,7 +31,7 @@ EOSCM
 use lib qw(lib); # to find our DBI::Test extensions :D
 use DBI::Test::Conf ();
 
-my @generated_tests = DBI::Test::Conf->setup( AUTHOR_TESTS => 0, SKIP_FILE => "DBI-TEST.SKIP" );
+my @generated_tests = DBI::Test::Conf->setup( AUTHOR_TESTS => 0, SKIP_FILE => "DBI-TEST.SKIP", CONTAINED_DBDS => [] );
 
 WriteMakefile1(
                 MIN_PERL_VERSION => '5.008',
