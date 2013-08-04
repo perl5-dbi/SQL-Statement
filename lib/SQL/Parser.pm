@@ -2947,8 +2947,8 @@ sub do_err
     # $err = $errtype ? "DIALECT ERROR: $err" : "SQL ERROR: $err";
     $self->{struct}->{errstr} = $err;
 
-    carp $err  if ( $self->{PrintError} );
-    croak $err if ( $self->{RaiseError} );
+    carp "$err"  if ( $self->{PrintError} );
+    croak "$err" if ( $self->{RaiseError} );
     return;
 }
 

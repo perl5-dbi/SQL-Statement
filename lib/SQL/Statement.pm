@@ -1938,7 +1938,7 @@ sub do_err
     $err = "\nExecution ERROR: $err$prog.\n\n";
 
     $self->{errstr} = $err;
-    carp $err if $self->{PrintError};
+    carp "$err" if $self->{PrintError};
     croak "$err" if $self->{RaiseError};
     return;
 }
