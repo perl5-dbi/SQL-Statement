@@ -1,5 +1,9 @@
 .aspell.local.pws
 Changes
+lib/DBI/Test/Case/SQL/Statement/error.pm
+lib/DBI/Test/SQL/Statement/Case.pm
+lib/DBI/Test/SQL/Statement/Conf.pm
+lib/DBI/Test/SQL/Statement/List.pm
 lib/SQL/Dialects/ANSI.pm
 lib/SQL/Dialects/AnyData.pm
 lib/SQL/Dialects/CSV.pm
@@ -22,7 +26,6 @@ lib/SQL/Statement/TermFactory.pm
 lib/SQL/Statement/Util.pm
 Makefile.PL
 MANIFEST
-MANIFEST.SKIP
 README
 README.md
 t/00error.t
@@ -40,6 +43,3 @@ t/17quoting.t
 t/23dialects.t
 t/SQLtest.pm
 t/TestLib.pm
-xt/pod-cm.t
-xt/pod.t
-xt/pod_coverage.t

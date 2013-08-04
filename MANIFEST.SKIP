@@ -14,3 +14,6 @@ bugsql
 \.tmp$
 SQL-Statement-.*
 MYMETA.*
+.*.SKIP
+\bxt/
+#!include DBI-TEST.SKIP
