@@ -9,6 +9,8 @@ use warnings;
 
 use parent qw(DBI::Test::SQL::Statement::Case);
 
+use Data::Dumper;
+
 use Test::More;
 use DBI::Test;
 
@@ -28,7 +30,7 @@ sub run_test
     $DB_CREDS[3]->{PrintError} = 0;
     $DB_CREDS[3]->{RaiseError} = 0;
     $DB_CREDS[3]->{RootClass} = "SQL::Statement::Test";
-    my $dbh = connect_ok(@DB_CREDS);
+    my $dbh = connect_ok(@DB_CREDS, "Connect to " . Data::Dumper->new( [\@DB_CREDS] )->Indent(0)->Sortkeys(1)->Quotekeys(0)->Terse(1)->Dump() );
 
     eval { $dbh->prepare("Junk"); };
     ok( !$@, 'Parse "Junk" RaiseError=0 (default)' ) or diag($@);
@@ -39,13 +41,13 @@ sub run_test
     ok( !$@, 'Execute RaiseError=0' ) or diag($@);
 
     $DB_CREDS[3]->{RaiseError} = 1;
-    $dbh = connect_ok(@DB_CREDS);
+    $dbh = connect_ok(@DB_CREDS, "Connect to " . Data::Dumper->new( [\@DB_CREDS] )->Indent(0)->Sortkeys(1)->Quotekeys(0)->Terse(1)->Dump() );
     eval { $dbh->prepare("Junk"); };
     ok( $@, 'Parse "Junk" RaiseError=1' );
     {
 	eval { $dbh->do( "SELECT * FROM nonexistant" ); };
 	ok( $@, 'Execute RaiseError=1' );
-	ok( $dbh->errstr(), 'Execute "SELECT * FROM nonexistant" has errstr' );
+	ok( $dbh->errstr(), 'Execute "SELECT * FROM nonexistant" has errstr' ) or diag($dbh->errstr());
     }
 
     done_testing();
