@@ -20,18 +20,23 @@ sub prepare
     my $sth = $dbh->SUPER::prepare( $sql, $attribs );
     $sth->{sql_stmt} and return $sth;
 
-    $dbh->set_err(0, undef);
-
-    defined $sth->{sql_parser_object} or $sth->{sql_parser_object} = SQL::Parser->new( 'ANSI', {
+    defined $dbh->{sql_parser_object} or $dbh->{sql_parser_object} = SQL::Parser->new( 'ANSI', {
                    RaiseError => $dbh->FETCH("RaiseError"),
                    PrintError => $dbh->FETCH("PrintError"),
 
 	} );
-    $sth->{sql_stmt} = SQL::Statement->new( $sql, $sth->{sql_parser_object} );
-    $sth->{sql_stmt} or return; # XXX $dbh->set_err($DBI::stderr, $sth->{sql_parser_object}->{errstr});
-    $sth->{sql_stmt}->{errstr} and return $dbh->set_err($DBI::stderr, $sth->{sql_stmt}->{errstr});
+    delete $sth->{sql_stmt};
+    $sth->{sql_stmt} = SQL::Statement->new( $sql, $dbh->{sql_parser_object} );
+    $sth->{sql_stmt} or return;
+    $sth->{sql_stmt}->{errstr} and return;
 
     return $sth;
+}
+
+sub errstr
+{
+    $_[0]->isa("DBI::Mock::db") or return $_[0]->SUPER::errstr;
+    $_[0]->{sql_parser_object}->{struct}->{errstr};
 }
 
 package    # hide from CPAN
@@ -42,6 +47,12 @@ use base 'DBI::st';
 sub parser
 {
     return $_[0]->{dbh}->{sql_parser_object};
+}
+
+sub errstr
+{
+    $_[0]->isa("DBI::Mock::st") or return $_[0]->SUPER::errstr;
+    $sth->{sql_stmt}->{errstr};
 }
 
 sub command
@@ -57,14 +68,12 @@ sub execute
     {
         my $params = @_ ? ( $sth->{sql_params} = [@_] ) : $sth->{sql_params};
 	$sth->{dbh}->set_err(0, undef);
-        my $result = $sth->{sql_stmt}->execute( $sth, $params );
-
-	unless ( defined $result )
-	{
-	    $sth->{dbh}->set_err($DBI::stderr, $@ || $sth->{sql_stmt}->{errstr});
-	    return;
-	}
-
+	my $result;
+	eval {
+	    $result = $sth->{sql_stmt}->execute( $sth, $params );
+	};
+	$@ and return $sth->{dbh}->{sql_parser_object}->do_err($@);
+	$sth->{sql_stmt}->{errstr} and return $sth->{dbh}->{sql_parser_object}->do_err($sth->{sql_stmt}->{errstr});
 	return $result;
     }
 
