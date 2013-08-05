@@ -18,6 +18,15 @@ use DBI::Test;
 #show_reqs( $required, $recommended );
 #my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
 
+sub supported_variant
+{
+    my ( $self, $test_case, $cfg_pfx, $test_confs, $dsn_pfx, $dsn_cred, $options ) = @_;
+    return if( scalar grep { $_->{abbrev} eq "g" } @$test_confs ); # skip Gofer proxying
+    return if( scalar grep { $_->{abbrev} eq "n" } @$test_confs ); # skip SQL::Nano
+    return $self->SUPER::supported_variant($test_case, $cfg_pfx, $test_confs, $dsn_pfx, $dsn_cred, $options);
+}
+
+
 #foreach my $test_dbd (@test_dbds)
 sub run_test
 {
