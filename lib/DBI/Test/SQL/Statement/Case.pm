@@ -12,8 +12,9 @@ use DBI::Mock ();
 sub filter_drivers
 {
     my ($self, $options, @test_dbds) = @_;
-    my @supported_dbds = grep { "DBD::$_"->isa("DBI::DBD::SqlEngine") || $_ eq 'NullP' }
-	map { eval "require DBD::$_;" and "$_" } @test_dbds;
+    my @supported_dbds =
+	grep { $_ and "DBD::$_"->isa("DBI::DBD::SqlEngine") || $_ eq 'NullP' }
+	    map { eval "require DBD::$_;" and $_ } @test_dbds;
     return @supported_dbds;
 }
 
