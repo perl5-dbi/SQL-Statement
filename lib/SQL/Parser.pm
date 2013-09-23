@@ -3105,7 +3105,7 @@ status of any feature.
 
                                                    # determine if the LIKE
                                                    # operator is supported
- my $LIKE = $parser->feature('valid_operators','LIKE');
+ my $LIKE = $parser->feature('valid_comparison_operators','LIKE');
 
 See the section below on "Backwards Compatibility" for use of
 the feature() method with SQL::Statement 0.1x style parameters.
