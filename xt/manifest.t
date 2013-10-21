@@ -4,6 +4,6 @@ use strict;
 use warnings;
 
 use Test::More;
-use Test::Pod;
+use Test::CheckManifest;
 
-all_pod_files_ok();
+ok_manifest();
