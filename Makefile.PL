@@ -31,16 +31,28 @@ EOSCM
 WriteMakefile1(
                 MIN_PERL_VERSION => '5.008',
                 META_MERGE       => {
-                              resources => {
-                                  repository => 'https://github.com/perl5-dbi/SQL-Statement',
-                                  MailingList => 'mailto:dbi-dev@perl.org',
-                                  license     => 'http://dev.perl.org/licenses/',
-                              },
-                              recommends => {
-                                              'Math::Complex' => '1.56',
-                                              'Math::BigInt'  => '1.88',
-					      'Text::Soundex' => '3.03_01',
-                                            },
+                                resources => {
+                                         repository => 'https://github.com/perl5-dbi/SQL-Statement',
+                                         MailingList => 'mailto:dbi-dev@perl.org',
+                                         license     => 'http://dev.perl.org/licenses/',
+                                },
+                                recommends => {
+                                                'Math::Complex' => '1.56',
+                                                'Math::BigInt'  => '1.88',
+                                                'Text::Soundex' => '3.03_01',
+                                              },
+                                prereqs => {
+                                             develop => {
+                                                     requires => {
+                                                         'Test::CPAN::Changes'                 => 0,
+                                                         'Test::CheckManifest'                 => 0,
+                                                         'Test::Pod'                           => 0,
+                                                         'Test::Pod::Coverage'                 => 0,
+                                                         'Test::Pod::Spelling::CommonMistakes' => 0,
+                                                     },
+                                                     recommends => {},
+                                             },
+                                           },
                               },
                 NAME          => 'SQL::Statement',
                 VERSION_FROM  => 'lib/SQL/Statement.pm',
