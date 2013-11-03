@@ -36,11 +36,6 @@ WriteMakefile1(
                                          MailingList => 'mailto:dbi-dev@perl.org',
                                          license     => 'http://dev.perl.org/licenses/',
                                 },
-                                recommends => {
-                                                'Math::Complex' => '1.56',
-                                                'Math::BigInt'  => '1.88',
-                                                'Text::Soundex' => '3.03_01',
-                                              },
                                 prereqs => {
                                              develop => {
                                                      requires => {
@@ -52,6 +47,13 @@ WriteMakefile1(
                                                      },
                                                      recommends => {},
                                              },
+					     runtime => {
+                                recommends => {
+                                                'Math::Complex' => '1.56',
+                                                'Math::BigInt'  => '1.88',
+                                                'Text::Soundex' => '3.04',
+				},
+                                              },
                                            },
                               },
                 NAME          => 'SQL::Statement',
