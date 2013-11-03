@@ -33,7 +33,7 @@ The L<DBI::DBD::SqlEngine> contains a subclass of SQL::Statement to
 abstract from embedding SQL::Statement into a DBD and lets you concentrate
 on the extensions you need to make. L<DBD::File> extends DBI::DBD::SqlEngine
 by providing access to file-based storage mechanisms.  It is quite possible
-to use things other than files as data souces, in which case you would not
+to use things other than files as data sources, in which case you would not
 use L<DBD::File>, instead you would replace L<DBD::File>'s methods with your
 own.  In the examples below, we use DBD::File, replacing only a few
 methods.
@@ -77,7 +77,7 @@ creating new ::Table objects.  A ::Table object is responsible for
 defining the column names and positions, opening data sources, reading,
 converting, writing and deleting data.
 
-The real work is demzufolge done in the ::Table object, the ::Statement
+The real work is therefore done in the ::Table object, the ::Statement
 subclass is required to deliver the right ::Table object.
 
 =head1 Creating a ::Statement object
@@ -118,7 +118,7 @@ subclass only needs to define three methods - fetch_row() to read data,
 push_row() to write data, and push_names() to store column names.  We will
 leave deleting to DBD::File, since deleting a record in the 'Foo' format
 is the same process as deleting a record in any other simple file-based
-format.  Here is the complete object defintion:
+format.  Here is the complete object definition:
 
  package Foo::Table;
  use base qw(DBD::File::Table);
@@ -195,7 +195,7 @@ format.
 A DBD based on SQL::Statement uses the same two subclasses that are shown
 above.  They should be called DBD::Foo::Statement and DBD::Foo::Table, but
 would otherwise be identical to the non-DBD subclass illustrated above.
-To turn it into a full DBD, you have to sublass DBD::File, DBD::File::dr,
+To turn it into a full DBD, you have to subclass DBD::File, DBD::File::dr,
 DBD::File::db, and DBD::File::st.  In many cases a simple subclass with
 few or no methods overridden is sufficient.
 

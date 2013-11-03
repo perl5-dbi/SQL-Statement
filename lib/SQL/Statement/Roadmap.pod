@@ -175,7 +175,7 @@ specific query.
 
 The second optimization goal means: implementing most expensive methods
 in XS. This requires a good performance test suite as well as some real
-world useage cases.
+world usage cases.
 
 =head3 Reliability
 
@@ -213,7 +213,7 @@ SQL::Statement engine.
 
 =item Performance
 
-This part should be used to implement full useage cases (ideally from
+This part should be used to implement full usage cases (ideally from
 real world projects) to allow for testing optimizations.
 
 =back
