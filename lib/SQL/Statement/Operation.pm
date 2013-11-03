@@ -944,7 +944,7 @@ SQL::Statement::Operation::Like - implements the like operation
 
 =head1 DESCRIPTION
 
-SQL::Statement::Operation::Like is used to to the comparisons for the C<LIKE>
+SQL::Statement::Operation::Like is used to the comparisons for the C<LIKE>
 operation.
 
 =head1 INHERITANCE
@@ -989,7 +989,7 @@ SQL::Statement::Operation::Clike - implements the clike operation
 
 =head1 DESCRIPTION
 
-SQL::Statement::Operation::Clike is used to to the comparisons for the C<CLIKE>
+SQL::Statement::Operation::Clike is used to the comparisons for the C<CLIKE>
 operation.
 
 =head1 INHERITANCE
@@ -1034,7 +1034,7 @@ SQL::Statement::Operation::RLike - implements the rlike operation
 
 =head1 DESCRIPTION
 
-SQL::Statement::Operation::RLike is used to to the comparisons for the C<RLIKE>
+SQL::Statement::Operation::RLike is used to the comparisons for the C<RLIKE>
 operation.
 
 =head1 INHERITANCE

@@ -244,7 +244,7 @@ defined).
 
 =item neg
 
-contains a TRUE value, if the operation result must be negated after evalution.
+contains a TRUE value, if the operation result must be negated after evaluation.
 
 =back
 

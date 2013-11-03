@@ -3,7 +3,7 @@ package SQL::Statement;
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
 # This module is copyright (c), 2007-2010 by Jeff Zucker, Jens Rehsack.
-# All rights resered.
+# All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
 #
@@ -1070,7 +1070,7 @@ sub SELECT($$)
 
     my $e = $self->{join} ? $table : $eval;
 
-    # begin count for limiting if there's a limit clasue and no order clause
+    # begin count for limiting if there's a limit clause and no order clause
     #
     my $limit_count = 0 if ( $self->limit() and !$self->order() );
     my $limit       = $self->limit();

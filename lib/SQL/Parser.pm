@@ -4,7 +4,7 @@ package SQL::Parser;
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
 # This module is copyright (c), 2007-2010 by Jeff Zucker, Jens Rehsack.
-# All rights resered.
+# All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
 # See below for help and copyright information (search for SYNOPSIS).
@@ -111,7 +111,7 @@ sub parse
         my @tables = @{ $self->{struct}->{table_names} }
           if ( defined( _ARRAY0( $self->{struct}->{table_names} ) ) );
         push( @{ $self->{struct}->{org_table_names} }, @tables );
-        # REMOVE schema.table infor if present
+        # REMOVE schema.table info if present
         @tables = map { s/^.*\.([^\.]+)$/$1/; ( -1 == index( $_, '"' ) ) ? lc $_ : $_ } @tables;
 
         if ( exists( $self->{struct}->{join} ) && !defined( _HASH( $self->{struct}->{join} ) ) )
@@ -289,7 +289,7 @@ sub dialect
 
     $self->_load_class($mod_class) unless $mod_class->can("get_config");
 
-    # This is here for backwards comaptibility with existing dialects
+    # This is here for backwards compatibility with existing dialects
     # before the had the role to add new methods.
     $self->_inject_role( "SQL::Dialects::Role", $mod_class )
       unless ( $mod_class->can("get_config_as_hash") );
