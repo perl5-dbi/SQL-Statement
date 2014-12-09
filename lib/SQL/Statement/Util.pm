@@ -1,7 +1,7 @@
 package SQL::Statement::Util;
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
 use vars qw($VERSION);
 $VERSION = '1.406';

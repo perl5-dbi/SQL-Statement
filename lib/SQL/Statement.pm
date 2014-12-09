@@ -10,16 +10,16 @@ package SQL::Statement;
 # See below for help (search for SYNOPSIS)
 #########################################################################
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
 use 5.008;
 use vars qw($VERSION $DEBUG);
 
-use SQL::Parser;
-require SQL::Eval;
-require SQL::Statement::RAM;
-require SQL::Statement::TermFactory;
-require SQL::Statement::Util;
+use SQL::Parser ();
+use SQL::Eval ();
+use SQL::Statement::RAM ();
+use SQL::Statement::TermFactory ();
+use SQL::Statement::Util ();
 
 use Carp qw(carp croak);
 use Clone qw(clone);

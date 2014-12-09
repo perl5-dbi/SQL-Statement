@@ -3,7 +3,7 @@ package SQL::Statement::Functions;
 ##################################
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 # no warnings 'uninitialized';  # please don't bother me with these useless warnings...
 
 use Params::Util qw(_ARRAY0 _HASH0 _INSTANCE);

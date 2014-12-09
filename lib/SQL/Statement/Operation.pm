@@ -1,12 +1,12 @@
 package SQL::Statement::Operation;
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
 use vars qw(@ISA);
-require Carp;
+use Carp ();
 
-require SQL::Statement::Term;
+use SQL::Statement::Term ();
 
 our $VERSION = '1.406';
 
@@ -483,7 +483,7 @@ package SQL::Statement::Operation::Equality;
 use vars qw(@ISA);
 @ISA = qw(SQL::Statement::Operation);
 
-require Carp;
+use Carp ();
 use Scalar::Util qw(looks_like_number);
 
 =pod

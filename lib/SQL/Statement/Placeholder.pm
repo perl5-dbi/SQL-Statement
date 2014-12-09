@@ -1,12 +1,12 @@
 package SQL::Statement::Placeholder;
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
 use vars qw(@ISA);
-require Carp;
+use Carp ();
 
-require SQL::Statement::Term;
+use SQL::Statement::Term ();
 
 our $VERSION = '1.406';
 

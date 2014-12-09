@@ -4,7 +4,7 @@ package SQL::Eval;
 
 require 5.008;
 use strict;
-use warnings;
+use warnings FATAL => "all";
 use vars qw($VERSION);
 
 $VERSION = '1.406';
@@ -56,6 +56,9 @@ sub _gen_access_fastpath($)
 }
 
 package SQL::Eval::Table;
+
+use strict;
+use warnings FATAL => "all";
 
 use Carp qw(croak);
 use Params::Util qw(_ARRAY0 _HASH0);

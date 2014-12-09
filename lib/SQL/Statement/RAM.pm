@@ -3,7 +3,7 @@ package SQL::Statement::RAM;
 ############################
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
 use vars qw($VERSION);
 $VERSION = '1.406';
@@ -13,9 +13,9 @@ package SQL::Statement::RAM::Table;
 ####################################
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
-require SQL::Eval;
+use SQL::Eval ();
 
 use vars qw(@ISA);
 @ISA = qw(SQL::Eval::Table);

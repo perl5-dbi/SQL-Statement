@@ -1,7 +1,7 @@
 package SQL::Dialects::Role;
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
 use base qw(Exporter);
 our @EXPORT  = qw(get_config_as_hash);

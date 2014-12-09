@@ -1,12 +1,12 @@
 package SQL::Statement::TermFactory;
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 
-require SQL::Statement::Term;
-require SQL::Statement::Operation;
-require SQL::Statement::Placeholder;
-require SQL::Statement::Function;
+use SQL::Statement::Term ();
+use SQL::Statement::Operation ();
+use SQL::Statement::Placeholder ();
+use SQL::Statement::Function ();
 
 use Data::Dumper;
 use Params::Util qw(_HASH _ARRAY0 _INSTANCE);

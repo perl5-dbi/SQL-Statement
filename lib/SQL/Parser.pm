@@ -12,7 +12,7 @@ package SQL::Parser;
 ######################################################################
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 use vars qw($VERSION);
 use constant FUNCTION_NAMES => join( '|', qw(TRIM SUBSTRING) );
 use constant BAREWORD_FUNCTIONS => join( '|',

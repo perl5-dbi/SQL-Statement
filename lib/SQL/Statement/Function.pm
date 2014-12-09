@@ -1,10 +1,10 @@
 package SQL::Statement::Function;
 
 use strict;
-use warnings;
+use warnings FATAL => "all";
 use vars qw(@ISA $VERSION);
 
-require SQL::Statement::Term;
+use SQL::Statement::Term ();
 @ISA = qw(SQL::Statement::Term);
 
 $VERSION = '1.406';
@@ -52,7 +52,7 @@ package SQL::Statement::Function::UserFunc;
 
 use vars qw(@ISA);
 
-require Carp;
+use Carp ();
 use Params::Util qw(_INSTANCE);
 
 use SQL::Statement::Functions;
