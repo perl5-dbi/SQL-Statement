@@ -302,10 +302,11 @@ sub SQL_FUNCTION_CURRENT_TIMESTAMP
         $sec_frac = substr( $sec_frac, 2 );                               # truncate 0. from decimal
     }
 
-    return
-      sprintf( '%4s-%02s-%02s %02s:%02s:%02s' . ( $prec ? '.%s' : '' ),
-               $year + 1900,
-               $mon + 1, $day, $hour, $min, $sec, $sec_frac );
+    return sprintf(
+        '%4s-%02s-%02s %02s:%02s:%02s' . ( $prec ? '.%s' : '' ),
+        $year + 1900,
+        $mon + 1, $day, $hour, $min, $sec, $sec_frac
+    );
 }
 no warnings 'once';
 *SQL_FUNCTION_NOW = \&SQL_FUNCTION_CURRENT_TIMESTAMP;
@@ -357,9 +358,7 @@ sub SQL_FUNCTION_BIT_LENGTH
     my @v   = @_[ 0 .. 1 ];
     my $str = $_[2];
     # Number of bits on first character = INT(LOG2(ord($str)) + 1) + rest of string = OCTET_LENGTH(substr($str, 1)) * 8
-    return
-      int( SQL_FUNCTION_LOG( @v, 2, ord($str) ) + 1 ) +
-      SQL_FUNCTION_OCTET_LENGTH( @v, substr( $str, 1 ) ) * 8;
+    return int( SQL_FUNCTION_LOG( @v, 2, ord($str) ) + 1 ) + SQL_FUNCTION_OCTET_LENGTH( @v, substr( $str, 1 ) ) * 8;
 }
 
 =pod
@@ -464,7 +463,7 @@ sub SQL_FUNCTION_CONV
 
     # number clean up
     $num =~ s/\s+//g;
-    $new = '-' if ( $num =~ s/^\-// );    # negative
+    $new = '-'      if ( $num =~ s/^\-// );    # negative
     $num =~ s/^0+// if ( $sbase <= 62 );
     $num =~ s/^A+// if ( $sbase > 62 );
 
@@ -508,8 +507,7 @@ sub SQL_FUNCTION_CONV
         my $dstr =
           ( $sbase <= 62 )
           ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_=~|,;:?!@#$%^&*()<>{}[]\`'
-          . "'\"";
+          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_=~|,;:?!@#$%^&*()<>{}[]\`' . "'\"";
         $num = uc $num if ( $sbase <= 36 );
 
         @digits = split //, $dstr;
@@ -548,23 +546,21 @@ sub SQL_FUNCTION_CONV
         my $dstr =
           ( $ebase <= 62 )
           ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_-=~|,;:?!@#$%^&*()<>{}[]\`'
-          . "'\"";
+          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_-=~|,;:?!@#$%^&*()<>{}[]\`' . "'\"";
         @digits = split //, $dstr;
 
         # get the largest power of Z (the highest digit)
         $i = $use_big
           ? $dnum->copy()->blog(
             $ebase,
-            int( $dnum->length() / 9 ) +
-              2   # (an accuracy that is a little over the potential # of integer digits within log)
+            int( $dnum->length() / 9 ) + 2    # (an accuracy that is a little over the potential # of integer digits within log)
           )->bfloor()->bstr()
           : int( log($dnum) / log($ebase) );
 
         while ( $dnum != 0 && length($new) < 255 )
         {
             if ( $i == -1 )
-            {     # time to go pro...
+            {                                 # time to go pro...
                 $use_big = 1;
                 $dnum    = $big_class->new($dnum);
                 $dnum->accuracy( length($dnum) + 255 + 16 );
@@ -654,8 +650,8 @@ sub SQL_FUNCTION_DECODE
         shift @params, next
           unless defined($rhs);
         return shift @params
-          if (    ( looks_like_number($rhs) && $lhs_isnum && ( $lhs == $rhs ) )
-               || ( $lhs eq $rhs ) );
+          if ( ( looks_like_number($rhs) && $lhs_isnum && ( $lhs == $rhs ) )
+            || ( $lhs eq $rhs ) );
         shift @params;
     }
     return $default;
@@ -702,14 +698,15 @@ sub SQL_FUNCTION_BIN { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 2 ); }
 
 =cut
 
-sub SQL_FUNCTION_LEFT {
-    ( defined || return undef )
-      for ( @_[ 2 .. 3 ] );
+sub SQL_FUNCTION_LEFT
+{
+    ( defined || return undef ) for ( @_[ 2 .. 3 ] );
     return substr( $_[2], 0, $_[3] );
 }
-sub SQL_FUNCTION_RIGHT {
-    ( defined || return undef )
-      for ( @_[ 2 .. 3 ] );
+
+sub SQL_FUNCTION_RIGHT
+{
+    ( defined || return undef ) for ( @_[ 2 .. 3 ] );
     return substr( $_[2], -$_[3] );
 }
 
@@ -827,9 +824,9 @@ sub SQL_FUNCTION_REGEX
 
 =cut
 
-sub SQL_FUNCTION_REPEAT {
-    ( defined || return undef )
-      for ( @_[ 2 .. 3 ] );
+sub SQL_FUNCTION_REPEAT
+{
+    ( defined || return undef ) for ( @_[ 2 .. 3 ] );
     return $_[2] x int( $_[3] );
 }
 

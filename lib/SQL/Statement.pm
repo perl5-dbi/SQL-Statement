@@ -15,11 +15,11 @@ use warnings FATAL => "all";
 use 5.008;
 use vars qw($VERSION $DEBUG);
 
-use SQL::Parser ();
-use SQL::Eval ();
-use SQL::Statement::RAM ();
+use SQL::Parser                 ();
+use SQL::Eval                   ();
+use SQL::Statement::RAM         ();
 use SQL::Statement::TermFactory ();
-use SQL::Statement::Util ();
+use SQL::Statement::Util        ();
 
 use Carp qw(carp croak);
 use Clone qw(clone);
@@ -40,8 +40,8 @@ sub new
     # USE THE ANYDATA DIALECT RATHER THAN THE CSV DIALECT
     # WITH DBD::CSV
 
-    if (    ( defined($main::extend_csv) && $main::extend_csv )
-         || ( defined($main::extend_sql) && $main::extend_sql ) )
+    if (   ( defined($main::extend_csv) && $main::extend_csv )
+        || ( defined($main::extend_sql) && $main::extend_sql ) )
     {
         $flags = SQL::Parser->new('AnyData');
     }
@@ -176,7 +176,7 @@ sub execute
     delete $self->{tables};    # Force closing the tables
     $self->{tables} = [ map { SQL::Statement::Table->new($_) } @$tables ];    # and create keen defs
 
-    undef $self->{where_terms};    # force rebuild when needed
+    undef $self->{where_terms};                                               # force rebuild when needed
 
     return unless ( defined( $self->{NUM_OF_ROWS} ) );
     return $self->{NUM_OF_ROWS} || '0E0';
@@ -273,9 +273,9 @@ sub DROP ($$$)
         local $SIG{__WARN__} = sub { push @err, @_ };
         ($eval) = $self->open_tables( $data, 0, 1 );
     };
-    if (     $self->{ignore_missing_table}
-         and ( $@ or @err or $self->{errstr} )
-         and grep { $_ =~ $notblrx } ( @err, $@, $self->{errstr} ) )
+    if (    $self->{ignore_missing_table}
+        and ( $@ or @err or $self->{errstr} )
+        and grep { $_ =~ $notblrx } ( @err, $@, $self->{errstr} ) )
     {
         return ( -1, 0 );
     }
@@ -312,49 +312,49 @@ sub INSERT ($$$)
     my ($cNum) = scalar( $self->columns() );
     my $param_num = 0;
 
-    $cNum or 
-        return $self->do_err("Bad col names in INSERT");
+    $cNum
+      or return $self->do_err("Bad col names in INSERT");
 
     my $maxCol = $#$all_cols;
 
     # INSERT INTO $table (row, ...) VALUES (value, ...), (...)
     for ( $k = 0; $k < scalar( @{ $self->{values} } ); ++$k )
     {
-	my ($array) = [];
-	for ( $i = 0; $i < $cNum; $i++ )
-	{
-	    $col = $self->columns($i);
-	    $val = $self->row_values( $k, $i );
-	    if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
-	    {
-		$val = $eval->param( $val->idx() );
-	    }
-	    elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
-	    {
-		$val = $val->value($eval);
-	    }
-	    elsif ( $val and $val->{type} eq 'placeholder' )
-	    {
-		$val = $eval->param( $param_num++ );
-	    }
-	    elsif ( defined( _HASH($val) ) )
-	    {
-		$val = $self->{termFactory}->buildCondition($val);
-		$val = $val->value($eval);
-	    }
-	    else
-	    {
-		return $self->do_err('Internal error: Unexpected column type');
-	    }
-	    $array->[ $table->column_num( $col->name() ) ] = $val;
-	}
+        my ($array) = [];
+        for ( $i = 0; $i < $cNum; $i++ )
+        {
+            $col = $self->columns($i);
+            $val = $self->row_values( $k, $i );
+            if ( defined( _INSTANCE( $val, 'SQL::Statement::Param' ) ) )
+            {
+                $val = $eval->param( $val->idx() );
+            }
+            elsif ( defined( _INSTANCE( $val, 'SQL::Statement::Term' ) ) )
+            {
+                $val = $val->value($eval);
+            }
+            elsif ( $val and $val->{type} eq 'placeholder' )
+            {
+                $val = $eval->param( $param_num++ );
+            }
+            elsif ( defined( _HASH($val) ) )
+            {
+                $val = $self->{termFactory}->buildCondition($val);
+                $val = $val->value($eval);
+            }
+            else
+            {
+                return $self->do_err('Internal error: Unexpected column type');
+            }
+            $array->[ $table->column_num( $col->name() ) ] = $val;
+        }
 
-	# Extend row to put values in ALL fields
-	$#$array < $maxCol and $array->[$maxCol] = undef;
+        # Extend row to put values in ALL fields
+        $#$array < $maxCol and $array->[$maxCol] = undef;
 
-	$table->capability('insert_new_row')
-	  ? $table->insert_new_row( $data, $array )
-	  : $table->push_row( $data, $array );
+        $table->capability('insert_new_row')
+          ? $table->insert_new_row( $data, $array )
+          : $table->push_row( $data, $array );
     }
 
     return ( $k, 0 );
@@ -579,10 +579,10 @@ sub find_join_columns
         foreach ( 0 .. $#display_cols )
         {
             $display_cols[$_] = (
-                                    $display_cols[$_]->table()
-                                  ? $tables{ $display_cols[$_]->table() }->name()
-                                  : ''
-                                )
+                  $display_cols[$_]->table()
+                ? $tables{ $display_cols[$_]->table() }->name()
+                : ''
+              )
               . $self->{dlm}
               . $display_cols[$_]->name();
         }
@@ -638,9 +638,9 @@ sub JOIN
     $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols );
     return if ( $self->{errstr} );
-    if (     $self->{join}->{keycols}
-         and $self->{join}->{table_order}
-         and ( scalar( @{ $self->{join}->{table_order} } ) == 0 ) )
+    if (    $self->{join}->{keycols}
+        and $self->{join}->{table_order}
+        and ( scalar( @{ $self->{join}->{table_order} } ) == 0 ) )
     {
         $self->{join}->{table_order} = $self->order_joins( $self->{join}->{keycols} );
         $self->{join}->{table_order} = $self->{table_names}
@@ -912,8 +912,7 @@ sub join_2_tables
     undef $tableBobj;
 
     $self->{join}->{table} =
-      SQL::Statement::TempTable->new( $self->{dlm} . 'tmp',          \@all_cols,
-                                      $self->{join}->{display_cols}, $joined_table );
+      SQL::Statement::TempTable->new( $self->{dlm} . 'tmp', \@all_cols, $self->{join}->{display_cols}, $joined_table );
 
     return;
 }
@@ -1236,9 +1235,9 @@ sub open_tables
             my $u_func = $self->{table_func}->{ uc $name };
             $t->{$name} = $self->get_user_func_table( $name, $u_func );
         }
-        elsif (    defined( $data->{Database}->{sql_ram_tables} )
-                && defined( $data->{Database}->{sql_ram_tables}->{$name} )
-                && $data->{Database}->{sql_ram_tables}->{$name} )
+        elsif (defined( $data->{Database}->{sql_ram_tables} )
+            && defined( $data->{Database}->{sql_ram_tables}->{$name} )
+            && $data->{Database}->{sql_ram_tables}->{$name} )
         {
             $t->{$name} = $data->{Database}->{sql_ram_tables}->{$name};
             $t->{$name}->seek( $data, 0, 0 );
@@ -1342,8 +1341,8 @@ sub getColumnObject($)
         }
 
         my $join = defined( _HASH( $self->{join} ) )
-          && (    ( -1 != index( $self->{join}->{type}, 'NATURAL' ) )
-               || ( -1 != index( $self->{join}->{clause}, 'USING' ) ) );
+          && ( ( -1 != index( $self->{join}->{type}, 'NATURAL' ) )
+            || ( -1 != index( $self->{join}->{clause}, 'USING' ) ) );
         my %shared_cols;
 
         foreach my $table (@tables)
@@ -1359,10 +1358,10 @@ sub getColumnObject($)
                     $colName,    # column name
                     $table,      # table name
                     SQL::Statement::ColumnValue->new( $self, $table . '.' . $colName ),    # term
-                    $colName,    # display name
+                    $colName,                                                              # display name
                     $colName,
                     $newcol,
-                             ];
+                ];
                 push( @columns, $expcol );
             }
         }
@@ -1372,13 +1371,13 @@ sub getColumnObject($)
         return $self->do_err("Invalid column type '$newcol->{type}'")
           unless ( 'column' eq $newcol->{type} );
         my $expcol = [
-                       $newcol->{value},    # column name
-                       undef,               # table name
-                       undef,               # term
-                       $newcol->{value},    # display name
-                       $newcol->{value},    # original name
-                       $newcol,             # coldef
-                     ];
+            $newcol->{value},    # column name
+            undef,               # table name
+            undef,               # term
+            $newcol->{value},    # display name
+            $newcol->{value},    # original name
+            $newcol,             # coldef
+        ];
         push( @columns, $expcol );
     }
     else
@@ -1394,23 +1393,21 @@ sub getColumnObject($)
             else
             {
                 # FIXME add '\0' constants between items?
-                my $colSep =
-                  $self->{termFactory}->buildCondition(
-                                                        {
-                                                          type  => 'string',
-                                                          value => "\0",
-                                                        }
-                                                      );
+                my $colSep = $self->{termFactory}->buildCondition(
+                    {
+                        type  => 'string',
+                        value => "\0",
+                    }
+                );
                 @cols = map { $_->[2], $colSep } @cols;
                 pop(@cols);
-                $col =
-                  $self->{termFactory}->buildCondition(
-                                                        {
-                                                          type  => 'function',
-                                                          name  => 'str_concat',
-                                                          value => \@cols,
-                                                        }
-                                                      );
+                $col = $self->{termFactory}->buildCondition(
+                    {
+                        type  => 'function',
+                        name  => 'str_concat',
+                        value => \@cols,
+                    }
+                );
             }
         }
         else
@@ -1425,7 +1422,7 @@ sub getColumnObject($)
             $newcol->{alias} || $newcol->{fullorg}, # display name
             $newcol->{fullorg},                     # original name
             $newcol,                                # coldef
-                     ];
+        ];
         push( @columns, $expcol );
     }
 
@@ -1487,8 +1484,7 @@ sub verify_expand_column
     return unless ($col);
 
     my $is_column =
-      ( defined( _INSTANCE( $col_obj, 'SQL::Statement::Util::Column' ) )
-        and ( $col_obj->{coldef}->{type} eq 'column' ) ) ? 1 : 0;
+      ( defined( _INSTANCE( $col_obj, 'SQL::Statement::Util::Column' ) ) and ( $col_obj->{coldef}->{type} eq 'column' ) ) ? 1 : 0;
 
     unless ( $is_column and defined($table) )
     {
@@ -1510,9 +1506,9 @@ sub verify_expand_column
     {
         my $is_user_def = 1 if ( $self->{opts}->{function_defs}->{$col} );
         return $self->do_err("No such column '$table.$col'")
-          unless (    $col_exists->{"$table.$col"}
-                   or $col_exists->{ "\L$table." . $col }
-                   or $is_user_def );
+          unless ( $col_exists->{"$table.$col"}
+            or $col_exists->{ "\L$table." . $col }
+            or $is_user_def );
     }
 
     return ( $table, $col ) if ( $is_column or ${$i} < 0 );
@@ -1572,8 +1568,7 @@ sub verify_columns
     my $num_tables = $self->tables();
     for my $c (@tmpcols)
     {
-        my ( $table, $col ) =
-          $self->verify_expand_column( $c, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+        my ( $table, $col ) = $self->verify_expand_column( $c, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
         return if ( $self->{errstr} );
         next unless ( $table && $col );
 
@@ -1598,9 +1593,7 @@ sub verify_columns
             foreach my $grpby ( @{ $self->{group_by} } )
             {
                 $i = -2;
-                my ( $table, $col ) =
-                  $self->verify_expand_column( $grpby, \$i, \@usr_cols, \%is_duplicate,
-                                               \%col_exists );
+                my ( $table, $col ) = $self->verify_expand_column( $grpby, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
                 return if ( $self->{errstr} );
                 $col ||= $grpby;
                 ( $table, $col ) = $self->full_qualified_column_name($col)
@@ -1612,14 +1605,13 @@ sub verify_columns
 
         if ( defined( _HASH($set_fully) ) )
         {
-            return
-              $self->do_err(
+            return $self->do_err(
                 sprintf(
                     "Column%s '%s' must appear in the GROUP BY clause or be used in an aggregate function",
                     scalar( keys( %{$set_fully} ) ) > 1 ? 's' : '',
                     join( "', '", keys( %{$set_fully} ) )
                 )
-              );
+            );
         }
     }
 
@@ -1633,8 +1625,7 @@ sub verify_columns
 
             # XXX parse order by like group by and select list
             $i = -2;
-            my ( $table, $col ) =
-              $self->verify_expand_column( $newcol, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
+            my ( $table, $col ) = $self->verify_expand_column( $newcol, \$i, \@usr_cols, \%is_duplicate, \%col_exists );
             $self->{errstr} and return;
             ( $table, $col ) = $self->full_qualified_column_name($newcol)
               if ( defined($col) && !defined($table) );
@@ -1645,10 +1636,10 @@ sub verify_columns
                     $table,                                       # table name
                     SQL::Statement::ColumnValue->new( $self, $col ),    # term
                     $newcol                                             # display name
-                                                        ),
+                ),
                 direction => $direction,
                 desc      => $desc,
-                                                                      );
+            );
         }
     }
 
@@ -1915,8 +1906,7 @@ sub order_joins
             next if ( $in_order{$tbl} );
             push( @missing, $tbl );
         }
-        return $self->do_err(
-              sprintf( 'Unconnected tables (%s) in equijoin statement!', join( ', ', @missing ) ) );
+        return $self->do_err( sprintf( 'Unconnected tables (%s) in equijoin statement!', join( ', ', @missing ) ) );
     }
     $self->{join}->{table_order} = \@order;
     return \@order;
@@ -2024,19 +2014,19 @@ sub new
 {
     my ( $class, $owner, $rows ) = @_;
     my $self = {
-                 owner   => $owner,
-                 records => $rows,
-               };
+        owner   => $owner,
+        records => $rows,
+    };
     return bless( $self, $class );
 }
 
 my $empty_agg = {
-                  uniq  => [],
-                  count => 0,
-                  sum   => undef,
-                  min   => undef,
-                  max   => undef,
-                };
+    uniq  => [],
+    count => 0,
+    sum   => undef,
+    min   => undef,
+    max   => undef,
+};
 
 sub do_calc()
 {
@@ -2056,7 +2046,7 @@ sub do_calc()
             {
                 next
                   if ( ( $coldef->{distinct} eq 'DISTINCT' )
-                       && defined( $result->{uniq}->[$colidx]->{$colval} ) );
+                    && defined( $result->{uniq}->[$colidx]->{$colval} ) );
 
                 $result->{agg}->[$colidx] = clone($empty_agg)
                   unless ( defined( _HASH( $result->{agg}->[$colidx] ) ) );
@@ -2064,12 +2054,12 @@ sub do_calc()
 
                 ++$agg->{count};
                 unless ( defined( $agg->{max} )
-                         && ( SQL::Statement::_anycmp( $colval, $agg->{max} ) < 0 ) )
+                    && ( SQL::Statement::_anycmp( $colval, $agg->{max} ) < 0 ) )
                 {
                     $agg->{max} = $colval;
                 }
                 unless ( defined( $agg->{min} )
-                         && ( SQL::Statement::_anycmp( $colval, $agg->{min} ) > 0 ) )
+                    && ( SQL::Statement::_anycmp( $colval, $agg->{min} ) > 0 ) )
                 {
                     $agg->{min} = $colval;
                 }
@@ -2221,15 +2211,15 @@ sub new
     my %col_nums;
     $col_nums{ $col_names->[$_] } = $_ for ( 0 .. scalar @$col_names - 1 );
     my @display_order = @col_nums{@$table_cols};
-    my $self = {
-                 col_names  => $col_names,
-                 table_cols => \@display_order,
-                 col_nums   => \%col_nums,
-                 table      => $table,
-                 NAME       => $name,
-                 rowpos     => 0,
-                 maxrow     => scalar @$table
-               };
+    my $self          = {
+        col_names  => $col_names,
+        table_cols => \@display_order,
+        col_nums   => \%col_nums,
+        table      => $table,
+        NAME       => $name,
+        rowpos     => 0,
+        maxrow     => scalar @$table
+    };
     return $class->SUPER::new($self);
 }
 
@@ -2306,7 +2296,9 @@ sub new
         $table_name = lc $table_name;
     }
 
-    my $self = { name => $table_name, };
+    my $self = {
+        name => $table_name,
+    };
 
     return bless( $self, $class );
 }

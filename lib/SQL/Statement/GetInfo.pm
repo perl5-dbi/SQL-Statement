@@ -13,7 +13,7 @@ my @Keywords = qw(
   INSERT UPDATE SELECT DELETE DROP CREATE ALL DISTINCT WHERE ORDER ASC
   DESC FROM INTO BY VALUES SET NOT TABLE CHAR VARCHAR REAL INTEGER
   PRIMARY KEY BLOB TEXT
-  );
+);
 
 # FIXME: This should really use the SQL::Dialect keywords, a la:
 #    return join(',', keys %{ SQL::Dialects::Foobar::get_config_as_hash()->{reserved_words} });

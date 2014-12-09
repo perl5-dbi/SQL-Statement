@@ -36,13 +36,13 @@ sub new
     }
 
     my %instance = (
-                     name           => $col_name,
-                     table          => $table_name,
-                     display_name   => $display_name,
-                     term           => $term,
-                     full_orig_name => $full_orig_name,
-                     coldef         => $coldef,
-                   );
+        name           => $col_name,
+        table          => $table_name,
+        display_name   => $display_name,
+        term           => $term,
+        full_orig_name => $full_orig_name,
+        coldef         => $coldef,
+    );
 
     my $self = bless( \%instance, $class );
 
@@ -74,12 +74,12 @@ sub new
     $pkg = 'main' if $pkg eq '::';
     $pkg =~ s/::$//;
     my %newfunc = (
-                    name     => $name,
-                    sub_name => $sub,
-                    pkg_name => $pkg,
-                    args     => $args,
-                    type     => 'function',
-                  );
+        name     => $name,
+        sub_name => $sub,
+        pkg_name => $pkg,
+        args     => $args,
+        type     => 'function',
+    );
     return bless \%newfunc, $class;
 }
 sub name     { shift->{name} }

@@ -98,8 +98,8 @@ sub _gen_access_fastpath($)
 {
     my ($self) = @_;
 
-    if (     $self->can("column") == SQL::Eval::Table->can("column")
-         and $self->can("column_num") == SQL::Eval::Table->can("column_num") )
+    if (    $self->can("column") == SQL::Eval::Table->can("column")
+        and $self->can("column_num") == SQL::Eval::Table->can("column_num") )
     {
         return sub { $self->{row}->[ $self->{col_nums}->{ $_[0] } ] };
     }
@@ -131,15 +131,15 @@ sub capability($)
 
     $capname eq "rowwise_update"
       and $self->{capabilities}->{rowwise_update} = (
-                                                           $self->capability("update_one_row")
-                                                        or $self->capability("update_current_row")
-                                                        or $self->capability("update_specific_row")
-                                                    );
+             $self->capability("update_one_row")
+          or $self->capability("update_current_row")
+          or $self->capability("update_specific_row")
+      );
     $capname eq "rowwise_delete"
       and $self->{capabilities}->{rowwise_delete} = (
-                                                           $self->capability("delete_one_row")
-                                                        or $self->capability("delete_current_row")
-                                                    );
+             $self->capability("delete_one_row")
+          or $self->capability("delete_current_row")
+      );
 
     return $self->{capabilities}->{$capname};
 }

@@ -3,10 +3,10 @@ package SQL::Statement::TermFactory;
 use strict;
 use warnings FATAL => "all";
 
-use SQL::Statement::Term ();
-use SQL::Statement::Operation ();
+use SQL::Statement::Term        ();
+use SQL::Statement::Operation   ();
 use SQL::Statement::Placeholder ();
-use SQL::Statement::Function ();
+use SQL::Statement::Function    ();
 
 use Data::Dumper;
 use Params::Util qw(_HASH _ARRAY0 _INSTANCE);
@@ -15,26 +15,31 @@ use Scalar::Util qw(blessed weaken);
 our $VERSION = '1.406';
 
 my %oplist = (
-               '='       => 'Equal',
-               '<>'      => 'NotEqual',
-               'AND'     => 'And',
-               'OR'      => 'Or',
-               '<='      => 'LowerEqual',
-               '>='      => 'GreaterEqual',
-               '<'       => 'Lower',
-               '>'       => 'Greater',
-               'LIKE'    => 'Like',
-               'RLIKE'   => 'Rlike',
-               'CLIKE'   => 'Clike',
-               'IN'      => 'Contains',
-               'BETWEEN' => 'Between',
-               'IS'      => 'Is',
-             );
+    '='       => 'Equal',
+    '<>'      => 'NotEqual',
+    'AND'     => 'And',
+    'OR'      => 'Or',
+    '<='      => 'LowerEqual',
+    '>='      => 'GreaterEqual',
+    '<'       => 'Lower',
+    '>'       => 'Greater',
+    'LIKE'    => 'Like',
+    'RLIKE'   => 'Rlike',
+    'CLIKE'   => 'Clike',
+    'IN'      => 'Contains',
+    'BETWEEN' => 'Between',
+    'IS'      => 'Is',
+);
 
 sub new
 {
     my ( $class, $owner ) = @_;
-    my $self = bless( { OWNER => $owner, }, $class );
+    my $self = bless(
+        {
+            OWNER => $owner,
+        },
+        $class
+    );
 
     weaken( $self->{OWNER} );
 
@@ -85,12 +90,11 @@ sub buildCondition
             my $left  = $self->buildCondition( $pred->{arg1} );
             my $right = $self->buildCondition( $pred->{arg2} );
 
-            $term =
-              SQL::Statement::Function::UserFunc->new(
+            $term = SQL::Statement::Function::UserFunc->new(
                 $self->{OWNER}, $op,
                 $self->{OWNER}->{opts}->{function_names}->{$op},
                 [ $left, $right ]
-                                                     );
+            );
         }
         else
         {
@@ -127,8 +131,7 @@ sub buildCondition
 
             if ( $pred->{name} eq 'numeric_exp' )
             {
-                $term = SQL::Statement::Function::NumericEval->new( $self->{OWNER}, $pred->{str},
-                                                                    \@params );
+                $term = SQL::Statement::Function::NumericEval->new( $self->{OWNER}, $pred->{str}, \@params );
             }
             elsif ( $pred->{name} eq 'str_concat' )
             {
@@ -136,21 +139,18 @@ sub buildCondition
             }
             elsif ( $pred->{name} eq 'TRIM' )
             {
-                $term = SQL::Statement::Function::Trim->new( $self->{OWNER}, $pred->{trim_spec},
-                                                             $pred->{trim_char}, \@params );
+                $term = SQL::Statement::Function::Trim->new( $self->{OWNER}, $pred->{trim_spec}, $pred->{trim_char}, \@params );
             }
             elsif ( $pred->{name} eq 'SUBSTRING' )
             {
                 my $start  = $self->buildCondition( $pred->{start} );
                 my $length = $self->buildCondition( $pred->{length} )
                   if ( _HASH( $pred->{length} ) );
-                $term = SQL::Statement::Function::SubString->new( $self->{OWNER}, $start, $length,
-                                                                  \@params );
+                $term = SQL::Statement::Function::SubString->new( $self->{OWNER}, $start, $length, \@params );
             }
             else
             {
-                $term = SQL::Statement::Function::UserFunc->new( $self->{OWNER}, $pred->{name},
-                                                                 $pred->{subname}, \@params );
+                $term = SQL::Statement::Function::UserFunc->new( $self->{OWNER}, $pred->{name}, $pred->{subname}, \@params );
             }
         }
         else

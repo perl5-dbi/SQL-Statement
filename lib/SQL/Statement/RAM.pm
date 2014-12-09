@@ -26,15 +26,15 @@ sub new
 {
     my ( $class, $tname, $col_names, $data_tbl ) = @_;
     my %table = (
-                  NAME         => $tname,
-                  index        => 0,
-                  records      => $data_tbl,
-                  col_names    => $col_names,
-                  capabilities => {
-                                    inplace_update => 1,
-                                    inplace_delete => 1,
-                                  },
-                );
+        NAME         => $tname,
+        index        => 0,
+        records      => $data_tbl,
+        col_names    => $col_names,
+        capabilities => {
+            inplace_update => 1,
+            inplace_delete => 1,
+        },
+    );
     my $self = $class->SUPER::new( \%table );
 }
 

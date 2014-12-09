@@ -66,8 +66,7 @@ sub DESTROY
 
 sub value($)
 {
-    Carp::confess(
-              sprintf( q{pure virtual function '%s->value' called}, ref( $_[0] ) || __PACKAGE__ ) );
+    Carp::confess( sprintf( q{pure virtual function '%s->value' called}, ref( $_[0] ) || __PACKAGE__ ) );
 }
 
 package SQL::Statement::ConstantTerm;
