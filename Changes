@@ -229,7 +229,7 @@ Changes log for Perl extension SQL::Statement
     [Misc]
     * Correct some typo's in POD
 
-1.21_7 not released
+1.21_7 2009-09-31
     [Bug fixes]
     * Don't fail for non-existent columns introduced by functions
       in joins
@@ -302,7 +302,7 @@ Changes log for Perl extension SQL::Statement
     * Correct META-Files
     * Fixed reported bugs:
 
-1.18_02 not released
+1.18_02 2009-01-20
     * Additional (profiled) optimizations for complicated where clauses
 
 1.18_01 2009-01-12
