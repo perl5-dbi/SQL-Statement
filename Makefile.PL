@@ -28,64 +28,103 @@ my $selfConflictMsg = <<EOSCM;
 ***
 EOSCM
 
+my %RUN_DEPS = (
+    'Carp'         => '0',
+    'Clone'        => '0.30',
+    'Data::Dumper' => '0',
+    'Params::Util' => '1.00',
+    'Scalar::Util' => '1.0',
+);
+my %CONFIGURE_DEPS = (
+    'ExtUtils::MakeMaker' => 0,
+);
+my %BUILD_DEPS = ();
+
+my %TEST_DEPS = (
+    'Test::More'    => '0.90',
+    'Math::Complex' => '1.56',
+    'Math::BigInt'  => '1.88',
+);
+my %CONFLICTS = (
+    'SQL::Statement' => '1.20',
+    'DBI'            => '1.611',
+    'DBD::AnyData'   => '0.09',
+    'DBD::CSV'       => '0.29',
+);
+
 WriteMakefile1(
-                MIN_PERL_VERSION => '5.008',
-                META_MERGE       => {
-                                resources => {
-                                         repository => 'https://github.com/perl5-dbi/SQL-Statement',
-                                         MailingList => 'mailto:dbi-dev@perl.org',
-                                         license     => 'http://dev.perl.org/licenses/',
-                                },
-                                prereqs => {
-                                             develop => {
-                                                     requires => {
-                                                         'Test::CPAN::Changes'                 => 0,
-                                                         'Test::CheckManifest'                 => 0,
-                                                         'Test::Pod'                           => 0,
-                                                         'Test::Pod::Coverage'                 => 0,
-                                                         'Test::Pod::Spelling::CommonMistakes' => 0,
-                                                     },
-                                                     recommends => {},
-                                             },
-					     runtime => {
-                                recommends => {
-                                                'Math::Complex' => '1.56',
-                                                'Math::BigInt'  => '1.88',
-                                                'Text::Soundex' => '3.04',
-				},
-                                              },
-                                           },
-                              },
-                NAME          => 'SQL::Statement',
-                VERSION_FROM  => 'lib/SQL/Statement.pm',
-                ABSTRACT_FROM => 'lib/SQL/Statement.pm',
-                dist          => {
-                          'SUFFIX'       => ".gz",
-                          'DIST_DEFAULT' => 'manifest tardist',
-                          'COMPRESS'     => "gzip -9vf"
-                        },
-                PREREQ_PM => {
-                               'Carp'         => '0',
-                               'Clone'        => '0.30',
-                               'Data::Dumper' => '0',
-                               'Params::Util' => '1.00',
-                               'Scalar::Util' => '1.0',
-                             },
-                BUILD_REQUIRES => {
-                                    'Test::Simple'  => '0.90',
-                                    'Math::Complex' => '1.56',
-                                    'Math::BigInt'  => '1.88',
-                                  },
-                CONFLICTS => {
-                               'SQL::Statement' => '1.20',
-                               'DBI'            => '1.611',
-                               'DBD::AnyData'   => '0.09',
-                               'DBD::CSV'       => '0.29',
-                             },
-                LICENSE => 'perl',
-                AUTHOR  => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
-                test    => { TESTS => 't/*.t xt/*.t' },
-              );
+    MIN_PERL_VERSION => '5.008',
+    META_MERGE       => {
+        'meta-spec' => { version => 2 },
+        resources   => {
+            homepage      => 'https://metacpan.org/release/SQL-Statement',
+            x_IRC         => "irc://irc.perl.org/#dbi",
+            x_MailingList => "mailto:dbi-dev\@perl.org'",
+            repository    => {
+                url  => 'git@github.com:perl5-utils/SQL-Statement.git',
+                web  => 'https://github.com/perl5-utils/SQL-Statement',
+                type => 'git',
+            },
+            bugtracker => {
+                web    => 'http://rt.cpan.org/Public/Dist/Display.html?Name=SQL-Statement',
+                mailto => 'sql-statement@rt.cpan.org',
+            },
+            license => 'http://dev.perl.org/licenses/',
+        },
+        prereqs => {
+            develop => {
+                requires => {
+                    'Test::CPAN::Changes'                 => 0,
+                    'Test::CheckManifest'                 => 0,
+                    'Module::CPANTS::Analyse'             => '0.96',
+                    'Test::Kwalitee'                      => 0,
+                    'Test::Pod'                           => 0,
+                    'Test::Pod::Coverage'                 => 0,
+                    'Test::Pod::Spelling::CommonMistakes' => 0,
+                    'Test::Spelling'                      => 0,
+                },
+            },
+            configure => {
+                requires => {%CONFIGURE_DEPS},
+            },
+            build => {
+                requires => {%BUILD_DEPS},
+            },
+            test => {
+                requires  => {%TEST_DEPS},
+                conflicts => {%CONFLICTS},
+            },
+            runtime => {
+                recommends => {
+                    perl            => '5.20.1',
+                    'Math::Complex' => '1.56',
+                    'Math::BigInt'  => '1.88',
+                    'Text::Soundex' => '3.04',
+                },
+                requires => {
+                    %RUN_DEPS,
+                    perl => '5.8',
+                },
+                conflicts => {%CONFLICTS},
+            },
+        },
+    },
+    NAME          => 'SQL::Statement',
+    VERSION_FROM  => 'lib/SQL/Statement.pm',
+    ABSTRACT_FROM => 'lib/SQL/Statement.pm',
+    dist          => {
+        'SUFFIX'       => ".gz",
+        'DIST_DEFAULT' => 'manifest tardist',
+        'COMPRESS'     => "gzip -9vf"
+    },
+    CONFLICTS      => \%CONFLICTS,
+    PREREQ_PM      => \%RUN_DEPS,
+    BUILD_REQUIRES => \%BUILD_DEPS,
+    TEST_REQUIRES  => \%TEST_DEPS,
+    LICENSE        => 'perl',
+    AUTHOR         => 'Jeff Zucker <jeff@vpservices.com>, Jens Rehsack <rehsack@cpan.org>',
+    test           => { TESTS => 't/*.t xt/*.t' },
+);
 
 sub CheckConflicts
 {
