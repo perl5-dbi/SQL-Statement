@@ -2885,20 +2885,20 @@ sub clean_sql
 
     $sql =~ s/\n/ /g;
     $sql =~ s/\s+/ /g;
-    $sql =~ s/(\S)\(/$1 (/g;    # ensure whitespace before (
-    $sql =~ s/\)(\S)/) $1/g;    # ensure whitespace after )
-    $sql =~ s/\(\s*/(/g;        # trim whitespace after (
-    $sql =~ s/\s*\)/)/g;        # trim whitespace before )
-                                #
-                                # $sql =~ s/\s*\(/(/g;   # trim whitespace before (
-                                # $sql =~ s/\)\s*/)/g;   # trim whitespace after )
-                                #    for my $op (qw(= <> < > <= >= \|\|))
-                                #    {
-                                #        $sql =~ s/(\S)$op/$1 $op/g;
-                                #        $sql =~ s/$op(\S)/$op $1/g;
-                                #    }
-    $sql =~ s/(\S)(=|<>|<|>|<=|>=|\|\|)/$1 $2/g;
-    $sql =~ s/(=|<>|<|>|<=|>=|\|\|)(\S)/$1 $2/g;
+    $sql =~ s/(\S)\(/$1 (/g;                     # ensure whitespace before (
+    $sql =~ s/\)(\S)/) $1/g;                     # ensure whitespace after )
+    $sql =~ s/\(\s*/(/g;                         # trim whitespace after (
+    $sql =~ s/\s*\)/)/g;                         # trim whitespace before )
+                                                 #
+                                                 # $sql =~ s/\s*\(/(/g;   # trim whitespace before (
+                                                 # $sql =~ s/\)\s*/)/g;   # trim whitespace after )
+                                                 #    for my $op (qw(= <> < > <= >= \|\|))
+                                                 #    {
+                                                 #        $sql =~ s/(\S)$op/$1 $op/g;
+                                                 #        $sql =~ s/$op(\S)/$op $1/g;
+                                                 #    }
+    $sql =~ s/(\S)([<>]?=|<>|<|>|\|\|)/$1 $2/g;
+    $sql =~ s/([<>]?=|<>|<|>|\|\|)(\S)/$1 $2/g;
     $sql =~ s/< >/<>/g;
     $sql =~ s/< =/<=/g;
     $sql =~ s/> =/>=/g;

@@ -185,6 +185,11 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT SUM(sales), MAX(sales) FROM biz",
            result => [ [ 2900, 1000 ], ]
         },
+	{
+           test   => 'COUNT(distinct column) WITHOUT GROUP BY',
+           sql    => "SELECT COUNT(DISTINCT class) FROM biz",
+           result => [ [ 2 ], ]
+	},
         {
            test     => 'COUNT(distinct column) WITH GROUP BY',
            sql      => "SELECT distinct class, COUNT(distinct color) FROM biz GROUP BY class",
