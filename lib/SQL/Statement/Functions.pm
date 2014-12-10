@@ -557,7 +557,7 @@ sub SQL_FUNCTION_CONV
           )->bfloor()->bstr()
           : int( log($dnum) / log($ebase) );
 
-        while ( $dnum != 0 && length($new) < 255 )
+        while ( ( $dnum != 0 || $i >= 0 ) && length($new) < 255 )
         {
             if ( $i == -1 )
             {                                 # time to go pro...
@@ -587,10 +587,10 @@ sub SQL_FUNCTION_CONV
     }
 
     # Final cleanup
-    $new =~ s/^(-?)0+/$1/ if ( $ebase <= 62 );
-    $new =~ s/^(-?)A+/$1/ if ( $ebase > 62 );
-    $new =~ s/0+$//       if ( $ebase <= 62 && $is_dec );
-    $new =~ s/A+$//       if ( $ebase > 62 && $is_dec );
+    $new =~ s/^(-?)(?:0(?!(?:\.|\z)))+/$1/ if ( $ebase <= 62 );
+    $new =~ s/^(-?)(?:A(?!(?:\.|\z)))+/$1/ if ( $ebase > 62 );
+    $new =~ s/0+$//                        if ( $ebase <= 62 && $is_dec );
+    $new =~ s/A+$//                        if ( $ebase > 62 && $is_dec );
 
     return $new;
 }

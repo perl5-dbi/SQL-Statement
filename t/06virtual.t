@@ -533,6 +533,16 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT CONV('1AF.EQO0000000000000000000000000000', 32, 8)",
            result => [ [2517.3553] ],
         },
+	{
+           test   => 'conv 10->16 integer with trailing 0',
+	   sql    => "select conv('16', 10, 16)",
+	   result => [ ['10'] ],
+	},
+	{
+           test   => 'conv 10->16 integer 0',
+	   sql    => "select conv('0', 10, 16)",
+	   result => [ ['0'] ],
+	},
         {
            test => 'decode',
            sql =>
