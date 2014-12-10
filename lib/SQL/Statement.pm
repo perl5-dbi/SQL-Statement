@@ -2044,10 +2044,11 @@ sub do_calc()
 
             if ( $coldef->{type} eq 'setfunc' )
             {
-                if ( $coldef->{distinct} eq 'DISTINCT' ) {
+                if ( $coldef->{distinct} eq 'DISTINCT' )
+                {
                     next if defined( $result->{uniq}->[$colidx]->{$colval} );
                     $result->{uniq}->[$colidx]->{$colval} = 1;
-		}
+                }
 
                 $result->{agg}->[$colidx] = clone($empty_agg)
                   unless ( defined( _HASH( $result->{agg}->[$colidx] ) ) );
