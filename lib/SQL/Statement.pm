@@ -144,39 +144,23 @@ sub execute
       if ( $self->{no_execute} );
     $self->{procedure}->{data} = $data if ( $self->{procedure} );
     $self->{params} = $params;
-    my ( $table, $msg );
 
     my ($command) = $self->command();
     return $self->do_err('No command found!') unless ($command);
 
-    if ( $self->{where_clause} && !defined( $self->{where_terms} ) )
-    {
-        $self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
-    }
+    $self->{where_clause}
+      and !defined( $self->{where_terms} )
+      and $self->{where_terms} = $self->{termFactory}->buildCondition( $self->{where_clause} );
 
-    ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) =
-      $self->$command( $data, $params );
+    ( $self->{NUM_OF_ROWS}, $self->{NUM_OF_FIELDS}, $self->{data} ) = $self->$command( $data, $params );
 
-    if ( defined( _ARRAY0( $self->{columns} ) ) )
-    {
-        @{ $self->{NAME} } = map { $_->display_name() } @{ $self->{columns} };
+    $self->{NAME} =
+      _ARRAY0( $self->{columns} ) ? [ map { delete $_->{term}->{fastpath}; $_->display_name() } @{ $self->{columns} } ] : [];
 
-        foreach my $column ( @{ $self->{columns} } )
-        {
-            delete $column->{term}->{fastpath};
-        }
-    }
-    else
-    {
-        $self->{NAME} = [];
-    }
+    # Force closing the tables
+    $self->{tables} = [ map { SQL::Statement::Table->new($_->{name}) } @{ delete $self->{tables} } ];    # create keen defs
 
-    my $tables;
-    @$tables = map { $_->{name} } @{ $self->{tables} };
-    delete $self->{tables};    # Force closing the tables
-    $self->{tables} = [ map { SQL::Statement::Table->new($_) } @$tables ];    # and create keen defs
-
-    undef $self->{where_terms};                                               # force rebuild when needed
+    undef $self->{where_terms};                                              # force rebuild when needed
 
     return unless ( defined( $self->{NUM_OF_ROWS} ) );
     return $self->{NUM_OF_ROWS} || '0E0';
@@ -301,7 +285,7 @@ sub INSERT ($$$)
     my ( $eval, $all_cols ) = $self->open_tables( $data, 0, 1 );
     return unless ($eval);
 
-    $eval->params($params);
+    $params and $eval->params($params);
     $self->verify_columns( $data, $eval, $all_cols ) if ( scalar( $self->columns() ) );
     return if ( $self->{errstr} );
 
@@ -1484,7 +1468,9 @@ sub verify_expand_column
     return unless ($col);
 
     my $is_column =
-      ( defined( _INSTANCE( $col_obj, 'SQL::Statement::Util::Column' ) ) and ( $col_obj->{coldef}->{type} eq 'column' ) ) ? 1 : 0;
+      ( defined( _INSTANCE( $col_obj, 'SQL::Statement::Util::Column' ) ) and ( $col_obj->{coldef}->{type} eq 'column' ) )
+      ? 1
+      : 0;
 
     unless ( $is_column and defined($table) )
     {

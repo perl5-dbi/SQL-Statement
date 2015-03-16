@@ -794,8 +794,9 @@ sub LOAD
         my $funcName = uc $1;
         my $subname  = $package . '::' . 'SQL_FUNCTION_' . $funcName;
         $self->{opts}->{function_names}->{$funcName} = $subname;
+        delete $self->{opts}->{_udf_function_names};
     }
-    return 1;
+    1;
 }
 
 sub CREATE_RAM_TABLE
@@ -850,6 +851,7 @@ sub CREATE_FUNCTION
         $subname = $self->{struct}->{quoted_ids}->[$1];
     }
     $self->{opts}->{function_names}->{ uc $func } = $subname;
+    delete $self->{opts}->{_udf_function_names};
 
     return 1;
 }
@@ -919,6 +921,7 @@ sub CREATE_OPERATOR
         $subname = $self->{struct}->{quoted_ids}->[$1];
     }
     $self->{opts}->{function_names}->{ uc $func } = $subname;
+    delete $self->{opts}->{_udf_function_names};
 
     $self->feature( 'valid_comparison_operators', uc $func, 1 );
     return $self->create_op_regexen();
@@ -1769,8 +1772,7 @@ sub nongroup_string
     #
     #	add in any user defined functions
     #
-    my $f = FUNCTION_NAMES;
-    $f .= '|' . uc $_ foreach ( keys %{ $self->{opts}{function_names} } );
+    my $f = join( '|', FUNCTION_NAMES, $self->_udf_function_names );
 
     #
     #	we need a scan here to permit arbitrarily nested paren
@@ -1998,20 +2000,22 @@ sub PREDICATE
     };
 }
 
+sub _udf_function_names
+{
+    $_[0]->{opts}->{_udf_function_names}
+      or return $_[0]->{opts}->{_udf_function_names} = join( "|", map { uc $_ } keys %{ $_[0]->{opts}->{function_names} } );
+    $_[0]->{opts}->{_udf_function_names};
+}
+
 sub undo_string_funcs
 {
     my ( $self, $str ) = @_;
-    my $f = FUNCTION_NAMES;
-
-    #	don't forget our UDFs
-    $f .= '|' . uc $_ foreach ( keys %{ $self->{opts}->{function_names} } );
+    my $f = join( '|', FUNCTION_NAMES, $self->_udf_function_names );
 
     #	eliminate recursion:
     #	we have to scan for closing brackets, since we may
     #	have intervening MATH elements with brackets
-    my $brackets = 0;
-    my $pos;
-    my @lbrackets = ();
+    my ( $brackets, $pos, @lbrackets ) = (0);
     while ( $str =~ /\G.*?((\b($f)\s*\[)|[\[\]])/igcs )
     {
         if ( $1 eq ']' )
@@ -2103,9 +2107,7 @@ sub ROW_VALUE
     $str =~ s/\s+$//;
     $str = $self->undo_string_funcs($str);
     $str = undo_math_funcs($str);
-    my $orgstr = $str;
-    my $f      = FUNCTION_NAMES;
-    my $bf     = BAREWORD_FUNCTIONS;
+    my ( $orgstr, $f, $bf ) = ( $str, FUNCTION_NAMES, BAREWORD_FUNCTIONS );
 
     # USER-DEFINED FUNCTION
     my ( $user_func_name, $user_func_args, $is_func );

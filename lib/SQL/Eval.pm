@@ -16,44 +16,26 @@ sub new($)
     my ( $proto, $attr ) = @_;
     my ($self) = {%$attr};
     bless( $self, ( ref($proto) || $proto ) );
-    return $self;
 }
 
 sub param($;$)
 {
-    my ( $self, $paramNum, $param ) = @_;
-
-    $paramNum < 0 and croak "Illegal parameter number: $paramNum";
-    return $self->{params}->[$paramNum] = $param if ( @_ == 3 );
-    return $self->{params}->[$paramNum];
+    $_[1] < 0 and croak "Illegal parameter number: $_[1]";
+    @_ == 3 and return $_[0]->{params}->[ $_[1] ] = $_[2];
+    $_[0]->{params}->[ $_[1] ];
 }
 
 sub params(;$)
 {
-    my ( $self, $array ) = @_;
-
-    $self->{params} = $array if ( @_ == 2 );
-    return $self->{params};
+    @_ == 2 and return $_[0]->{params} = $_[1];
+    $_[0]->{params};
 }
 
-sub table($)
-{
-    return $_[0]->{tables}->{ $_[1] };
-}
+sub table($) { $_[0]->{tables}->{ $_[1] } }
 
-sub column($$)
-{
-    my ( $self, $table, $column ) = @_;
+sub column($$) { $_[0]->table( $_[1] )->column( $_[2] ) }
 
-    return $self->table($table)->column($column);
-}
-
-sub _gen_access_fastpath($)
-{
-    my ( $self, $table ) = @_;
-
-    return $self->table($table)->_gen_access_fastpath();
-}
+sub _gen_access_fastpath($) { $_[0]->table( $_[1] )->_gen_access_fastpath() }
 
 package SQL::Eval::Table;
 
@@ -76,8 +58,6 @@ sub new($)
 
     $self->{capabilities} = {} unless ( defined( $self->{capabilities} ) );
     bless( $self, ( ref($proto) || $proto ) );
-
-    return $self;
 }
 
 sub _map_colnums
@@ -85,11 +65,11 @@ sub _map_colnums
     my $col_names = $_[0];
     my %col_nums;
     $col_nums{ $col_names->[$_] } = $_ for ( 0 .. scalar @$col_names - 1 );
-    return \%col_nums;
+    \%col_nums;
 }
 
-sub row()         { return $_[0]->{row}; }
-sub column($)     { return $_[0]->{row}->[ $_[0]->column_num( $_[1] ) ]; }
+sub row()         { $_[0]->{row} }
+sub column($)     { $_[0]->{row}->[ $_[0]->column_num( $_[1] ) ] }
 sub column_num($) { $_[0]->{col_nums}->{ $_[1] }; }
 sub col_nums()    { $_[0]->{col_nums} }
 sub col_names()   { $_[0]->{col_names}; }
@@ -98,15 +78,10 @@ sub _gen_access_fastpath($)
 {
     my ($self) = @_;
 
-    if (    $self->can("column") == SQL::Eval::Table->can("column")
-        and $self->can("column_num") == SQL::Eval::Table->can("column_num") )
-    {
-        return sub { $self->{row}->[ $self->{col_nums}->{ $_[0] } ] };
-    }
-    else
-    {
-        return sub { $self->column( $_[0] ) };
-    }
+    $self->can("column") == SQL::Eval::Table->can("column")
+      && $self->can("column_num") == SQL::Eval::Table->can("column_num")
+      ? sub { $self->{row}->[ $self->{col_nums}->{ $_[0] } ] }
+      : sub { $self->column( $_[0] ) };
 }
 
 sub capability($)
@@ -141,7 +116,7 @@ sub capability($)
           or $self->capability("delete_current_row")
       );
 
-    return $self->{capabilities}->{$capname};
+    $self->{capabilities}->{$capname};
 }
 
 sub drop ($$)        { croak "Abstract method " . ref( $_[0] ) . "::drop called" }
