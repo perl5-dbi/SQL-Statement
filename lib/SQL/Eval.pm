@@ -87,7 +87,7 @@ sub _gen_access_fastpath($)
 sub capability($)
 {
     my ( $self, $capname ) = @_;
-    return $self->{capabilities}->{$capname} if ( defined( $self->{capabilities}->{$capname} ) );
+    exists $self->{capabilities}->{$capname} and return $self->{capabilities}->{$capname};
 
     $capname eq "insert_new_row"
       and $self->{capabilities}->{insert_new_row} = $self->can("insert_new_row");
