@@ -29,5 +29,6 @@ _Inline/.*
 ^MYMETA\.json$
 ^MYMETA\..*$
 bugsql
+nytprof*
 .*\.csv
 SQL-Statement-.*
