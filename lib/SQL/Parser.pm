@@ -185,12 +185,16 @@ sub replace_quoted_commas
 sub replace_quoted_ids
 {
     my ( $self, $id ) = @_;
-    return $id unless $self->{struct}->{quoted_ids};
+    $self->{struct}->{quoted_ids} or $self->{struct}->{literals} or return;
     if ($id)
     {
         if ( $id =~ /^\?QI(\d+)\?$/ )
         {
             return '"' . $self->{struct}->{quoted_ids}->[$1] . '"';
+        }
+        elsif ( $id =~ /^\?(\d+)\?$/ )
+        {
+            return $self->{struct}->{literals}->[$1];
         }
         else
         {
@@ -204,9 +208,11 @@ sub replace_quoted_ids
         if ( $t =~ /^\?QI(.+)\?$/ )
         {
             $t = '"' . $self->{struct}->{quoted_ids}->[$1] . '"';
-
-            #            $t = $self->{struct}->{quoted_ids}->[$1];
         }
+	elsif( $t =~ /^\?(\d+)\?$/ )
+	{
+            $t = $self->{struct}->{literals}->[$1];
+	}
     }
     $self->{struct}->{table_names} = \@tables;
     delete $self->{struct}->{quoted_ids};
@@ -2703,7 +2709,7 @@ sub _verify_tablename
 sub IDENTIFIER
 {
     my ( $self, $id ) = @_;
-    if ( $id =~ m/^\?QI(.+)\?$/ )
+    if ( $id =~ m/^\?QI(.+)\?$/ or $id =~ m/^\?(.+)\?$/ )
     {
         return 1;
     }

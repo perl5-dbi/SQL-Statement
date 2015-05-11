@@ -206,9 +206,9 @@ sub CREATE ($$$)
         @tbl_cols = @{$names} unless (@tbl_cols);
         my $create_sql = "CREATE TABLE $tbl_name";
         $create_sql = "CREATE TEMP TABLE $tbl_name" if ( $self->{is_ram_table} );
-        my @coldefs = map { "$_ TEXT" } @tbl_cols;
+        my @coldefs = map { "'$_' TEXT" } @tbl_cols;
         $create_sql .= '(' . join( ',', @coldefs ) . ')';
-        $data->{Database}->do($create_sql);
+        $data->{Database}->do($create_sql) or die "Can't do <$create_sql>: " . $data->{Database}->errstr;
         my $colstr     = ('?,') x @tbl_cols;
         my $insert_sql = "INSERT INTO $tbl_name VALUES($colstr)";
         my $local_sth  = $data->{Database}->prepare($insert_sql);
