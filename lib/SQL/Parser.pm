@@ -83,9 +83,10 @@ sub parse
 
     # SQL STYLE
     #
-    if ( $sql =~ s/(--.*)(\n|$)/$2/ )
+    # SQL-style comment can not begin inside quotes.
+    if ( $sql =~ s/^([^']*?(?:'[^']*'[^'])*?)(--.*)(\n|$)/$1$3/ )
     {
-        $self->{comment} = $1;
+        $self->{comment} = $2;
     }
     ################################################################
 

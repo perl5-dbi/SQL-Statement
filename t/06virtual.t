@@ -94,6 +94,7 @@ foreach my $test_dbd (@test_dbds)
 	CREATE $temp TABLE baz (ordered INTEGER, class CHAR, color CHAR)
 	INSERT INTO baz VALUES ( 250, 'Car',   'White' ), ( 100, 'Car',   'Blue' ), ( 150, 'Car',   'Red' )
 	INSERT INTO baz VALUES (  80, 'Truck', 'White' ), (  60, 'Truck', 'Green' ) -- Yes, we introduce new cars :)
+	INSERT INTO baz VALUES ( 666, 'Truck', 'Yellow -- no, blue' ) -- Double dash inside quotes does not introduce comment
 	CREATE $temp TABLE numbers (c_foo INTEGER, foo CHAR, bar INTEGER)
 	CREATE $temp TABLE trick   (id INTEGER, foo CHAR)
 	INSERT INTO trick VALUES (1, '1foo')
@@ -224,7 +225,7 @@ foreach my $test_dbd (@test_dbds)
            test   => 'ORDER BY on aliased column',
            sql    => "SELECT DISTINCT biz.class, baz.color AS foo FROM biz, baz WHERE biz.class = baz.class ORDER BY foo",
 	   result => [
-	       [ qw(Car Blue) ], [ qw(Truck Green) ], [ qw(Car Red) ], [ qw(Car White) ], [ qw(Truck White) ],
+	       [ qw(Car Blue) ], [ qw(Truck Green) ], [ qw(Car Red) ], [ qw(Car White) ], [ qw(Truck White) ], [ Truck => 'Yellow -- no, blue' ],
 	   ],
         },
         {
