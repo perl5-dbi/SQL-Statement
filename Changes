@@ -1,5 +1,19 @@
 Changes log for Perl extension SQL::Statement
 
+1.406 2015-05-20
+    [Bug fixes]
+    * Fix SQL function CONV to use limited number of sane character sets
+      for conversion and rely on Math::Base::Convert instead of own code
+    * fix handling of literal identifiers and for every IMPORT rely on
+      literal identifiers to avoid parser errors for column names starting
+      with numbers or similar
+    * fix capability cache: "$class->can(...)" might return undef and
+      therefore inexistent capabilities are queried to often
+
+    [Improvements]
+    * reduce blocks and rewrite some inner statements to increase speed
+      of sql command processing
+
 1.405 2013-06-17
     [Bug fixes]
     * INSERT now expands incomplete rows (Thanks to H.Merijn Brand)
