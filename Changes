@@ -1,14 +1,20 @@
 Changes log for Perl extension SQL::Statement
 
 1.406 2015-05-20
+    [Misc]
+    * clean up Makefile.PL, meta-data and requirements
+
     [Bug fixes]
     * Fix SQL function CONV to use limited number of sane character sets
       for conversion and rely on Math::Base::Convert instead of own code
+      (suggested by Tom Wyant in RT#100551, thanks Tom)
     * fix handling of literal identifiers and for every IMPORT rely on
       literal identifiers to avoid parser errors for column names starting
       with numbers or similar
     * fix capability cache: "$class->can(...)" might return undef and
       therefore inexistent capabilities are queried to often
+    * Fix COUNT(DISTINCT col) without GROUP BY clause (patch submitted
+      by Grant Mathews, thanks Grant)
 
     [Improvements]
     * reduce blocks and rewrite some inner statements to increase speed
