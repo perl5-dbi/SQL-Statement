@@ -15,6 +15,8 @@ Changes log for Perl extension SQL::Statement
       therefore inexistent capabilities are queried to often
     * Fix COUNT(DISTINCT col) without GROUP BY clause (patch submitted
       by Grant Mathews, thanks Grant)
+    * Fix "parse insert with functions" submitted via GitHub PR#6 by
+      fecundf and RT#96628
 
     [Improvements]
     * reduce blocks and rewrite some inner statements to increase speed
