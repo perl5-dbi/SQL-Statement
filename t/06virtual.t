@@ -685,6 +685,16 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT UNHEX('263A' || HEX(9787) || CONV('10011000111100', 2, 16), 'UCS-2')",
            result => [ [chr(9786).chr(9787).chr(9788)] ],
         },
+        {
+           test   => 'bin from dec',
+           sql    => "SELECT BIN('9788')",
+           result => [ ['10011000111100'] ],
+        },
+        {
+           test   => 'oct from dec',
+           sql    => "SELECT OCT('420')",
+           result => [ ['644'] ],
+        },
         ### Numeric Functions ### 
         {
            test   => 'abs',
