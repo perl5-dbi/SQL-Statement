@@ -17,6 +17,8 @@ Changes log for Perl extension SQL::Statement
       by Grant Mathews, thanks Grant)
     * Fix "parse insert with functions" submitted via GitHub PR#6 by
       fecundf and RT#96628
+    * Fix RT#93320: SQL-style comment can not begin inside quotes by
+      Tom Wyant - thanks Tom
 
     [Improvements]
     * reduce blocks and rewrite some inner statements to increase speed
