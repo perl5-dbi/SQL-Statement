@@ -1,6 +1,6 @@
 Changes log for Perl extension SQL::Statement
 
-1.406 2015-05-20
+1.406_001 2015-05-20
     [Misc]
     * clean up Makefile.PL, meta-data and requirements
 
