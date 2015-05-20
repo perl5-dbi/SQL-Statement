@@ -13,9 +13,6 @@ use List::Util qw(max);      # core module since Perl 5.8.0
 use Time::HiRes qw(time);    # core module since Perl 5.7.2
 use Encode;                  # core module since Perl 5.7.1
 use Math::Trig;              # core module since Perl 5.004
-use Math::BigInt             # core modules since forever
-  upgrade => 'Math::BigFloat';
-use Math::BigFloat;
 use Module::Runtime qw(require_module use_module);
 
 =pod
@@ -744,7 +741,7 @@ use warnings 'all';
 sub SQL_FUNCTION_SOUNDEX
 {
     my ( $self, $owner, @params ) = @_;
-    exists $INC{'Text/Soundex.pm'} or require Text::Soundex;
+    require_module("Text::Soundex");
     my $s1 = Text::Soundex::soundex( $params[0] ) or return 0;
     my $s2 = Text::Soundex::soundex( $params[1] ) or return 0;
     return ( $s1 eq $s2 ) ? 1 : 0;

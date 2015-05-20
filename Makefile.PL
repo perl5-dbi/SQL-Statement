@@ -43,7 +43,6 @@ my %BUILD_DEPS = ();
 
 my %TEST_DEPS = (
     'Math::Complex'       => '1.56',
-    'Math::BigInt'        => '1.88',
     'Math::Base::Convert' => 0,
     'Test::More'          => '0.90',
     'Text::Soundex'       => '3.04',
@@ -100,7 +99,6 @@ WriteMakefile1(
             runtime => {
                 recommends => {
                     'Math::Complex'       => '1.56',
-                    'Math::BigInt'        => '1.88',
                     'Text::Soundex'       => '3.04',
                     'Math::Base::Convert' => 0,
                 },
