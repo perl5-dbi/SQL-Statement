@@ -29,11 +29,12 @@ my $selfConflictMsg = <<EOSCM;
 EOSCM
 
 my %RUN_DEPS = (
-    'Carp'         => '0',
-    'Clone'        => '0.30',
-    'Data::Dumper' => '0',
-    'Params::Util' => '1.00',
-    'Scalar::Util' => '1.0',
+    'Carp'            => 0,
+    'Clone'           => '0.30',
+    'Data::Dumper'    => 0,
+    'Module::Runtime' => 0,
+    'Params::Util'    => '1.00',
+    'Scalar::Util'    => '1.0',
 );
 my %CONFIGURE_DEPS = (
     'ExtUtils::MakeMaker' => 0,
@@ -41,9 +42,11 @@ my %CONFIGURE_DEPS = (
 my %BUILD_DEPS = ();
 
 my %TEST_DEPS = (
-    'Test::More'    => '0.90',
-    'Math::Complex' => '1.56',
-    'Math::BigInt'  => '1.88',
+    'Math::Complex'       => '1.56',
+    'Math::BigInt'        => '1.88',
+    'Math::Base::Convert' => 0,
+    'Test::More'          => '0.90',
+    'Text::Soundex'       => '3.04',
 );
 my %CONFLICTS = (
     'SQL::Statement' => '1.20',
@@ -61,7 +64,7 @@ WriteMakefile1(
             x_IRC         => "irc://irc.perl.org/#dbi",
             x_MailingList => "mailto:dbi-dev\@perl.org'",
             repository    => {
-                url  => 'git@github.com:perl5-utils/SQL-Statement.git',
+                url  => 'https://github.com:perl5-utils/SQL-Statement.git',
                 web  => 'https://github.com/perl5-utils/SQL-Statement',
                 type => 'git',
             },
@@ -96,15 +99,12 @@ WriteMakefile1(
             },
             runtime => {
                 recommends => {
-                    perl            => '5.20.1',
-                    'Math::Complex' => '1.56',
-                    'Math::BigInt'  => '1.88',
-                    'Text::Soundex' => '3.04',
+                    'Math::Complex'       => '1.56',
+                    'Math::BigInt'        => '1.88',
+                    'Text::Soundex'       => '3.04',
+                    'Math::Base::Convert' => 0,
                 },
-                requires => {
-                    %RUN_DEPS,
-                    perl => '5.8',
-                },
+                requires  => {%RUN_DEPS},
                 conflicts => {%CONFLICTS},
             },
         },
@@ -157,20 +157,27 @@ sub WriteMakefile1
     $eumm_version = eval $eumm_version;
     die "EXTRA_META is deprecated" if ( exists( $params{EXTRA_META} ) );
     die "License not specified"    if ( !exists( $params{LICENSE} ) );
-    if ( $params{BUILD_REQUIRES} and ( $eumm_version < 6.5503 ) )
-    {
-        #EUMM 6.5502 has problems with BUILD_REQUIRES
-        $params{PREREQ_PM} = { %{ $params{PREREQ_PM} || {} }, %{ $params{BUILD_REQUIRES} } };
-        delete $params{BUILD_REQUIRES};
-    }
-    delete $params{CONFIGURE_REQUIRES} if ( $eumm_version < 6.52 );
-    delete $params{MIN_PERL_VERSION}   if ( $eumm_version < 6.48 );
-    delete $params{META_MERGE}         if ( $eumm_version < 6.46 );
-    delete $params{META_ADD}           if ( $eumm_version < 6.46 );
-    delete $params{LICENSE}            if ( $eumm_version < 6.31 );
-    delete $params{AUTHOR}             if ( $] < 5.005 );
-    delete $params{ABSTRACT_FROM}      if ( $] < 5.005 );
-    delete $params{BINARY_LOCATION}    if ( $] < 5.005 );
+    $params{TEST_REQUIRES}
+      and $eumm_version < 6.6303
+      and $params{BUILD_REQUIRES} = { %{ $params{BUILD_REQUIRES} || {} }, %{ delete $params{TEST_REQUIRES} } };
+    #EUMM 6.5502 has problems with BUILD_REQUIRES
+    $params{BUILD_REQUIRES}
+      and $eumm_version < 6.5503
+      and $params{PREREQ_PM} = { %{ $params{PREREQ_PM} || {} }, %{ delete $params{BUILD_REQUIRES} } };
+    ref $params{AUTHOR}
+      and "ARRAY" eq ref $params{AUTHOR}
+      and $eumm_version < 6.5702
+      and $params{AUTHOR} = join( ", ", @{ $params{AUTHOR} } );
+    delete $params{CONFIGURE_REQUIRES}    if ( $eumm_version < 6.52 );
+    delete $params{MIN_PERL_VERSION}      if ( $eumm_version < 6.48 );
+    delete $params{META_MERGE}            if ( $eumm_version < 6.46 );
+    delete $params{META_ADD}{prereqs}     if ( $eumm_version < 6.58 );
+    delete $params{META_ADD}{'meta-spec'} if ( $eumm_version < 6.58 );
+    delete $params{META_ADD}              if ( $eumm_version < 6.46 );
+    delete $params{LICENSE}               if ( $eumm_version < 6.31 );
+    delete $params{AUTHOR}                if ( $] < 5.005 );
+    delete $params{ABSTRACT_FROM}         if ( $] < 5.005 );
+    delete $params{BINARY_LOCATION}       if ( $] < 5.005 );
 
     # more or less taken from Moose' Makefile.PL
     if ( $params{CONFLICTS} )

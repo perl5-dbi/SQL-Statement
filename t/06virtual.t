@@ -444,94 +444,29 @@ foreach my $test_dbd (@test_dbds)
            result => [ [undef] ],
         },
         {
-           test   => 'conv 2->92',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 92)",
-           result => [ ['HN(/'] ],
-        },
-        {
            test   => 'conv 2->64',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 64)",
+           sql    => "SELECT CONV('10101001111011101101011',  2, 64)",
            result => [ ['VPdr'] ],
         },
         {
-           test   => 'conv 2->36',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 36)",
-           result => [ ['3BCKR'] ],
-        },
-        {
            test   => 'conv 2->16',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 16)",
-           result => [ ['54F76B'] ],
+           sql    => "SELECT CONV('10101001111011101101011',  2, 16)",
+           result => [ ['54f76b'] ],
         },
         {
            test   => 'conv 2->10',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2, 10)",
+           sql    => "SELECT CONV('10101001111011101101011',  2, 10)",
            result => [ [5568363] ],
         },
         {
            test   => 'conv 2->8',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2,  8)",
+           sql    => "SELECT CONV('10101001111011101101011',  2,  8)",
            result => [ [25173553] ],
         },
         {
            test   => 'conv 2->2',
-           sql    => "SELECT CONV('101 0100 1111 0111 0110 1011',  2,  2)",
+           sql    => "SELECT CONV('10101001111011101101011',  2,  2)",
            result => [ ['10101001111011101101011'] ],
-        },
-        {
-           test   => 'conv base 36 short-circuit',
-           sql    => "SELECT CONV(-1, 2, 36)",
-           result => [ [-1] ],
-        },
-        {
-           test   => 'conv base 92 short-circuit',
-           sql    => "SELECT CONV(-1, 2, 92)",
-           result => [ ['-B'] ],
-        },
-        {
-           test   => 'conv 92->36',
-           sql    => "SELECT CONV('-&23ms98*&a ^.21 hjs ', 92, 36)",
-           result => [ ['-K0I202KQNNWT6T.LCV70S2NKBRPR84RIHPA2JZ3N7MJ4LR6Z58UT0ASDKIG9QUDF96AGW9EY7318W1NWL28SHZ08T4DL8AA9KG59B6KNJZH4946CBLR0FRIGDZ7OB4F0WSGM9HVFR6E70FE932DYTYP46ZFOA3EZ54WIWW5Q3MH2FW8YIBN5V37CRN07A9C3VX4WZCF36BA69KI766606JE9G847RNA0NC3SKPR1CV7XRN56I5MWIZD34VUGJZ'] ],
-        },
-        {
-           test   => 'conv 2->92 fractional',
-           sql    => "SELECT CONV('10101001111.011101101011', 2, 92)",
-           result => [ ['O:.q8J_/XAAAAAAAAAAAAAAi&)LZgh0v&7iGMl6;4,FUUC6U}gTSvQ?J,{rClk2+~AEG^2;_gG@:%hpI5M`$]UVl(nG|@x]}*lq?!G8/A?'."'".'<e%d>x-08]1<%?fOf'."'".'&%MVDNVw)B&%LLL}v*%%Hy+j*_vyJZH7gZ5lZn<&0]OrTeW$-0#cVCrOf<\61\o_`$i:Ug%3A{*&e$M|LAL{rGHiur~YYm_]7?@]d{>u#mwh/z!F=>C[9*F}Gp%+GXyNhT'] ],
-        },
-        {
-           test   => 'conv 8->64 fractional',
-           sql    => "SELECT CONV(2517.3553, 8, 64)",
-           result => [ ['VP.dr'] ],
-        },
-        {
-           test   => 'conv 16->32 fractional',
-           sql    => "SELECT CONV('54F . 76B', 16, 32)",
-           result => [ ['1AF.EQO'] ],
-        },
-        {
-           test   => 'conv 2->16 fractional',
-           sql    => "SELECT CONV('101 0100 1111.0111 0110 1011', 2, 16)",
-           result => [ ['54F.76B'] ],
-        },
-        {
-           test   => 'conv 64->10 fractional',
-           sql    => "SELECT CONV('VP.dr', 64, 10)",
-           result_near => 1359.463623046875,
-        },
-        {
-           test   => 'conv 32->8 fractional',
-           sql    => "SELECT CONV(' 1 A F . E Q O ', 32, 8)",
-           result => [ [2517.3553] ],
-        },
-        {
-           test   => 'conv 2->2 fractional',
-           sql    => "SELECT CONV('101 0100 1111.0111 0110 1011', 2, 2)",
-           result => [ ['10101001111.011101101011'] ],
-        },
-        {
-           test   => 'conv 32->8 big_number',
-           sql    => "SELECT CONV('1AF.EQO0000000000000000000000000000', 32, 8)",
-           result => [ [2517.3553] ],
         },
 	{
            test   => 'conv 10->16 integer with trailing 0',

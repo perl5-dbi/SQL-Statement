@@ -6,6 +6,7 @@ use strict;
 use warnings FATAL => "all";
 # no warnings 'uninitialized';  # please don't bother me with these useless warnings...
 
+use Carp qw(croak);
 use Params::Util qw(_ARRAY0 _HASH0 _INSTANCE);
 use Scalar::Util qw(looks_like_number);
 use List::Util qw(max);      # core module since Perl 5.8.0
@@ -15,6 +16,7 @@ use Math::Trig;              # core module since Perl 5.004
 use Math::BigInt             # core modules since forever
   upgrade => 'Math::BigFloat';
 use Math::BigFloat;
+use Module::Runtime qw(require_module use_module);
 
 =pod
 
@@ -438,161 +440,31 @@ sub SQL_FUNCTION_CONCAT
 
 =head3 CONV
 
- # purpose   : convert a number X from base Y to base Z (from base 2 to 92)
+ # purpose   : convert a number X from base Y to base Z (from base 2 to 64)
  # arguments : X (can by a number or string depending on the base), Y, Z (Z defaults to 10)
+               Valid bases for Y and Z are: 2, 8, 10, 16 and 64
  # returns   : either a string or number, in base Z
- # notes     : 
- #    * Supports negative and decimal numbers
- #    * Will use big numbers if it has to, so accuracy is at near absolute levels
- #    * Letters are case-sensitive after base 36
- #    * Base character sets are: (second set is for compatibility with base 64)
- #          2 to 62 = 0-9, A-Z, a-z
- #         62 to 92 = A-Z, a-z, 0-9, +/_=~|,;:?!@#$%^&*()<>{}[]\`'"
+ # notes     : Behavioral table
+ #
+ #      base | valuation
+ #     ------+-----------
+ #         2 | binary, base 2 - (0,1)
+ #         8 | octal, base 8 - (0..7)
+ #        10 | decimal, base 10 - (0..9)
+ #        16 | hexadecimal, base 16 - (0..9,a..f)
+ #        64 | 0-63 from MIME::Base64
+ #
 
 =cut
 
 sub SQL_FUNCTION_CONV
 {
     my ( $self, $owner, $num, $sbase, $ebase ) = @_;
+
     $ebase ||= 10;
+    $_ and $_ != 2 and $_ != 8 and $_ != 10 and $_ != 16 and $_ != 64 and croak("Invalid base: $_") for ($sbase, $ebase);
 
-    die "Invalid base $sbase!" unless ( $sbase >= 2 && $sbase <= 92 );
-    die "Invalid base $ebase!" unless ( $ebase >= 2 && $ebase <= 92 );
-
-    my ( $i, $new ) = ( 0, '' );
-
-    # number clean up
-    $num =~ s/\s+//g;
-    $new = '-'      if ( $num =~ s/^\-// );    # negative
-    $num =~ s/^0+// if ( $sbase <= 62 );
-    $num =~ s/^A+// if ( $sbase > 62 );
-
-    my $is_dec = ( $num =~ /\./ ) ? 1 : 0;
-    $num =~ s/0+$// if ( $sbase <= 62 && $is_dec );
-    $num =~ s/A+$// if ( $sbase > 62  && $is_dec );
-
-    # short-circuits
-    return $new . $num if ( $sbase == $ebase );
-    return $new . $num if ( length($num) == 1 && $sbase < $ebase && $sbase <= 62 && $ebase <= 62 );
-
-    # num of digits (power)
-    my $poten_digits = int( length($num) * ( log($sbase) / log(10) ) );
-    $i = length($num) - 1;
-    $i = length($1) - 1 if ( $num =~ s/^(.+)\.(.+)$/$1$2/ );    # decimal digits
-
-    # might have large digits
-    my $use_big =
-      $poten_digits <= 14
-      ? 0
-      : 1;    # Perl's number limits are probably closer to 16 digits, but just to be safe...
-    $use_big = 1;
-    my ( @digits, %digits, $dnum );
-
-    # upgrade doesn't work as well as it should...
-    no strict 'subs';
-    my $big_class = $is_dec ? Math::BigFloat : Math::BigInt;
-
-    # convert base Y to base 10 (with short-circuits)
-    if    ( !$is_dec && !$use_big && $sbase == 16 ) { $dnum = oct( '0x' . $num ); }
-    elsif ( !$is_dec && !$use_big && $sbase == 8 )  { $dnum = oct( '0' . $num ); }
-    elsif ( !$is_dec && !$use_big && $sbase == 2 )  { $dnum = oct( '0b' . $num ); }
-    elsif ( $sbase == 10 )
-    {
-        no warnings 'numeric';    # what?  you think I'm adding zero on accident?
-        $dnum = $use_big ? $big_class->new($num) : $num + 0;
-        $dnum->accuracy( $poten_digits + 16 ) if ($use_big);
-    }
-    else
-    {
-        my $dstr =
-          ( $sbase <= 62 )
-          ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_=~|,;:?!@#$%^&*()<>{}[]\`' . "'\"";
-        $num = uc $num if ( $sbase <= 36 );
-
-        @digits = split //, $dstr;
-        %digits = map { $digits[$_] => $_ } ( 0 .. $sbase - 1 );
-
-        $dnum = $use_big ? $big_class->new(0) : 0;
-        $dnum->accuracy( $poten_digits + 16 ) if ($use_big);
-        foreach my $d ( $num =~ /./g )
-        {
-            die "Invalid character $d in string!" unless ( exists $digits{$d} );
-            my $v = $digits{$d};
-
-            my $exp;
-            if ($use_big)
-            {
-                $exp = $big_class->new($sbase);
-                $exp->accuracy( $poten_digits + 16 );
-                $dnum = $exp->bpow($i)->bmul($v)->badd($dnum);
-            }
-            else
-            {
-                $exp = $sbase**$i;
-                $dnum += $v * $exp;
-            }
-            $i--;    # may go into the negative for non-ints
-        }
-    }
-
-    # convert base 10 to base Z (with short-circuits)
-    if    ( !$is_dec && !$use_big && $ebase == 16 ) { $new .= sprintf( '%X', $dnum ); }
-    elsif ( !$is_dec && !$use_big && $ebase == 8 )  { $new .= sprintf( '%o', $dnum ); }
-    elsif ( !$is_dec && !$use_big && $ebase == 2 )  { $new .= sprintf( '%b', $dnum ); }
-    elsif ( $ebase == 10 ) { $new .= $dnum; }
-    else
-    {
-        my $dstr =
-          ( $ebase <= 62 )
-          ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-          : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/_-=~|,;:?!@#$%^&*()<>{}[]\`' . "'\"";
-        @digits = split //, $dstr;
-
-        # get the largest power of Z (the highest digit)
-        $i = $use_big
-          ? $dnum->copy()->blog(
-            $ebase,
-            int( $dnum->length() / 9 ) + 2    # (an accuracy that is a little over the potential # of integer digits within log)
-          )->bfloor()->bstr()
-          : int( log($dnum) / log($ebase) );
-
-        while ( ( $dnum != 0 || $i >= 0 ) && length($new) < 255 )
-        {
-            if ( $i == -1 )
-            {                                 # time to go pro...
-                $use_big = 1;
-                $dnum    = $big_class->new($dnum);
-                $dnum->accuracy( length($dnum) + 255 + 16 );
-            }
-
-            my ( $exp, $v );
-            if ($use_big)
-            {
-                $exp = $big_class->new($ebase)->bpow($i);
-                $v   = $dnum->copy()->bdiv($exp)->bfloor();
-            }
-            else
-            {
-                $exp = $ebase**$i;
-                $v   = int( $dnum / $exp );
-            }
-            $dnum -= $v * $exp;    # this method is safer for fractionals
-
-            $new .= '.' if ( $i == -1 );    # decimal point
-            $new .= $digits[$v];
-
-            $i--;                           # may go into the negative for non-ints
-        }
-    }
-
-    # Final cleanup
-    $new =~ s/^(-?)(?:0(?!(?:\.|\z)))+/$1/ if ( $ebase <= 62 );
-    $new =~ s/^(-?)(?:A(?!(?:\.|\z)))+/$1/ if ( $ebase > 62 );
-    $new =~ s/0+$//                        if ( $ebase <= 62 && $is_dec );
-    $new =~ s/A+$//                        if ( $ebase > 62 && $is_dec );
-
-    return $new;
+    scalar use_module("Math::Base::Convert")->new($sbase, $ebase)->cnv($num);
 }
 
 =pod
@@ -685,9 +557,9 @@ sub SQL_FUNCTION_INSERT
 
 =cut
 
-sub SQL_FUNCTION_HEX { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 16 ); }
-sub SQL_FUNCTION_OCT { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 8 ); }
-sub SQL_FUNCTION_BIN { return SQL_FUNCTION_CONV( @_[ 0 .. 2 ], 10, 2 ); }
+sub SQL_FUNCTION_HEX { return shift->SQL_FUNCTION_CONV( @_[ 0 .. 1 ], 10, 16 ); }
+sub SQL_FUNCTION_OCT { return shift->SQL_FUNCTION_CONV( @_[ 0 .. 1 ], 10, 8 ); }
+sub SQL_FUNCTION_BIN { return shift->SQL_FUNCTION_CONV( @_[ 0 .. 1 ], 10, 2 ); }
 
 =pod
 
@@ -1356,7 +1228,6 @@ sub SQL_FUNCTION_IMPORT
     }
     elsif ( _INSTANCE( $params[0], 'DBI::st' ) )
     {
-
         my @cols;
         @cols = @{ $params[0]->{NAME} } unless @cols;
 
