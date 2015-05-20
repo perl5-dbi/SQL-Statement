@@ -35,6 +35,7 @@ my %RUN_DEPS = (
     'Module::Runtime' => 0,
     'Params::Util'    => '1.00',
     'Scalar::Util'    => '1.0',
+    'Text::Balanced'  => 0,
 );
 my %CONFIGURE_DEPS = (
     'ExtUtils::MakeMaker' => 0,

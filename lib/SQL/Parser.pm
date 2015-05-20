@@ -20,6 +20,7 @@ use constant BAREWORD_FUNCTIONS =>
 use Carp qw(carp croak);
 use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
+use Text::Balanced qw(extract_bracketed);
 
 $VERSION = '1.406_001';
 
@@ -711,10 +712,10 @@ sub INSERT
     my ( $self, $str ) = @_;
     my $col_str;
     $str =~ s/^INSERT\s+INTO\s+/INSERT /i;    # allow INTO to be optional
-    my ( $table_name, $val_str ) = $str =~ m/^INSERT\s+(.+?)\s+VALUES\s+(\(.+?\))$/i;
+    my ( $table_name, $val_str ) = $str =~ m/^INSERT\s+(.+?)\s+VALUES\s+(\(.+\))$/i;
     if ( $table_name and $table_name =~ m/[()]/ )
     {
-        ( $table_name, $col_str, $val_str ) = $str =~ m/^INSERT\s+(.+?)\s+\((.+?)\)\s+VALUES\s+(\(.+?\))$/i;
+        ( $table_name, $col_str, $val_str ) = $str =~ m/^INSERT\s+(.+?)\s+\((.+?)\)\s+VALUES\s+(\(.+\))$/i;
     }
     return $self->do_err('No table name specified!') unless ($table_name);
     return $self->do_err('Missing values list!')     unless ( defined $val_str );
@@ -735,11 +736,13 @@ sub INSERT
         ];
     }
     $self->{struct}->{values} = [];
-    while ( $val_str =~ m/\((.+?)\)(?:,|$)/g )
-    {
-        my $line_str = $1;
-        return undef unless ( $self->LITERAL_LIST($line_str) );
+    for (my ($v,$line_str) = $val_str;
+	 (($line_str,$v)=extract_bracketed($v,"('",'')) && defined $line_str;
+	) {
+      return undef unless ( $self->LITERAL_LIST(substr($line_str,1,-1)) );
+      last unless $v =~ s/\A\s*,\s*//;
     }
+
     return 1;
 }
 

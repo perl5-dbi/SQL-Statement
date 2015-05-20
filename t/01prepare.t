@@ -46,6 +46,9 @@ UPDATE foo SET bar = 7 WHERE id > 7
   /* INSERT */
 INSERT INTO foo VALUES ( 'baz', 7, NULL )
 INSERT INTO foo (col1,col2,col7) VALUES ( 'baz', 7, NULL )
+INSERT INTO foo VALUES ( now(), trim(lower(user)), curdate-1 )
+INSERT INTO foo VALUES ( 'smile :-),(-: twice)', ' \\' ) ' )
+INSERT INTO foo VALUES (1,'row'),(2,'rows')
   /* CREATE TABLE */
 CREATE TABLE foo ( id INT )
 CREATE LOCAL TEMPORARY TABLE foo (id INT)
