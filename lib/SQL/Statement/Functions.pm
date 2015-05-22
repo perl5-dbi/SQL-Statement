@@ -304,7 +304,7 @@ sub SQL_FUNCTION_CURRENT_TIMESTAMP
     return sprintf(
         '%4s-%02s-%02s %02s:%02s:%02s' . ( $prec ? '.%s' : '' ),
         $year + 1900,
-        $mon + 1, $day, $hour, $min, $sec, $sec_frac
+        $mon + 1, $day, $hour, $min, $sec, ( $prec ? $sec_frac : ())
     );
 }
 no warnings 'once';
