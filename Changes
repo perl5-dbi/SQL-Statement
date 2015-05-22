@@ -1,5 +1,12 @@
 Changes log for Perl extension SQL::Statement
 
+1.406_002 2015-05-22
+    [Bug fixes]
+    * Fix RT#104579: Redundant argument in sprintf
+      submitted by Slaven Rezić
+    * Fix RT#104589: t/14parse.t fails if Test::Deep is not installed
+      submitted by Slaven Rezić
+
 1.406_001 2015-05-20
     [Misc]
     * clean up Makefile.PL, meta-data and requirements
