@@ -3,7 +3,7 @@ package SQL::Statement::Term;
 use strict;
 use warnings FATAL => "all";
 
-our $VERSION = '1.406_001';
+our $VERSION = '1.406_002';
 
 use Scalar::Util qw(weaken);
 use Carp ();
