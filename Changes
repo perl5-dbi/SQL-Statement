@@ -1,5 +1,8 @@
 Changes log for Perl extension SQL::Statement
 
+1.407 2015-05-26
+    * Release 1.406_002 without further changes as 1.407
+
 1.406_002 2015-05-22
     [Bug fixes]
     * Fix RT#104579: Redundant argument in sprintf
