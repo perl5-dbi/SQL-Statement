@@ -1112,11 +1112,11 @@ sub CREATE
         # it seems, perl 5.6 isn't greedy enough .. let's help a bit
         my ($data_types_regex) = join( '|', sort { length($b) <=> length($a) } keys %{ $self->{opts}->{valid_data_types} } );
         $data_types_regex =~ s/ /\\ /g;    # backslash spaces to allow the /x modifier below
-        my ( $name, $type, $constraints ) = (
+        my ( $name, $type, $suffix ) = (
             $col =~ m/\s*(\S+)\s+                         # capture the column name
                         ((?:$data_types_regex|\S+)        # check for all allowed data types OR anything that looks like a bad data type to give a good error
                         (?:\s*\(\d+(?:\?COMMA\?\d+)?\))?) # allow the data type to have a precision specifier such as NUMERIC(4,6) on it
-                        \s*(\W.*|$)                       # capture the constraints if any
+                        \s*(\W.*|$)                       # capture the suffix of the column definition, e.g. constraints
                      /ix
         );
         return $self->do_err("Column definition is missing a data type!") unless ($type);
@@ -1124,37 +1124,27 @@ sub CREATE
 
         $name = $self->replace_quoted_ids($name);
 
-        $constraints =~ s/^\s+//;
-        $constraints =~ s/\s+$//;
-        if ($constraints)
-        {
-            $constraints =~ s/PRIMARY KEY/PRIMARY_KEY/i;
-            $constraints =~ s/NOT NULL/NOT_NULL/i;
-            my @c = split m/\s+/, $constraints;
-            my %has_c;
-            for my $constr (@c)
-            {
-                if ( $constr =~ m/^\s*(UNIQUE|NOT_NULL|PRIMARY_KEY)\s*$/i )
-                {
-                    my $cur_c = uc $1;
-                    if ( $has_c{$cur_c}++ )
-                    {
-                        return $self->do_err(qq~Duplicate column constraint: '$constr'!~);
-                    }
-                    if ( $cur_c eq 'PRIMARY_KEY' and $primary_defined++ )
-                    {
-                        return $self->do_err(qq{Can't have two PRIMARY KEYs in a table!});
-                    }
-                    $constr =~ s/_/ /g;
-                    push @{ $self->{struct}->{table_defs}->{columns}->{$name}->{constraints} }, $constr;
+        my @possible_constraints = ('PRIMARY KEY', 'NOT NULL', 'UNIQUE');
 
-                }
-                else
-                {
-                    return $self->do_err("Unknown column constraint: '$constr'!");
-                }
-            }
+        for my $constraint (@possible_constraints)
+        {
+            my $count = $suffix =~ s/$constraint//gi;
+            next if $count == 0;
+
+            return $self->do_err(qq~Duplicate column constraint: '$constraint'!~)
+                if $count > 1;
+
+            return $self->do_err(qq{Can't have two PRIMARY KEYs in a table!})
+                if $constraint eq 'PRIMARY KEY' and $primary_defined++;
+
+            push @{ $self->{struct}->{table_defs}->{columns}->{$name}->{constraints} }, $constraint;
         }
+
+        $suffix =~ s/^\s+//;
+        $suffix =~ s/\s+$//;
+
+        return $self->do_err("Unknown column constraint: '$suffix'!") unless ($suffix eq '');
+
         $type = uc $type;
         my $length;
         if ( $type =~ m/(.+)\((.+)\)/ )
