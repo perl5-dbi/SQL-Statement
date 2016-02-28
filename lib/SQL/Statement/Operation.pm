@@ -186,7 +186,13 @@ left and right operand.
 
 =cut
 
-sub operate($) { return $_[0]->{LEFT}->value( $_[1] ) && $_[0]->{RIGHT}->value( $_[1] ); }
+sub operate($)
+{
+    my $left  = $_[0]->{LEFT}->value( $_[1] );
+    my $right = $_[0]->{RIGHT}->value( $_[1] );
+
+    return $left && $right;
+}
 
 package SQL::Statement::Operation::Or;
 
@@ -227,7 +233,13 @@ left and right operand.
 
 =cut
 
-sub operate($) { return $_[0]->{LEFT}->value( $_[1] ) || $_[0]->{RIGHT}->value( $_[1] ); }
+sub operate($)
+{
+    my $left  = $_[0]->{LEFT}->value( $_[1] );
+    my $right = $_[0]->{RIGHT}->value( $_[1] );
+
+    return $left || $right;
+}
 
 package SQL::Statement::Operation::Is;
 

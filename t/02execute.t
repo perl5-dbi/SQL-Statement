@@ -63,6 +63,13 @@ foreach my $test_dbd (@test_dbds)
     $str = '';
     while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
     cmp_ok( $str, 'eq', '1 foo^2 bar^3 baz^4 fob^5 zab^', 'verify table contents' );
+    # RT#99349
+    $sth = $dbh->prepare('SELECT id,phrase FROM Tmp WHERE (id<? or id>?) and phrase LIKE ? ORDER BY id');
+    ok($sth, "prepare 'SELECT id,phrase FROM Tmp WHERE (id<? or id>?) and phrase LIKE ? ORDER BY id'") or diag( $dbh->errstr() );
+    $sth->execute(4,8,"ba%") or diag( $dbh->errstr() );
+    $str = '';
+    while ( my $r = $sth->fetch_row() ) { $str .= "@$r^"; }
+    cmp_ok( $str, 'eq', '2 bar^3 baz^', 'verify placeholder processing' );
     ok( $dbh->do(qq{ DROP TABLE IF EXISTS Tmp }), 'DROP TABLE' ) or diag( $dbh->errstr() );
 
     ########################################
