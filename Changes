@@ -1,5 +1,14 @@
 Changes log for Perl extension SQL::Statement
 
+1.408_001
+    [Bug fixes]
+    * Fix RT#112530 - t/06virtual.t fails with -Duselongdouble (thanks
+      Slaven Rezic)
+    * Fix RT#105852 - dependency installation isn't triggered properly in
+      cpan (thanks Mithaldu)
+    * Fix RT#99349 - bind variables are not bound to placeholders in the
+      correct order (thanks vulpeculus@gmx.de)
+
 1.407 2015-05-26
     * Release 1.406_002 without further changes as 1.407
 
