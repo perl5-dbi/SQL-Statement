@@ -9,9 +9,10 @@ use TestLib qw(connect prove_reqs show_reqs test_dir default_recommended);
 use Params::Util qw(_CODE _ARRAY);
 use Scalar::Util qw(looks_like_number);
 
-my ( $required, $recommended ) = prove_reqs( { default_recommended(), ( MLDBM => 0 ) } );
+my ( $required, $recommended ) = prove_reqs( { default_recommended(), ( MLDBM => 0, "Math::Base::Convert" => 0 ) } );
 show_reqs( $required, $recommended );
 my @test_dbds = ( 'SQL::Statement', grep { /^dbd:/i } keys %{$recommended} );
+my $have_math_base_convert = exists $recommended->{"Math::Base::Convert"};
 my $testdir = test_dir();
 
 my @massValues = map { [ $_, ( "a" .. "f" )[ int rand 6 ], int rand 10 ] } ( 1 .. 3999 );
@@ -368,20 +369,22 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT CHAR(65)",
            result => [ ['A'] ],
         },
+        $have_math_base_convert ? (
         {
            test   => 'char char unicode',
            sql    => "SELECT CHAR(CONV('263A', 16))",
-           result => [ [chr(0x263a)] ],
-        },
-        {
-           test   => 'char str',
-           sql    => "SELECT CHAR(65,66,67)",
-           result => [ ['ABC'] ],
+           result => [ [chr(0x263a)] ]
         },
         {
            test   => 'char str unicode',
            sql    => "SELECT CHAR(CONV('263A', 16), 9787, CONV('10011000111100', 2))",
            result => [ [chr(9786).chr(9787).chr(9788)] ],
+        }, )
+	: (),
+        {
+           test   => 'char str',
+           sql    => "SELECT CHAR(65,66,67)",
+           result => [ ['ABC'] ],
         },
         {
            test   => 'bit_length 6bit',
@@ -444,6 +447,7 @@ foreach my $test_dbd (@test_dbds)
            sql    => "SELECT CONCAT('A',NULL)",
            result => [ [undef] ],
         },
+        $have_math_base_convert ? (
         {
            test   => 'conv 2->64',
            sql    => "SELECT CONV('10101001111011101101011',  2, 64)",
@@ -478,7 +482,8 @@ foreach my $test_dbd (@test_dbds)
            test   => 'conv 10->16 integer 0',
 	   sql    => "select conv('0', 10, 16)",
 	   result => [ ['0'] ],
-	},
+	}, )
+	: (),
         {
            test => 'decode',
            sql =>
@@ -676,6 +681,7 @@ foreach my $test_dbd (@test_dbds)
            sql    => q{SELECT TRIM(LEADING ';' FROM ';;; fun ')},
            result => [ [' fun '] ],
         },
+	$have_math_base_convert ? (
         {
            test   => 'unhex str',
            sql    => "SELECT UNHEX('414243')",
@@ -695,7 +701,7 @@ foreach my $test_dbd (@test_dbds)
            test   => 'oct from dec',
            sql    => "SELECT OCT('420')",
            result => [ ['644'] ],
-        },
+        }, ) : (),
         ### Numeric Functions ### 
         {
            test   => 'abs',
