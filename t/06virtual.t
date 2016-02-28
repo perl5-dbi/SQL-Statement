@@ -741,7 +741,7 @@ foreach my $test_dbd (@test_dbds)
         {
            test   => 'exp',
            sql    => "SELECT EXP(1)",
-           result => [ [sinh(1)+cosh(1)] ],
+           result => [ [ (sinh(1)+cosh(1))**1 ] ],
         },
         {
            test   => 'log as log10',
