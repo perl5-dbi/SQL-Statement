@@ -235,7 +235,7 @@ ODBC 3.0 functions that are implemented with differences include:
 =cut
 
 use vars qw($VERSION);
-$VERSION = '1.407';
+$VERSION = '1.408_001';
 
 =pod
 

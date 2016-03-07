@@ -17,7 +17,7 @@ use strict;
 use warnings FATAL => "all";
 
 use vars qw($VERSION);
-$VERSION = '1.407';
+$VERSION = '1.408_001';
 
 ####################################
 package SQL::Statement::RAM::Table;
