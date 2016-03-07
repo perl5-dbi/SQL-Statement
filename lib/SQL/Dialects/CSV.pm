@@ -1,5 +1,16 @@
 package SQL::Dialects::CSV;
 
+#########################################################################
+#
+# This module is copyright (c), 2001,2005 by Jeff Zucker.
+# This module is copyright (c), 2007-2016 by Jens Rehsack.
+# All rights reserved.
+#
+# It may be freely distributed under the same terms as Perl itself.
+#
+# See below for help (search for SYNOPSIS)
+#########################################################################
+
 use strict;
 use warnings FATAL => "all";
 
@@ -122,5 +133,21 @@ ini-style:
 
   [RESERVED WORDS]
   ...
+
+=head1 AUTHOR & COPYRIGHT
+
+ This module is
+
+ copyright (c) 2001,2005 by Jeff Zucker and
+ copyright (c) 2007-2016 by Jens Rehsack.
+
+ All rights reserved.
+
+The module may be freely distributed under the same terms as
+Perl itself using either the "GPL License" or the "Artistic
+License" as specified in the Perl README file.
+
+Jeff can be reached at: jzuckerATcpan.org
+Jens can be reached at: rehsackATcpan.org or via dbi-devATperl.org
 
 =cut

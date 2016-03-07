@@ -1,5 +1,15 @@
 package SQL::Statement::Term;
 
+######################################################################
+#
+# This module is copyright (c), 2009-2016 by Jens Rehsack.
+# All rights reserved.
+#
+# It may be freely distributed under the same terms as Perl itself.
+# See below for help and copyright information (search for SYNOPSIS).
+#
+######################################################################
+
 use strict;
 use warnings FATAL => "all";
 
@@ -226,7 +236,7 @@ sub value($)
 
 =head1 AUTHOR AND COPYRIGHT
 
-Copyright (c) 2009,2010 by Jens Rehsack: rehsackATcpan.org
+Copyright (c) 2009-2016 by Jens Rehsack: rehsackATcpan.org
 
 All rights reserved.
 

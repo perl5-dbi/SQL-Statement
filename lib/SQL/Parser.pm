@@ -1,9 +1,9 @@
-######################################################################
 package SQL::Parser;
+
 ######################################################################
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
-# This module is copyright (c), 2007-2010 by Jeff Zucker, Jens Rehsack.
+# This module is copyright (c), 2007-2016 by Jens Rehsack.
 # All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -3433,7 +3433,7 @@ package.
  This module is
 
  copyright (c) 2001,2005 by Jeff Zucker and
- copyright (c) 2008,2010 by Jens Rehsack.
+ copyright (c) 2007-2016 by Jens Rehsack.
 
  All rights reserved.
 

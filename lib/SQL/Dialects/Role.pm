@@ -1,5 +1,16 @@
 package SQL::Dialects::Role;
 
+#########################################################################
+#
+# This module is copyright (c), 2009 by Michael G. Schwern
+# This module is copyright (c), 2009-2016 by Jens Rehsack.
+# All rights reserved.
+#
+# It may be freely distributed under the same terms as Perl itself.
+#
+# See below for help (search for SYNOPSIS)
+#########################################################################
+
 use strict;
 use warnings FATAL => "all";
 
@@ -95,6 +106,22 @@ The example in the SYNOPSIS would come back as...
             ITEM2       => 2,
         }
    }
+
+=head1 AUTHOR & COPYRIGHT
+
+ This module is
+
+ copyright (c), 2009 by Michael G. Schwern
+ copyright (c), 2009-2016 by Jens Rehsack.
+
+ All rights reserved.
+
+The module may be freely distributed under the same terms as
+Perl itself using either the "GPL License" or the "Artistic
+License" as specified in the Perl README file.
+
+Jeff can be reached at: jzuckerATcpan.org
+Jens can be reached at: rehsackATcpan.org or via dbi-devATperl.org
 
 =head1 SEE ALSO
 

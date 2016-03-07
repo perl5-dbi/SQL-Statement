@@ -1,6 +1,15 @@
-# -*- perl -*-
-
 package SQL::Eval;
+
+#########################################################################
+#
+# This module is copyright (c), 2001,2005 by Jeff Zucker.
+# This module is copyright (c), 2007-2016 by Jens Rehsack.
+# All rights reserved.
+#
+# It may be freely distributed under the same terms as Perl itself.
+#
+# See below for help (search for SYNOPSIS)
+#########################################################################
 
 require 5.008;
 use strict;
@@ -558,7 +567,7 @@ This module is Copyright (C) 1998 by
     Email: joe@ispsoft.de
     Phone: +49 7123 14887
 
-and Copyright (C) 2009, 2010 by
+and Copyright (C) 2009, 2016 by
 
      Jens Rehsack < rehsackATcpan.org>
 
