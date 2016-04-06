@@ -1,5 +1,8 @@
 Changes log for Perl extension SQL::Statement
 
+1.409 2016-04-06
+    * Release 1.408_001 without further changes as 1.409
+
 1.408_001 2016-03-07
     [Bug fixes]
     * Fix RT#112530 - t/06virtual.t fails with -Duselongdouble (thanks

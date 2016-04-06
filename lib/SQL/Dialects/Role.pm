@@ -16,7 +16,7 @@ use warnings FATAL => "all";
 
 use base qw(Exporter);
 our @EXPORT  = qw(get_config_as_hash);
-our $VERSION = '1.408_001';
+our $VERSION = '1.409';
 
 sub get_config_as_hash
 {

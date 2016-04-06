@@ -15,7 +15,7 @@ use strict;
 use warnings FATAL => "all";
 
 use vars qw($VERSION %info);
-$VERSION = '1.408_001';
+$VERSION = '1.409';
 
 use SQL::Statement();
 
