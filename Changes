@@ -1,5 +1,13 @@
 Changes log for Perl extension SQL::Statement
 
+1.410 2016-04-11
+    [Bug fixes]
+    * Fix RT#113625 - Unnecessary x-bits (Kent Fredric)
+
+    [Documentation]
+    * pod2markdown README.md from lib/SQL/Statement.pm
+    
+
 1.409 2016-04-06
     * Release 1.408_001 without further changes as 1.409
 
