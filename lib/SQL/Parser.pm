@@ -60,6 +60,7 @@ sub parse
     $self->dialect( $self->{dialect} ) unless ( $self->{dialect_set} );
     $sql =~ s/^\s+//;
     $sql =~ s/\s+$//;
+    $sql =~ s/\s*;$//;
     $self->{struct}                    = { dialect => $self->{dialect} };
     $self->{tmp}                       = {};
     $self->{original_string}           = $sql;
