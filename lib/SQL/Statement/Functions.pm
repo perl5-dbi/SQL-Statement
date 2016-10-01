@@ -479,7 +479,7 @@ sub SQL_FUNCTION_CONV
 =head3 DECODE
 
  # purpose   : compare the first argument against
- #             succeding arguments at position 1 + 2N
+ #             succeeding arguments at position 1 + 2N
  #             (N = 0 to (# of arguments - 2)/2), and if equal,
  #				return the value of the argument at 1 + 2N + 1; if no
  #             arguments are equal, the last argument value is returned
