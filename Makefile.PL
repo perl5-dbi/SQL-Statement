@@ -65,8 +65,8 @@ WriteMakefile1(
             x_IRC         => "irc://irc.perl.org/#dbi",
             x_MailingList => "mailto:dbi-dev\@perl.org'",
             repository    => {
-                url  => 'https://github.com:perl5-utils/SQL-Statement.git',
-                web  => 'https://github.com/perl5-utils/SQL-Statement',
+                url  => 'https://github.com/perl5-dbi/SQL-Statement.git',
+                web  => 'https://github.com/perl5-dbi/SQL-Statement',
                 type => 'git',
             },
             bugtracker => {
