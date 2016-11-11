@@ -184,7 +184,7 @@ foreach my $test_dbd (@test_dbds)
     SKIP: {
 	-e 'Bar.pm' and unlink 'Bar.pm';
 	my $fh;
-	open( $fh, '>Bar.pm' ) or skip(1, $!);
+	open( $fh, '>Bar.pm' ) or skip($!, 1);
 	print $fh "package Bar; sub SQL_FUNCTION_BAR{77};1;";
 	close $fh;
 	local @INC;
