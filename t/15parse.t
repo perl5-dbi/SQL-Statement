@@ -12,7 +12,7 @@ use SQL::Parser;
 my($stmt,$cache)=(undef,{});
 my $p = SQL::Parser->new();
 
-ok(cmp_parse('SELECT * FROM z LIMIT 5 OFFSET 0'), 'limit x offset y');
+ok(cmp_parse('SELECT * FROM z LIMIT 5 OFFSET 0','SELECT * FROM z LIMIT 5,0'), 'limit x offset y');
 
 done_testing();
 
