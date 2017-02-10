@@ -18,7 +18,10 @@ my $sql2 = 'SELECT * FROM x JOIN y ON x.a = y.b OR x.c = y.d';
 ok(cmp_parse($sql2,$sql2), 'JOIN with OR');
 
 my $sql3 = 'SELECT * FROM x JOIN y ON (x.a = y.b) OR (x.c = y.d)';
-ok(cmp_parse($sql3,$sql3), 'JOIN with OR with ()s');
+ok(cmp_parse($sql3,$sql3), 'JOIN with OR and ()s');
+
+my $sql4 = 'SELECT * FROM x JOIN y ON (x.a = y.b AND x.x = y.z) OR (x.c = y.d OR x.e = y.f)';
+ok(cmp_parse($sql4,$sql4), 'JOIN with complete AND/OR in ()s');
 
 done_testing();
 
