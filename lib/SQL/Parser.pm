@@ -619,11 +619,7 @@ sub EXPLICIT_JOIN
             $tableB = $1;
             my $keycolstr = $2;
             $remainder = $3;
-            if ( $keycolstr =~ m/ OR /i )
-            {
-                return $self->do_err( qq{Can't use OR in an ON clause!}, 1 );
-            }
-            @$keycols = split / AND /i, $keycolstr;
+            @$keycols = split(/ AND|OR /i, $keycolstr);
 
             return undef
               unless $self->TABLE_NAME_LIST( $tableA . ',' . $tableB );
