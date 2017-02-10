@@ -629,6 +629,7 @@ sub EXPLICIT_JOIN
             for my $keycol (@$keycols)
             {
                 my %is_done;
+		$keycol =~ s/\)|\(//g;
                 my ( $arg1, $arg2 ) = split( m/ = /, $keycol );
                 my ( $c1, $c2 ) = ( $arg1, $arg2 );
                 $c1 =~ s/^.*\.([^\.]+)$/$1/;
@@ -2728,6 +2729,7 @@ sub IDENTIFIER
         my $schema = $1;    # ignored
         $id = $2;
     }
+    $id =~ s/\(|\)//g;
     return 1 if $id =~ m/^".+?"$/s;    # QUOTED IDENTIFIER
     my $err = "Bad table or column name: '$id' ";    # BAD CHARS
     if ( $id =~ /\W/ )
