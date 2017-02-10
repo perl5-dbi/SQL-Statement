@@ -630,7 +630,7 @@ sub EXPLICIT_JOIN
             {
                 my %is_done;
 		$keycol =~ s/\)|\(//g;
-                my ( $arg1, $arg2 ) = split( m/ = /, $keycol );
+                my ( $arg1, $arg2 ) = split( m/ [>=<] /, $keycol );
                 my ( $c1, $c2 ) = ( $arg1, $arg2 );
                 $c1 =~ s/^.*\.([^\.]+)$/$1/;
                 $c2 =~ s/^.*\.([^\.]+)$/$1/;

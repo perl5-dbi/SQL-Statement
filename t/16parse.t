@@ -21,7 +21,10 @@ my $sql3 = 'SELECT * FROM x JOIN y ON (x.a = y.b) OR (x.c = y.d)';
 ok(cmp_parse($sql3,$sql3), 'JOIN with OR and ()s');
 
 my $sql4 = 'SELECT * FROM x JOIN y ON (x.a = y.b AND x.x = y.z) OR (x.c = y.d OR x.e = y.f)';
-ok(cmp_parse($sql4,$sql4), 'JOIN with complete AND/OR in ()s');
+ok(cmp_parse($sql4,$sql4), 'JOIN with complex AND/OR in ()s');
+
+my $sql5 = 'SELECT * FROM x JOIN y ON (x.a = y.b AND x.a > 12 AND x.a < 20) OR (x.c = y.d OR x.e = y.f)';
+ok(cmp_parse($sql5,$sql5), 'JOIN with lt"<" and gt">"');
 
 done_testing();
 
