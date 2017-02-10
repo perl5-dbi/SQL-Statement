@@ -1469,8 +1469,17 @@ sub LIMIT_CLAUSE
     $limit_clause =~ s/\s+$//;
 
     return 1 if !$limit_clause;
-    my ( $offset, $limit, $junk ) = split /,/, $limit_clause;
-    return $self->do_err('Bad limit clause!')
+    my $offset;
+    my $limit;
+    my $junk;
+($offset, $limit, $junk ) = split /,|OFFSET/i, $limit_clause;
+    if ($limit_clause =~ m/(\d+)\s+OFFSET\s+(\d+)/) {
+	$limit = $1;
+	$offset = $2;
+    } else {
+	( $offset, $limit, $junk ) = split /,/i, $limit_clause;
+    }
+    return $self->do_err('Bad limit clause!:'.$limit_clause)
       if ( defined $limit and $limit =~ /[^\d]/ )
       or ( defined $offset and $offset =~ /[^\d]/ )
       or defined $junk;
