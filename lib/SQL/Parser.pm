@@ -619,11 +619,7 @@ sub EXPLICIT_JOIN
             $tableB = $1;
             my $keycolstr = $2;
             $remainder = $3;
-            if ( $keycolstr =~ m/ OR /i )
-            {
-                return $self->do_err( qq{Can't use OR in an ON clause!}, 1 );
-            }
-            @$keycols = split / AND /i, $keycolstr;
+            @$keycols = split(/ AND|OR /i, $keycolstr);
 
             return undef
               unless $self->TABLE_NAME_LIST( $tableA . ',' . $tableB );
@@ -633,7 +629,8 @@ sub EXPLICIT_JOIN
             for my $keycol (@$keycols)
             {
                 my %is_done;
-                my ( $arg1, $arg2 ) = split( m/ = /, $keycol );
+		$keycol =~ s/\)|\(//g;
+                my ( $arg1, $arg2 ) = split( m/ [>=<] /, $keycol );
                 my ( $c1, $c2 ) = ( $arg1, $arg2 );
                 $c1 =~ s/^.*\.([^\.]+)$/$1/;
                 $c2 =~ s/^.*\.([^\.]+)$/$1/;
@@ -1469,8 +1466,17 @@ sub LIMIT_CLAUSE
     $limit_clause =~ s/\s+$//;
 
     return 1 if !$limit_clause;
-    my ( $offset, $limit, $junk ) = split /,/, $limit_clause;
-    return $self->do_err('Bad limit clause!')
+    my $offset;
+    my $limit;
+    my $junk;
+($offset, $limit, $junk ) = split /,|OFFSET/i, $limit_clause;
+    if ($limit_clause =~ m/(\d+)\s+OFFSET\s+(\d+)/) {
+	$limit = $1;
+	$offset = $2;
+    } else {
+	( $offset, $limit, $junk ) = split /,/i, $limit_clause;
+    }
+    return $self->do_err('Bad limit clause!:'.$limit_clause)
       if ( defined $limit and $limit =~ /[^\d]/ )
       or ( defined $offset and $offset =~ /[^\d]/ )
       or defined $junk;
@@ -2723,6 +2729,7 @@ sub IDENTIFIER
         my $schema = $1;    # ignored
         $id = $2;
     }
+    $id =~ s/\(|\)//g;
     return 1 if $id =~ m/^".+?"$/s;    # QUOTED IDENTIFIER
     my $err = "Bad table or column name: '$id' ";    # BAD CHARS
     if ( $id =~ /\W/ )

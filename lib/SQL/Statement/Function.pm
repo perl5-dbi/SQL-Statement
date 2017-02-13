@@ -223,7 +223,7 @@ sub value($)
       map { _INSTANCE( $_, 'SQL::Statement::Term' ) ? $_->value($eval) : $_ } @{ $self->{PARAMS} };
     foreach my $val (@vals)
     {
-        return $owner->do_err(qq~Bad numeric expression '$val'!~)
+        return $self->do_err(qq~Bad numeric expression '$val'!~)
           unless ( defined( _NUMBER($val) ) );
     }
     $expr =~ s/\?(\d+)\?/$vals[$1]/g;
