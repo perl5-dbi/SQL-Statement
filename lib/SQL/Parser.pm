@@ -2718,6 +2718,10 @@ sub IDENTIFIER
     {
         return 1;
     }
+    if ( $id =~ m/^[`](.+)[`]$/ )
+    {
+        $id = $1 and return 1;
+    }
     if ( $id =~ m/^(.+)\.([^\.]+)$/ )
     {
         my $schema = $1;    # ignored
