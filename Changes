@@ -1,8 +1,20 @@
 Changes log for Perl extension SQL::Statement
 
+1.411_001 2017-03-30
+    [Bug fixes]
+    * Fix http://www.perlmonks.org/?node_id=1167381 (NumericEval: fix
+      typo on error handling) (thanks to Yanick Champoux, James R. Leu)
+    * fix repo url and t/02execute.t (Reini Urban, Mohammad S Anwar)
+    * fix test failing with blead-perl (Jens Rehsack)
+
+    [Improvements]
+    * Refactor constraints processing (Ovidiu Gheorghies)
+    * Support parsing of complex JOIN clause (containing OR and ()'s) (James R. Leu)
+    * handle backtick quoting (Ben Hengst)
+
 1.410 2016-04-11
     [Bug fixes]
-    * Fix RT#113625 - Unnecessary x-bits (Kent Fredric)
+    * Fix RT#113625 - Unnecessary x-bits (Kent Fredric, Mohammad S Anwar)
 
     [Documentation]
     * pod2markdown README.md from lib/SQL/Statement.pm
