@@ -187,6 +187,8 @@ foreach my $test_dbd (@test_dbds)
 	open( $fh, '>Bar.pm' ) or skip(1, $!);
 	print $fh "package Bar; sub SQL_FUNCTION_BAR{77};1;";
 	close $fh;
+	local @INC;
+	push @INC, "." unless grep { $_ eq "." } @INC;
 	$dbh->do("LOAD Bar");
 	ok( 77 == $dbh->selectrow_array("SELECT bar()"), 'LOAD FUNCTIONS' );
     }
