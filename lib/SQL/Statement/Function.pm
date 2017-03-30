@@ -218,14 +218,14 @@ sub new
 sub value($)
 {
     my ( $self, $eval ) = @_;
-    my $expr = $self->{EXPR};
     my @vals =
       map { _INSTANCE( $_, 'SQL::Statement::Term' ) ? $_->value($eval) : $_ } @{ $self->{PARAMS} };
     foreach my $val (@vals)
     {
-        return $owner->do_err(qq~Bad numeric expression '$val'!~)
+        return $self->{OWNER}->do_err(qq~Bad numeric expression '$val'!~)
           unless ( defined( _NUMBER($val) ) );
     }
+    my $expr = $self->{EXPR};
     $expr =~ s/\?(\d+)\?/$vals[$1]/g;
     $expr =~ s/\s//g;
     $expr =~ s/^([\)\(+\-\*\/\%0-9]+)$/$1/;    # untaint
