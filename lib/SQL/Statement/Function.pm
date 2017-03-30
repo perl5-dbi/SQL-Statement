@@ -2,7 +2,7 @@ package SQL::Statement::Function;
 
 ######################################################################
 #
-# This module is copyright (c), 2009-2016 by Jens Rehsack.
+# This module is copyright (c), 2009-2017 by Jens Rehsack.
 # All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -17,7 +17,7 @@ use vars qw(@ISA $VERSION);
 use SQL::Statement::Term ();
 @ISA = qw(SQL::Statement::Term);
 
-$VERSION = '1.410';
+$VERSION = '1.411_001';
 
 =pod
 
@@ -479,7 +479,7 @@ sub value($)
 
 =head1 AUTHOR AND COPYRIGHT
 
-Copyright (c) 2009-2016 by Jens Rehsack: rehsackATcpan.org
+Copyright (c) 2009-2017 by Jens Rehsack: rehsackATcpan.org
 
 All rights reserved.
 

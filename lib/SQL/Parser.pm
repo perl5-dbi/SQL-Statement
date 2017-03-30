@@ -3,7 +3,7 @@ package SQL::Parser;
 ######################################################################
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
-# This module is copyright (c), 2007-2016 by Jens Rehsack.
+# This module is copyright (c), 2007-2017 by Jens Rehsack.
 # All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -22,7 +22,7 @@ use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 use Text::Balanced qw(extract_bracketed);
 
-$VERSION = '1.410';
+$VERSION = '1.411_001';
 
 BEGIN
 {
@@ -3434,7 +3434,7 @@ package.
  This module is
 
  copyright (c) 2001,2005 by Jeff Zucker and
- copyright (c) 2007-2016 by Jens Rehsack.
+ copyright (c) 2007-2017 by Jens Rehsack.
 
  All rights reserved.
 
