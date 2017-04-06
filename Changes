@@ -1,5 +1,8 @@
 Changes log for Perl extension SQL::Statement
 
+1.412	2017-04-06
+    * Release 1.411_001 without further changes as 1.412
+
 1.411_001 2017-03-30
     [Bug fixes]
     * Fix http://www.perlmonks.org/?node_id=1167381 (NumericEval: fix
