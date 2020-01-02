@@ -3,7 +3,7 @@ package SQL::Dialects::AnyData;
 #########################################################################
 #
 # This module is copyright (c), 2001,2005 by Jeff Zucker.
-# This module is copyright (c), 2007-2017 by Jens Rehsack.
+# This module is copyright (c), 2007-2020 by Jens Rehsack.
 # All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -148,7 +148,7 @@ ini-style:
  This module is
 
  copyright (c) 2001,2005 by Jeff Zucker and
- copyright (c) 2007-2017 by Jens Rehsack.
+ copyright (c) 2007-2020 by Jens Rehsack.
 
  All rights reserved.
 

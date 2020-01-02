@@ -3,7 +3,7 @@ package SQL::Dialects::Role;
 #########################################################################
 #
 # This module is copyright (c), 2009 by Michael G. Schwern
-# This module is copyright (c), 2009-2017 by Jens Rehsack.
+# This module is copyright (c), 2009-2020 by Jens Rehsack.
 # All rights reserved.
 #
 # It may be freely distributed under the same terms as Perl itself.
@@ -112,7 +112,7 @@ The example in the SYNOPSIS would come back as...
  This module is
 
  copyright (c), 2009 by Michael G. Schwern
- copyright (c), 2009-2017 by Jens Rehsack.
+ copyright (c), 2009-2020 by Jens Rehsack.
 
  All rights reserved.
 
