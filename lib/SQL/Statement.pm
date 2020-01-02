@@ -2756,6 +2756,8 @@ Portions Copyright (C) 1998 by Jochen Wiedmann: jwiedATcpan.org
 
 All rights reserved.
 
+=head1 LICENSE
+
 You may distribute this module under the terms of either the GNU
 General Public License or the Artistic License, as specified in
 the Perl README file.
