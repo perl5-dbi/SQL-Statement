@@ -31,5 +31,5 @@ _Inline/.*
 bugsql
 nytprof*
 .*\.csv
-\..*
+^\.
 SQL-Statement-.*
