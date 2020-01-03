@@ -1537,7 +1537,7 @@ sub verify_columns
         }
 
         # the following should be probably conditioned on an option,
-        # but I don't know which --BW
+        # but I do not know which --BW
         elsif ( 'USING' eq $join->{clause} )
         {
             my @keys = @{ $join->{keycols} };

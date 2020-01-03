@@ -27,7 +27,7 @@ SQL::Statement::Function - abstract base class for all function executing terms
 
 =head1 SYNOPSIS
 
-  # this class doesn't have a common constructor, because all derived classes
+  # this class does not have a common constructor, because all derived classes
   # have their special requirements
 
 =head1 DESCRIPTION
@@ -287,7 +287,7 @@ The character to trim - defaults to C<' '>
 
 =item I<\@params>
 
-Expected to be an array with exact 1 element (more aren't evaluated).
+Expected to be an array with exact 1 element (more are not evaluated).
 
 =back
 
@@ -381,7 +381,7 @@ If omitted, everything to the end of the string is returned.
 
 =item I<\@params>
 
-Expected to be an array with exact 1 element (more aren't evaluated).
+Expected to be an array with exact 1 element (more are not evaluated).
 
 =back
 
