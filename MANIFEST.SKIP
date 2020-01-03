@@ -34,3 +34,4 @@ nytprof*
 \.aspell\.local\.pws
 \.travis\.yml
 SQL-Statement-.*
+cover_db/
