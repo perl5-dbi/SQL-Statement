@@ -18,7 +18,7 @@ use Carp ();
 
 use SQL::Statement::Term ();
 
-our $VERSION = '1.412';
+our $VERSION = '1.413_001';
 
 @ISA = qw(SQL::Statement::Term);
 

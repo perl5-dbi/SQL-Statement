@@ -17,7 +17,7 @@ use vars qw(@ISA $VERSION);
 use SQL::Statement::Term ();
 @ISA = qw(SQL::Statement::Term);
 
-$VERSION = '1.412';
+$VERSION = '1.413_001';
 
 =pod
 
