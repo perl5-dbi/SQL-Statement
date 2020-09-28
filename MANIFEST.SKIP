@@ -31,6 +31,7 @@ bugsql
 nytprof*
 .*\.csv
 \.aspell\.local\.pws
+.*\.lock
 \.travis\.yml
 SQL-Statement-.*
 cover_db/
