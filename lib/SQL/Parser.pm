@@ -22,7 +22,7 @@ use Params::Util qw(_ARRAY0 _ARRAY _HASH);
 use Scalar::Util qw(looks_like_number);
 use Text::Balanced qw(extract_bracketed extract_multiple);
 
-$VERSION = '1.413_001';
+$VERSION = '1.414';
 
 BEGIN
 {
