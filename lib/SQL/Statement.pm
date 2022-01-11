@@ -2598,14 +2598,6 @@ You can also look for information at:
 
 L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=SQL-Statement>
 
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/SQL-Statement>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/s/SQL-Statement>
-
 =item * CPAN Search
 
 L<http://search.cpan.org/dist/SQL-Statement/>
