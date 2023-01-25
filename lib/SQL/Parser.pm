@@ -580,7 +580,7 @@ sub EXPLICIT_JOIN
     {
         ( $tableA, $remainder ) = $remainder =~ m/^(\S+) (.*)/i;
     }
-    if ( $remainder =~ m/^NATURAL (.+)/ )
+    if ( $remainder =~ m/^NATURAL (.+)/i )
     {
         $self->{struct}->{join}->{clause} = 'NATURAL';
         $natural++;
