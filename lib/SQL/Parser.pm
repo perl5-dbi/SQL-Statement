@@ -580,7 +580,7 @@ sub EXPLICIT_JOIN
     {
         ( $tableA, $remainder ) = $remainder =~ m/^(\S+) (.*)/i;
     }
-    if ( $remainder =~ m/^NATURAL (.+)/ )
+    if ( $remainder =~ m/^NATURAL (.+)/i )
     {
         $self->{struct}->{join}->{clause} = 'NATURAL';
         $natural++;
@@ -1181,7 +1181,7 @@ sub CREATE
 sub SET_CLAUSE_LIST
 {
     my ( $self, $set_string ) = @_;
-    my @sets = extract_multiple($set_string, [ 
+    my @sets = extract_multiple($set_string, [
         sub { my ($m, $r, $p) = extract_bracketed($_[0], "()", qr/[^,(]*/); (($p||'').($m||''), $r, ''); },
         qr/([^,(]+)/,
       ], undef, 1);
@@ -1568,7 +1568,7 @@ sub repl_btwin
     my @lids;
 
     my $i = -1;
-    while ( $str =~ m/\G.*(?:IN|BETWEEN)\s+\(/g )
+    while ( $str =~ m/\G.*(?:IN|BETWEEN)\s+\(/gi )
     {
         my $start   = pos($str) - 1;
         my $lparens = 1;
@@ -1881,7 +1881,7 @@ sub nongroup_numeric
 sub LITERAL_LIST
 {
     my ( $self, $str ) = @_;
-    my @tokens = extract_multiple($str, [ 
+    my @tokens = extract_multiple($str, [
         sub { my ($m, $r, $p) = extract_bracketed($_[0], "()", qr/[^,(]*/); (($p||'').($m||''), $r, ''); },
         qr/([^,(]+)/,
       ], undef, 1);
