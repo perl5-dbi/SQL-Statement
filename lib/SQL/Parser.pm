@@ -1568,7 +1568,7 @@ sub repl_btwin
     my @lids;
 
     my $i = -1;
-    while ( $str =~ m/\G.*(?:IN|BETWEEN)\s+\(/g )
+    while ( $str =~ m/\G.*(?:IN|BETWEEN)\s+\(/gi )
     {
         my $start   = pos($str) - 1;
         my $lparens = 1;
