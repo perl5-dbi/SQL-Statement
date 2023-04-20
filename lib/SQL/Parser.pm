@@ -619,7 +619,7 @@ sub EXPLICIT_JOIN
             $tableB = $1;
             my $keycolstr = $2;
             $remainder = $3;
-            @$keycols = split(/ AND|OR /i, $keycolstr);
+            @$keycols = split(/ (AND|OR) /i, $keycolstr);
 
             return undef
               unless $self->TABLE_NAME_LIST( $tableA . ',' . $tableB );
